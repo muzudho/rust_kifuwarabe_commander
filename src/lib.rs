@@ -27,7 +27,7 @@ pub mod kifuwarabe_commander {
         }
     }
 
-    pub fn zero_len(len:usize, line: &String, starts:&mut usize){
+    pub fn none_callback(len:usize, line: &String, starts:&mut usize){
 
     }
 
@@ -35,28 +35,27 @@ pub mod kifuwarabe_commander {
         // アプリケーション終了
         pub is_quit : bool,
         // コマンドを溜めておくバッファー
-        pub vec_command : Vec<String>,
+        pub vec_line : Vec<String>,
         pub action_len_zero: Command,
-        pub command_array: [Command; 0],
+        pub command_array: Vec<Command>,
     }
     impl Commander {
         pub fn new()->Commander{
             Commander{
                 is_quit : false,
-                vec_command : Vec::new(),
-                action_len_zero: Command { keyword: "".to_string(), callback: zero_len },
-                command_array: [
-                ],        
+                vec_line : Vec::new(),
+                action_len_zero: Command { keyword: "".to_string(), callback: none_callback },
+                command_array: Vec::new(),
             }
         }
         pub fn is_empty_command(&mut self) -> bool {
-            self.vec_command.len()==0
+            self.vec_line.len()==0
         }
         pub fn push_command(&mut self, line:&String) {
-            self.vec_command.push( format!("{}\n", line ) );
+            self.vec_line.push( format!("{}\n", line ) );
         }
         pub fn pop_command(&mut self) -> String {
-            self.vec_command.pop().unwrap()
+            self.vec_line.pop().unwrap()
         }
     }
 

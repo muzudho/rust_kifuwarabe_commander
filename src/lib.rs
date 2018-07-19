@@ -2,7 +2,7 @@
 
 use std::io;
 
-type Callback = fn(len:usize, line: &String, starts:&mut usize);
+type Callback = fn(len:usize, line: &String, starts:&mut usize, quits:&mut bool);
 
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 pub struct Command {
@@ -15,24 +15,22 @@ impl Command {
         return self.keyword.len()<=len && &line[*starts..self.keyword.len()] == self.keyword
     }
 
-    pub fn move_caret_and_go(&self, len:usize, line: &String, starts:&mut usize) {
+    pub fn move_caret_and_go(&self, len:usize, line: &String, starts:&mut usize, quits:&mut bool) {
         *starts += self.keyword.len();
         // 続きにスペース「 」が１つあれば読み飛ばす
         if 0<(len-*starts) && &line[*starts..(*starts+1)]==" " {
             *starts+=1;
         }            
 
-        (self.callback)(len, line, starts);
+        (self.callback)(len, line, starts, quits);
     }
 }
 
-pub fn none_callback(len:usize, line: &String, starts:&mut usize){
+pub fn none_callback(len:usize, line: &String, starts:&mut usize, quits:&mut bool){
 
 }
 
 pub struct Commander{
-    // アプリケーション終了
-    pub is_quit : bool,
     // コマンドを溜めておくバッファー
     pub vec_line : Vec<String>,
     pub action_len_zero: Command,
@@ -41,7 +39,6 @@ pub struct Commander{
 impl Commander {
     pub fn new()->Commander{
         Commander{
-            is_quit : false,
             vec_line : Vec::new(),
             action_len_zero: Command { keyword: "".to_string(), callback: none_callback },
             command_array: Vec::new(),
@@ -83,10 +80,12 @@ impl Commander {
             let mut starts = 0;
 
             let mut is_done = false;
+            // アプリケーション終了
+            let mut quits = false;
 
             for element in self.command_array.iter() {
                 if element.is_matched(len, &line, &starts) {
-                    element.move_caret_and_go(len, &line, &mut starts);
+                    element.move_caret_and_go(len, &line, &mut starts, &mut quits);
                     is_done = true;
                     break;
                 }
@@ -94,10 +93,10 @@ impl Commander {
 
             // 何とも一致しなかったら実行する。
             if !is_done {
-                self.action_len_zero.move_caret_and_go(len, &line, &mut starts);
+                self.action_len_zero.move_caret_and_go(len, &line, &mut starts, &mut quits);
             }
 
-            if self.is_quit {
+            if quits {
                 // ループを抜けて終了
                 break;
             }

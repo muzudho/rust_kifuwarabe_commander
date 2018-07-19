@@ -2,7 +2,12 @@
 
 use std::io;
 
-type Callback = fn(len:usize, line: &String, starts:&mut usize, quits:&mut bool);
+pub struct CommandResponse {
+    // アプリケーション終了
+    pub quits: bool
+}
+
+type Callback = fn(len:usize, line: &String, starts:&mut usize, response:&mut CommandResponse);
 
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 pub struct Command {
@@ -15,18 +20,18 @@ impl Command {
         return self.keyword.len()<=len && &line[*starts..self.keyword.len()] == self.keyword
     }
 
-    pub fn move_caret_and_go(&self, len:usize, line: &String, starts:&mut usize, quits:&mut bool) {
+    pub fn move_caret_and_go(&self, len:usize, line: &String, starts:&mut usize, response:&mut CommandResponse) {
         *starts += self.keyword.len();
         // 続きにスペース「 」が１つあれば読み飛ばす
         if 0<(len-*starts) && &line[*starts..(*starts+1)]==" " {
             *starts+=1;
         }            
 
-        (self.callback)(len, line, starts, quits);
+        (self.callback)(len, line, starts, response);
     }
 }
 
-pub fn none_callback(len:usize, line: &String, starts:&mut usize, quits:&mut bool){
+pub fn none_callback(len:usize, line: &String, starts:&mut usize, response:&mut CommandResponse){
 
 }
 
@@ -80,12 +85,13 @@ impl Commander {
             let mut starts = 0;
 
             let mut is_done = false;
-            // アプリケーション終了
-            let mut quits = false;
+            let mut response = CommandResponse {
+                quits: false
+            };
 
             for element in self.command_array.iter() {
                 if element.is_matched(len, &line, &starts) {
-                    element.move_caret_and_go(len, &line, &mut starts, &mut quits);
+                    element.move_caret_and_go(len, &line, &mut starts, &mut response);
                     is_done = true;
                     break;
                 }
@@ -93,10 +99,10 @@ impl Commander {
 
             // 何とも一致しなかったら実行する。
             if !is_done {
-                self.action_len_zero.move_caret_and_go(len, &line, &mut starts, &mut quits);
+                self.action_len_zero.move_caret_and_go(len, &line, &mut starts, &mut response);
             }
 
-            if quits {
+            if response.quits {
                 // ループを抜けて終了
                 break;
             }

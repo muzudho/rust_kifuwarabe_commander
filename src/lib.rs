@@ -17,13 +17,24 @@ pub struct Response {
 ///
 /// * `row` - コマンドライン文字列の1行全体です。
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
-/// * `len` - コマンドライン文字列の1行全体の文字数です。
 /// * `response` - このアプリケーションへ、このあとの対応を指示します。
 ///
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-type Callback = fn(row: &String, starts: &mut usize, len: usize, response: &mut Response);
+type Callback = fn(row: &String, starts: &mut usize, res: &mut Response);
+
+/// 何もしないコールバック関数です。
+///
+/// # Arguments
+///
+/// * `row` - コマンドライン文字列の1行全体です。
+/// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
+/// * `len` - コマンドライン文字列の1行全体の文字数です。
+/// * `response` - このアプリケーションへ、このあとの対応を指示します。
+pub fn none_callback(_row: &String, _starts: &mut usize, _res: &mut Response) {
+
+}
 
 /// トークンと、コールバック関数の組みです。
 ///
@@ -63,20 +74,8 @@ impl TokenMapping {
             *starts+=1;
         }            
 
-        (self.callback)(row, starts, len, response);
+        (self.callback)(row, starts, response);
     }
-}
-
-/// 何もしないコールバック関数です。
-///
-/// # Arguments
-///
-/// * `row` - コマンドライン文字列の1行全体です。
-/// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
-/// * `len` - コマンドライン文字列の1行全体の文字数です。
-/// * `response` - このアプリケーションへ、このあとの対応を指示します。
-pub fn none_callback(_row: &String, _starts: &mut usize, _len: usize, _response: &mut Response) {
-
 }
 
 /// このアプリケーションです。
@@ -84,20 +83,34 @@ pub fn none_callback(_row: &String, _starts: &mut usize, _len: usize, _response:
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-/// * `other_token_mapping` - トークン マッピングに一致しなかったときに呼び出される例外トークン マッピングです。
 /// * `token_mapping_array` - 複数件のトークン マッピングです。
+/// * `other_callback` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数です。
 pub struct Shell{
-    pub vec_row : Vec<String>,
-    pub other_token_mapping: TokenMapping,
-    pub token_mapping_array: Vec<TokenMapping>,
+    vec_row : Vec<String>,
+    token_mapping_array: Vec<TokenMapping>,
+    other_callback: Callback,
 }
 impl Shell {
     pub fn new()->Shell{
         Shell{
             vec_row : Vec::new(),
-            other_token_mapping: TokenMapping { token: "".to_string(), callback: none_callback },
             token_mapping_array: Vec::new(),
+            other_callback: none_callback,
         }
+    }
+
+    /// # Arguments
+    /// 
+    /// * `map` - トークンと、コールバック関数の組みです。
+    pub fn push_token_mapping(&mut self, map: TokenMapping){
+        self.token_mapping_array.push(map);
+    }
+
+    /// # Arguments
+    /// 
+    /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
+    pub fn set_other_callback(&mut self, callback: Callback){
+        self.other_callback = callback;
     }
 
     /// コマンドを1行も入力していなければ真を返します。
@@ -156,7 +169,7 @@ impl Shell {
 
             // 何とも一致しなかったら実行します。
             if !is_done {
-                self.other_token_mapping.move_caret_and_go(&row, &mut starts, len, &mut response);
+                (self.other_callback)(&row, &mut starts, &mut response);
             }
 
             if response.quits {

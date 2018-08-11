@@ -11,6 +11,26 @@ pub struct Response {
     pub quits: bool
 }
 
+/// コマンドライン文字列。
+/// 
+/// # Members
+/// 
+/// * `contents` - コマンドライン文字列の1行全体です。
+/// * `len` - コマンドライン文字列の1行全体の文字数です。
+pub struct CommandlineString {
+    pub contents: String,
+    pub len: usize,
+}
+impl CommandlineString {
+    pub fn new(contents: String) -> CommandlineString {
+        let len = contents.chars().count();
+        CommandlineString {
+            contents: contents,
+            len: len,
+        }
+    }
+}
+
 /// コマンドライン文字列に対応づく処理内容を書いてください。
 ///
 /// # Arguments
@@ -54,8 +74,8 @@ impl TokenMapping {
     /// * `row` - コマンドライン文字列の1行全体です。
     /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
     /// * `len` - コマンドライン文字列の1行全体の文字数です。
-    pub fn is_matched(&self, row: &String, starts: &usize, len: usize) -> bool {
-        return self.token.len()<=len && &row[*starts..self.token.len()] == self.token
+    pub fn is_matched(&self, line_str: &CommandlineString, starts: &usize) -> bool {
+        return self.token.len()<=line_str.len && &line_str.contents[*starts..self.token.len()] == self.token
     }
 
     /// [token]文字列の長さだけ [starts]キャレットを進めます。
@@ -67,14 +87,14 @@ impl TokenMapping {
     /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
     /// * `len` - コマンドライン文字列の1行全体の文字数です。
     /// * `response` - コールバック関数に渡します。
-    pub fn move_caret_and_go(&self, row: &String, starts: &mut usize, len: usize, response: &mut Response) {
+    pub fn start_with_and_forward(&self, line_str: &CommandlineString, starts: &mut usize, response: &mut Response) {
         *starts += self.token.len();
         // 続きにスペース「 」が１つあれば読み飛ばす
-        if 0<(len-*starts) && &row[*starts..(*starts+1)]==" " {
+        if 0<(line_str.len-*starts) && &line_str.contents[*starts..(*starts+1)]==" " {
             *starts+=1;
         }            
 
-        (self.callback)(row, starts, response);
+        (self.callback)(&line_str.contents, starts, response);
     }
 }
 
@@ -134,34 +154,35 @@ impl Shell {
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
     pub fn run(&mut self) {
         loop{
-            let mut row : String;
+            let line_str : CommandlineString;
             if self.is_empty() {
-                row = String::new();
+                let mut line = String::new();
+                // コマンド プロンプトからの入力があるまで待機します。
+                io::stdin().read_line(&mut line)
+                    .ok() // read_line が返す Resultオブジェクト の okメソッド。
+                    .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
+
+                // 末尾の 改行 を除きます。前後の空白も消えます。
+                line = line.trim().parse().ok().expect("info Failed to parse");
+
+                line_str = CommandlineString::new(line);
             } else {
                 // バッファーの先頭行です。
-                row = self.pop_row();
+                line_str = CommandlineString::new(self.pop_row());
             }
 
-            // コマンド プロンプトからの入力があるまで待機します。
-            io::stdin().read_line(&mut row)
-                .ok() // read_line が返す Resultオブジェクト の okメソッド。
-                .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
 
-            // 末尾の 改行 を除きます。前後の空白も消えます。
-            row = row.trim().parse().ok().expect("info Failed to parse");
 
             // 1行の文字数です。
-            let len = row.chars().count();
             let mut starts = 0;
-
             let mut is_done = false;
             let mut response = Response {
                 quits: false
             };
 
             for element in self.token_mapping_array.iter() {
-                if element.is_matched(&row, &starts, len) {
-                    element.move_caret_and_go(&row, &mut starts, len, &mut response);
+                if element.is_matched(&line_str, &starts) {
+                    element.start_with_and_forward(&line_str, &mut starts, &mut response);
                     is_done = true;
                     break;
                 }
@@ -169,7 +190,7 @@ impl Shell {
 
             // 何とも一致しなかったら実行します。
             if !is_done {
-                (self.other_callback)(&row, &mut starts, &mut response);
+                (self.other_callback)(&line_str.contents, &mut starts, &mut response);
             }
 
             if response.quits {

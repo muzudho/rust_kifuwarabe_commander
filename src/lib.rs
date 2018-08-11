@@ -2,13 +2,23 @@
 /// 行単位です。
 use std::io;
 
-/// 「Rust きふわらべ シェル」への応答を入れてください。
-///
+/// キャレット。
+/// 
 /// # Members
-///
+/// 
+/// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
 /// * `quits` - アプリケーションを終了するなら真にします。
-pub struct Response {
-    pub quits: bool
+pub struct Caret {
+    pub starts: usize,
+    pub quits: bool,
+}
+impl Caret {
+    pub fn new() -> Caret {
+        Caret {
+            starts: 0,
+            quits: false,
+        }
+    }
 }
 
 /// コマンドライン文字列。
@@ -42,7 +52,7 @@ impl CommandlineString {
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-type Callback = fn(row: &String, starts: &mut usize, res: &mut Response);
+type Callback = fn(row: &String, caret: &mut Caret);
 
 /// 何もしないコールバック関数です。
 ///
@@ -52,7 +62,7 @@ type Callback = fn(row: &String, starts: &mut usize, res: &mut Response);
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
 /// * `len` - コマンドライン文字列の1行全体の文字数です。
 /// * `response` - このアプリケーションへ、このあとの対応を指示します。
-pub fn none_callback(_row: &String, _starts: &mut usize, _res: &mut Response) {
+pub fn none_callback(_row: &String, _caret: &mut Caret) {
 
 }
 
@@ -62,39 +72,35 @@ pub fn none_callback(_row: &String, _starts: &mut usize, _res: &mut Response) {
 ///
 /// * `token` - 全文一致させたい文字列です。
 /// * `callback` - コールバック関数です。
-pub struct TokenMapping {
+pub struct ExpectedToken {
     pub token: String,
     pub callback: Callback,
 }
-impl TokenMapping {
-    /// [row]コマンドライン文字列の [starts]番目から [token]が全文一致していれば真を返します。
-    ///
-    /// # Arguments
-    ///
-    /// * `row` - コマンドライン文字列の1行全体です。
-    /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
-    /// * `len` - コマンドライン文字列の1行全体の文字数です。
-    pub fn is_matched(&self, line_str: &CommandlineString, starts: &usize) -> bool {
-        return self.token.len()<=line_str.len && &line_str.contents[*starts..self.token.len()] == self.token
-    }
-
+impl ExpectedToken {
     /// [token]文字列の長さだけ [starts]キャレットを進めます。
     /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
     ///
     /// # Arguments
     ///
-    /// * `row` - コマンドライン文字列の1行全体です。
-    /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
-    /// * `len` - コマンドライン文字列の1行全体の文字数です。
-    /// * `response` - コールバック関数に渡します。
-    pub fn start_with_and_forward(&self, line_str: &CommandlineString, starts: &mut usize, response: &mut Response) {
-        *starts += self.token.len();
-        // 続きにスペース「 」が１つあれば読み飛ばす
-        if 0<(line_str.len-*starts) && &line_str.contents[*starts..(*starts+1)]==" " {
-            *starts+=1;
-        }            
+    /// * `line_str` - 読み取るコマンドライン。
+    /// * `caret` - 読取位置。
+    /// * returns - 一致したら真。
+    pub fn start_with_and_forward(&self, line_str: &CommandlineString, caret: &mut Caret) -> bool {
+        if caret.starts + self.token.len() <= line_str.len
+            && &line_str.contents[caret.starts..self.token.len()] == self.token {
 
-        (self.callback)(&line_str.contents, starts, response);
+            caret.starts += self.token.len();
+            // 続きにスペース「 」が１つあれば読み飛ばす
+            if 0<(line_str.len-caret.starts) && &line_str.contents[caret.starts..(caret.starts+1)]==" " {
+                caret.starts += 1;
+            }            
+
+            (self.callback)(&line_str.contents, caret);
+
+            true
+        } else {
+            false
+        }
     }
 }
 
@@ -103,18 +109,18 @@ impl TokenMapping {
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-/// * `token_mapping_array` - 複数件のトークン マッピングです。
+/// * `expected_token_array` - 複数件のトークン マッピングです。
 /// * `other_callback` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数です。
 pub struct Shell{
     vec_row : Vec<String>,
-    token_mapping_array: Vec<TokenMapping>,
+    expected_token_array: Vec<ExpectedToken>,
     other_callback: Callback,
 }
 impl Shell {
     pub fn new()->Shell{
         Shell{
             vec_row : Vec::new(),
-            token_mapping_array: Vec::new(),
+            expected_token_array: Vec::new(),
             other_callback: none_callback,
         }
     }
@@ -122,8 +128,8 @@ impl Shell {
     /// # Arguments
     /// 
     /// * `map` - トークンと、コールバック関数の組みです。
-    pub fn push_token_mapping(&mut self, map: TokenMapping){
-        self.token_mapping_array.push(map);
+    pub fn push_token_mapping(&mut self, map: ExpectedToken){
+        self.expected_token_array.push(map);
     }
 
     /// # Arguments
@@ -173,16 +179,11 @@ impl Shell {
 
 
 
-            // 1行の文字数です。
-            let mut starts = 0;
+            let mut caret = Caret::new();
             let mut is_done = false;
-            let mut response = Response {
-                quits: false
-            };
 
-            for element in self.token_mapping_array.iter() {
-                if element.is_matched(&line_str, &starts) {
-                    element.start_with_and_forward(&line_str, &mut starts, &mut response);
+            for element in self.expected_token_array.iter() {
+                if element.start_with_and_forward(&line_str, &mut caret) {
                     is_done = true;
                     break;
                 }
@@ -190,10 +191,10 @@ impl Shell {
 
             // 何とも一致しなかったら実行します。
             if !is_done {
-                (self.other_callback)(&line_str.contents, &mut starts, &mut response);
+                (self.other_callback)(&line_str.contents, &mut caret);
             }
 
-            if response.quits {
+            if caret.quits {
                 // ループを抜けて、アプリケーションを終了します。
                 break;
             }

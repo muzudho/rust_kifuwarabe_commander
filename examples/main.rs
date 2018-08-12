@@ -49,6 +49,13 @@ pub fn do_a(line: &Commandline, _caret:&mut Caret){
 pub fn do_ab(line: &Commandline, caret:&mut Caret){
     println!("AB! [{}]", line.contents);
     caret.next = "ND_cde";
+
+    // 行終了時に実行されるコールバック関数を１つ設定できる。
+    caret.set_line_end_controller(do_ab_line_end);
+}
+
+pub fn do_ab_line_end(line: &Commandline, _caret:&mut Caret){
+    println!("AB-LineEnd. [{}]", line.contents);
 }
 
 pub fn do_abc(line: &Commandline, _caret:&mut Caret){

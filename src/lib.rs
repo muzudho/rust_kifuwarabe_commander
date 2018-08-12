@@ -26,6 +26,8 @@ pub struct Caret {
     pub quits: bool,
     pub groups: Vec<String>,
     pub next: &'static str,
+    line_end_controller_changed: bool,
+    line_end_controller: Controller,
 }
 impl Caret {
     pub fn new() -> Caret {
@@ -35,7 +37,20 @@ impl Caret {
             quits: false,
             groups: Vec::new(),
             next: "",
+            line_end_controller_changed: false,
+            line_end_controller: empty_controller,
         }
+    }
+    pub fn set_line_end_controller(&mut self, controller: Controller) {
+        self.line_end_controller_changed = true;
+        self.line_end_controller = controller;
+    }
+    pub fn reset_line_end_controller(&mut self) {
+        self.line_end_controller_changed = false;
+        self.line_end_controller = empty_controller;
+    }
+    pub fn is_line_end_controller_changed(&self) -> bool {
+        self.line_end_controller_changed
     }
 }
 
@@ -278,6 +293,10 @@ impl Shell {
         };
 
         'lines: loop{
+
+            let mut current_lineend_controller : Controller;
+            current_lineend_controller = empty_controller;
+
             let line : Commandline;
             if self.is_empty() {
                 let mut line_string = String::new();
@@ -304,6 +323,7 @@ impl Shell {
 
                 // キャレットの位置そのままで次のトークンへ。
                 caret.next = "";
+                caret.reset_line_end_controller();
                 let mut is_done = false;
                 let mut is_done_re = false;
 
@@ -376,6 +396,11 @@ impl Shell {
                     next = caret.next;
                     //println!("New next: {}", next);
 
+                    // 行終了時コントローラーの更新
+                    if caret.is_line_end_controller_changed() {
+                        current_lineend_controller = caret.line_end_controller;
+                    }
+
                     if caret.done_line {
                         // 行解析の終了。
                         caret.starts = line.len;
@@ -393,6 +418,11 @@ impl Shell {
                     break 'lines;
                 }
             }
+
+            // 1行読取終了。
+            (current_lineend_controller)(&line, &mut caret);
+
+
         } // loop
     }
 }

@@ -10,6 +10,8 @@ use kifuwarabe_shell::*;
 ///
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
 /// - 「end xyz」と打鍵して [Enter]キーを押す。
+/// - 「xyz」と打鍵して [Enter]キーを押す。
+/// - 「ab cde xyz」と打鍵して [Enter]キーを押す。
 /// - 「quit」と打鍵して [Enter]キーを押す。
 /// - [Ctrl]+[C]キー を押すなら、強制終了。
 fn main() {
@@ -27,12 +29,14 @@ fn main() {
     shell.insert_node("ND_abc", "abc", do_abc);
     shell.insert_node("ND_cde", "cde", do_cde);
     shell.insert_node("ND_end", "end", do_end);
-    shell.insert_node_re("ND_num", r"(\d+)", do_num);
+    shell.insert_node_re("ND_numvar", r"(\d+)", do_numvar);
     shell.insert_node("ND_quit", "quit", do_quit);
+    shell.insert_node_re("ND_wordvar", r"(\w+)", do_wordvar);
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
 
     // 開始ノードを選択する。
-    shell.set_next("ND_a,ND_ab,ND_abc,ND_end,ND_quit,ND_num");
+    shell.set_next("ND_a,ND_ab,ND_abc,ND_end,ND_numvar,
+        ND_quit,ND_wordvar");
 
     // 実行。
     shell.run();
@@ -51,8 +55,9 @@ pub fn do_abc(line: &Commandline, _caret:&mut Caret){
     println!("ABC! [{}]", line.contents);
 }
 
-pub fn do_cde(line: &Commandline, _caret:&mut Caret){
+pub fn do_cde(line: &Commandline, caret:&mut Caret){
     println!("CDE! [{}]", line.contents);
+    caret.next = "ND_wordvar";
 }
 
 pub fn do_end(line: &Commandline, caret:&mut Caret){
@@ -60,9 +65,9 @@ pub fn do_end(line: &Commandline, caret:&mut Caret){
     println!("End! [{}]", line.contents);
 }
 
-pub fn do_num(_line: &Commandline, caret:&mut Caret){
+pub fn do_numvar(_line: &Commandline, caret:&mut Caret){
     let cap = &caret.groups[0];
-    println!("Number! [{}]", cap);
+    println!("Number. [{}]", cap);
 }
 
 pub fn do_other(line: &Commandline, caret:&mut Caret){
@@ -72,4 +77,9 @@ pub fn do_other(line: &Commandline, caret:&mut Caret){
 pub fn do_quit(line: &Commandline, caret:&mut Caret){
     println!("Quit. [{}]", line.contents);
     caret.quits = true;
+}
+
+pub fn do_wordvar(_line: &Commandline, caret:&mut Caret){
+    let cap = &caret.groups[0];
+    println!("Word. [{}]", cap);
 }

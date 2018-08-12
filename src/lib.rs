@@ -2,6 +2,9 @@
 /// 行単位です。
 extern crate regex;
 
+/// 不具合を取りたいときに真にする。
+const VERBOSE : bool = false;
+
 use regex::Regex;
 use std::collections::HashMap;
 use std::io;
@@ -113,24 +116,41 @@ impl Node {
     /// * `caret` - 読取位置。
     /// * returns - 一致したら真。
     pub fn starts_with_re(&self, line: &Commandline, caret: &mut Caret) -> bool {
-        // println!("starts_with_re");
+
+        if VERBOSE {
+            println!("starts_with_re");
+        }
+
         if caret.starts < line.len {
-            // println!("self.token: {}", self.token);
+
+            if VERBOSE {
+                println!("self.token: {}", self.token);
+            }
+
             let re = Regex::new(self.token).unwrap();
 
             let text = &line.contents[caret.starts..];
-            // println!("text: [{}]", text);
 
-            let mut count = 0;
+            if VERBOSE {
+                println!("text: [{}]", text);
+            }
+
+            let mut group_num = 0;
             caret.groups.clear();
             for caps in re.captures_iter(text) {
-                let cap = &caps[count];
+                // caps は サイズ 2 の配列 で同じものが入っている。
+                let cap = &caps[0];
+
                 caret.groups.push(cap.to_string());
-                // println!("HIT. [{}] [{}]", count, cap);
-                count += 1;
+
+                group_num += 1;
             };
-            // println!("Count: {}", count);
-            0<count
+
+            if VERBOSE {
+                println!("Group num: {}", group_num);
+            }
+
+            0<group_num
         } else {
             false
         }

@@ -1,5 +1,8 @@
 /// # Rust きふわらべ シェル
 /// 行単位です。
+extern crate regex;
+
+use regex::Regex;
 use std::collections::HashMap;
 use std::io;
 
@@ -9,15 +12,18 @@ use std::io;
 /// 
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
 /// * `quits` - アプリケーションを終了するなら真にします。
+/// * `groups` - あれば、正規表現の結果を入れておく。
 pub struct Caret {
     pub starts: usize,
     pub quits: bool,
+    pub groups: Vec<String>,
 }
 impl Caret {
     pub fn new() -> Caret {
         Caret {
             starts: 0,
             quits: false,
+            groups: Vec::new(),
         }
     }
 }
@@ -55,18 +61,6 @@ impl Commandline {
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 type Callback = fn(line: &Commandline, caret: &mut Caret);
 
-/// 何もしないコールバック関数です。
-///
-/// # Arguments
-///
-/// * `row` - コマンドライン文字列の1行全体です。
-/// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
-/// * `len` - コマンドライン文字列の1行全体の文字数です。
-/// * `response` - このアプリケーションへ、このあとの対応を指示します。
-pub fn none_callback(_line: &Commandline, _caret: &mut Caret) {
-
-}
-
 /// トークンと、コールバック関数の組みです。
 ///
 /// # Members
@@ -74,10 +68,12 @@ pub fn none_callback(_line: &Commandline, _caret: &mut Caret) {
 /// * `token` - 全文一致させたい文字列です。
 /// * `callback` - コールバックの項目名です。
 /// * `next` - カンマ区切りの登録ノード名です。
+/// * `token_regex` - トークンに正規表現を使うなら真です。
 pub struct Node {
     pub token: &'static str,
     pub callback: &'static str,
     pub next: &'static str,
+    pub token_regex: bool, 
 }
 impl Node {
     /// [token]文字列の長さだけ [starts]キャレットを進めます。
@@ -100,8 +96,49 @@ impl Node {
         }
     }
 
+    /// 正規表現を使う。
+    ///
+    /// # Arguments
+    ///
+    /// * `line` - 読み取るコマンドライン。
+    /// * `caret` - 読取位置。
+    /// * returns - 一致したら真。
+    pub fn starts_with_re(&self, line: &Commandline, caret: &mut Caret) -> bool {
+        println!("starts_with_re");
+        if caret.starts < line.len {
+            println!("self.token: {}", self.token);
+            let re = Regex::new(self.token).unwrap();
+
+            let text = &line.contents[caret.starts..];
+            println!("text: [{}]", text);
+
+            let mut count = 0;
+            caret.groups.clear();
+            for caps in re.captures_iter(text) {
+                let cap = &caps[count];
+                caret.groups.push(cap.to_string());
+                println!("HIT. [{}] [{}]", count, cap);
+                count += 1;
+            };
+            println!("Count: {}", count);
+            0<count
+        } else {
+            false
+        }
+    }
+
     pub fn forward(&self, line: &Commandline, caret: &mut Caret) {
         caret.starts += self.token.len();
+        // 続きにスペース「 」が１つあれば読み飛ばす
+        if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
+            caret.starts += 1;
+        }
+    }
+
+    /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
+    pub fn forward_re(&self, line: &Commandline, caret: &mut Caret) {
+        let pseud_token_len = caret.groups[0].chars().count();
+        caret.starts += pseud_token_len;
         // 続きにスペース「 」が１つあれば読み飛ばす
         if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
             caret.starts += 1;
@@ -158,6 +195,25 @@ impl Shell {
                 token: token,
                 callback: callback,
                 next: next,
+                token_regex: false,
+            }
+        );
+    }
+
+    /// 正規表現を使うなら。
+    /// 
+    /// # Arguments
+    /// 
+    /// * `name` - 登録用の名前です。
+    /// * `node` - ノードです。
+    pub fn insert_node_re(&mut self, name: &'static str, token: &'static str, callback: &'static str, next: &'static str){
+        self.node_table.insert(
+            name.to_string(),
+            Node {
+                token: token,
+                callback: callback,
+                next: next,
+                token_regex: true,
             }
         );
     }
@@ -217,6 +273,7 @@ impl Shell {
             token: "",
             callback: "",
             next: "",
+            token_regex: false,
         };
 
         'lines: loop{
@@ -245,6 +302,7 @@ impl Shell {
             'line: loop {
                 // キャレットの位置そのままで次のトークンへ。
                 let mut is_done = false;
+                let mut is_done_re = false;
 
                 let vec_next: Vec<&str>;
                 {
@@ -258,30 +316,57 @@ impl Shell {
                 // 最初は全てのノードが対象。
                 let mut max_token_len = 0;
                 let mut best_node = &empty_node;
+                let mut best_node_re = &empty_node;
                 for i_next_node_name in vec_next {
                     let next_node_name = i_next_node_name.trim();
                     // println!("next_node_name: {}", next_node_name);
                     if self.contains_node(&next_node_name.to_string()) {
                         //println!("contains.");
                         let node = self.get_node(&next_node_name.to_string());
-                        if node.starts_with(&line, &mut caret) {
-                            //println!("starts_with.");
-                            let token_len = node.token.chars().count();
-                            if max_token_len < token_len {
-                                max_token_len = token_len;
-                                best_node = node;
-                            };
 
-                            is_done = true;
-                        //} else {
-                        //    println!("not starts_with. line.contents={}, line.len={}, caret.starts={}", line.contents, line.len, caret.starts);
+                        let matched;
+                        if node.token_regex {
+                            if node.starts_with_re(&line, &mut caret) {
+                                // 正規表現で一致したなら。
+                                best_node_re = node;
+                                is_done_re = true;
+                            }
+
+                        } else {
+                            matched = node.starts_with(&line, &mut caret);
+                            if matched {
+                                // 固定長トークンで一致したなら。
+                                //println!("starts_with.");
+                                let token_len = node.token.chars().count();
+                                if max_token_len < token_len {
+                                    max_token_len = token_len;
+                                    best_node = node;
+                                };
+                                is_done = true;
+                            //} else {
+                            //    println!("not starts_with. line.contents={}, line.len={}, caret.starts={}", line.contents, line.len, caret.starts);
+                            }
+
                         }
+
+                    }
+                }
+
+                // キャレットを進める。
+                if is_done || is_done_re {
+                    if is_done {
+                        best_node.forward(&line, &mut caret);
+                        
+                    } else {
+                        best_node_re.forward_re(&line, &mut caret);
+
+                        // まとめる。
+                        is_done = is_done_re;
+                        best_node = best_node_re;
                     }
                 }
 
                 if is_done {
-                    // キャレットを進める。
-                    best_node.forward(&line, &mut caret);
                     
                     if self.contains_callback(&best_node.callback.to_string()) {
                         let callback = self.get_callback(&best_node.callback.to_string());

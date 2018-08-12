@@ -73,9 +73,11 @@ pub fn none_callback(_line: &Commandline, _caret: &mut Caret) {
 ///
 /// * `token` - 全文一致させたい文字列です。
 /// * `callback` - コールバックの項目名です。
+/// * `next` - カンマ区切りの登録ノード名です。
 pub struct Node {
     pub token: &'static str,
     pub callback: &'static str,
+    pub next: &'static str,
 }
 impl Node {
     /// [token]文字列の長さだけ [starts]キャレットを進めます。
@@ -87,8 +89,11 @@ impl Node {
     /// * `caret` - 読取位置。
     /// * returns - 一致したら真。
     pub fn starts_with(&self, line: &Commandline, caret: &mut Caret) -> bool {
-        if caret.starts + self.token.len() <= line.len
-            && &line.contents[caret.starts..self.token.len()] == self.token {
+        let caret_end = caret.starts + self.token.len();
+        //println!("caret.starts={} + self.token.len()={} <= line.len={} [{}]==[{}]", caret.starts, self.token.len(), line.len,
+        //    &line.contents[caret.starts..caret_end], self.token);
+        if caret_end <= line.len
+            && &line.contents[caret.starts..caret_end] == self.token {
             true
         } else {
             false
@@ -111,11 +116,13 @@ impl Node {
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
 /// * `token_array` - 複数件のトークン マッピングです。
 /// * `complementary_callback` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
+/// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell{
     vec_row : Vec<String>,
     node_table: HashMap<String, Node>,
     callback_table: HashMap<String, Callback>,
     complementary_callback: String,
+    pub next: &'static str,
 }
 impl Shell {
     pub fn new()->Shell{
@@ -124,7 +131,12 @@ impl Shell {
             node_table: HashMap::new(),
             callback_table: HashMap::new(),
             complementary_callback: "".to_string(),
+            next: "",
         }
+    }
+
+    pub fn set_next(&mut self, next: &'static str) {
+        self.next = next;
     }
 
     pub fn contains_node(&self, name: &String) -> bool {
@@ -139,8 +151,15 @@ impl Shell {
     /// 
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    pub fn insert_node(&mut self, name: &'static str, node: Node){
-        self.node_table.insert(name.to_string(), node);
+    pub fn insert_node(&mut self, name: &'static str, token: &'static str, callback: &'static str, next: &'static str){
+        self.node_table.insert(
+            name.to_string(),
+            Node {
+                token: token,
+                callback: callback,
+                next: next,
+            }
+        );
     }
 
     pub fn contains_callback(&self, name: &String) -> bool {
@@ -195,11 +214,12 @@ impl Shell {
     pub fn run(&mut self) {
 
         let empty_node = Node {
-            token : "",
-            callback : ""
+            token: "",
+            callback: "",
+            next: "",
         };
 
-        loop{
+        'lines: loop{
             let line : Commandline;
             if self.is_empty() {
                 let mut line_string = String::new();
@@ -220,41 +240,71 @@ impl Shell {
 
 
             let mut caret = Caret::new();
-            let mut is_done = false;
+            let mut next = self.next;
 
-            // 最初は全てのノードが対象。
-            let mut max_len = 0;
-            let mut best_node = &empty_node;
-            for (_name, node) in &self.node_table {
-                if node.starts_with(&line, &mut caret) {
-                    let token_len = node.token.chars().count();
-                    if max_len < token_len {
-                        max_len = token_len;
-                        best_node = node;
-                    };
+            'line: loop {
+                // キャレットの位置そのままで次のトークンへ。
+                let mut is_done = false;
 
-                    is_done = true;
+                let vec_next: Vec<&str>;
+                {
+                    let split = next.split(",");
+                    // for s in split {
+                    //     println!("{}", s)
+                    // }
+                    vec_next = split.collect();
                 }
-            }
 
-            if is_done {
-                best_node.starts_with(&line, &mut caret);
-                
-                if self.contains_callback(&best_node.callback.to_string()) {
-                    let callback = self.get_callback(&best_node.callback.to_string());
-                    (callback)(&line, &mut caret);
-                }
-            } else {
-                // 何とも一致しなかったら実行します。
-                if self.contains_callback(&self.complementary_callback) {
-                    let callback = self.get_callback(&self.complementary_callback);
-                    (callback)(&line, &mut caret);
-                }
-            }
+                // 最初は全てのノードが対象。
+                let mut max_token_len = 0;
+                let mut best_node = &empty_node;
+                for i_next_node_name in vec_next {
+                    let next_node_name = i_next_node_name.trim();
+                    // println!("next_node_name: {}", next_node_name);
+                    if self.contains_node(&next_node_name.to_string()) {
+                        //println!("contains.");
+                        let node = self.get_node(&next_node_name.to_string());
+                        if node.starts_with(&line, &mut caret) {
+                            //println!("starts_with.");
+                            let token_len = node.token.chars().count();
+                            if max_token_len < token_len {
+                                max_token_len = token_len;
+                                best_node = node;
+                            };
 
-            if caret.quits {
-                // ループを抜けて、アプリケーションを終了します。
-                break;
+                            is_done = true;
+                        //} else {
+                        //    println!("not starts_with. line.contents={}, line.len={}, caret.starts={}", line.contents, line.len, caret.starts);
+                        }
+                    }
+                }
+
+                if is_done {
+                    // キャレットを進める。
+                    best_node.forward(&line, &mut caret);
+                    
+                    if self.contains_callback(&best_node.callback.to_string()) {
+                        let callback = self.get_callback(&best_node.callback.to_string());
+                        (callback)(&line, &mut caret);
+                    }
+
+                    next = best_node.next;
+                    //println!("New next: {}", next);
+
+                } else {
+                    // 何とも一致しなかったら実行します。
+                    if self.contains_callback(&self.complementary_callback) {
+                        let callback = self.get_callback(&self.complementary_callback);
+                        (callback)(&line, &mut caret);
+                    }
+                    // 次のラインへ。
+                    break 'line;
+                }
+
+                if caret.quits {
+                    // ループを抜けて、アプリケーションを終了します。
+                    break 'lines;
+                }
             }
         } // loop
     }

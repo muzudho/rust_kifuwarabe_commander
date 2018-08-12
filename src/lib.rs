@@ -1,5 +1,6 @@
 /// # Rust きふわらべ シェル
 /// 行単位です。
+use std::collections::HashMap;
 use std::io;
 
 /// キャレット。
@@ -66,17 +67,23 @@ pub fn none_callback(_line: &Commandline, _caret: &mut Caret) {
 
 }
 
+pub struct StaticNode {
+    pub token: &'static str,
+    pub callback: &'static str,
+}
+
 /// トークンと、コールバック関数の組みです。
 ///
 /// # Members
 ///
 /// * `token` - 全文一致させたい文字列です。
-/// * `callback` - コールバック関数です。
-pub struct Token {
+/// * `callback` - コールバックの項目名です。
+pub struct Node {
     pub token: String,
-    pub callback: Callback,
+    pub token_len: usize,
+    pub callback: String,
 }
-impl Token {
+impl Node {
     /// [token]文字列の長さだけ [starts]キャレットを進めます。
     /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
     ///
@@ -85,7 +92,7 @@ impl Token {
     /// * `line` - 読み取るコマンドライン。
     /// * `caret` - 読取位置。
     /// * returns - 一致したら真。
-    pub fn start_with_and_forward(&self, line: &Commandline, caret: &mut Caret) -> bool {
+    pub fn starts_with_and_forward(&self, line: &Commandline, caret: &mut Caret) -> bool {
         if caret.starts + self.token.len() <= line.len
             && &line.contents[caret.starts..self.token.len()] == self.token {
 
@@ -94,8 +101,6 @@ impl Token {
             if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
                 caret.starts += 1;
             }            
-
-            (self.callback)(&line, caret);
 
             true
         } else {
@@ -110,33 +115,76 @@ impl Token {
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
 /// * `token_array` - 複数件のトークン マッピングです。
-/// * `other_callback` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数です。
+/// * `complementary_callback` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
 pub struct Shell{
     vec_row : Vec<String>,
-    token_array: Vec<Token>,
-    other_callback: Callback,
+    node_table: HashMap<String, Node>,
+    callback_table: HashMap<String, Callback>,
+    complementary_callback: String,
 }
 impl Shell {
     pub fn new()->Shell{
-        Shell{
+        Shell {
             vec_row : Vec::new(),
-            token_array: Vec::new(),
-            other_callback: none_callback,
+            node_table: HashMap::new(),
+            callback_table: HashMap::new(),
+            complementary_callback: "".to_string(),
         }
+    }
+
+    pub fn contains_node(&self, name: &String) -> bool {
+        self.node_table.contains_key(name)
+    }
+
+    pub fn get_node(&self, name: &String) -> &Node {
+        self.node_table.get(name).unwrap()
     }
 
     /// # Arguments
     /// 
-    /// * `map` - トークンと、コールバック関数の組みです。
-    pub fn push_token(&mut self, map: Token){
-        self.token_array.push(map);
+    /// * `name` - 登録用の名前です。
+    /// * `static_node` - ノードです。
+    pub fn insert_static_node(&mut self, name: &'static str, static_node: StaticNode){
+        let len = static_node.token.chars().count();
+        self.node_table.insert(
+            name.to_string(),
+            Node {
+                token: static_node.token.to_string(),
+                token_len: len,
+                callback: static_node.callback.to_string()
+            }
+        );
+    }
+
+    /// # Arguments
+    /// 
+    /// * `node_name` - 登録用の名前です。
+    /// * `node` - ノードです。
+    pub fn insert_node(&mut self, name: String, node: Node){
+        self.node_table.insert(name, node);
+    }
+
+    pub fn contains_callback(&self, name: &String) -> bool {
+        self.callback_table.contains_key(name)
+    }
+
+    pub fn get_callback(&self, name: &String) -> &Callback {
+        self.callback_table.get(name).unwrap()
+    }
+
+    /// # Arguments
+    /// 
+    /// * `callback_name` - 登録用の名前です。
+    /// * `callback` - コールバック関数です。
+    pub fn insert_callback(&mut self, name: String, callback: Callback){
+        self.callback_table.insert(name, callback);
     }
 
     /// # Arguments
     /// 
     /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    pub fn set_other_callback(&mut self, callback: Callback){
-        self.other_callback = callback;
+    pub fn set_complementary_callback(&mut self, name: String){
+        self.complementary_callback = name;
     }
 
     /// コマンドを1行も入力していなければ真を返します。
@@ -182,16 +230,33 @@ impl Shell {
             let mut caret = Caret::new();
             let mut is_done = false;
 
-            for element in self.token_array.iter() {
-                if element.start_with_and_forward(&line, &mut caret) {
+            // 最初は全てのノードが対象。
+            let mut max_len = 0;
+            let mut best_callback = "".to_string();
+            for (_name, node) in &self.node_table {
+                if node.starts_with_and_forward(&line, &mut caret) {
+                    if max_len < node.token_len {
+                        max_len = node.token_len;
+                        best_callback = node.callback.to_string();
+                    };
+
                     is_done = true;
-                    break;
+                }
+            }
+
+            {
+                if self.contains_callback(&best_callback) {
+                    let callback = self.get_callback(&best_callback);
+                    (callback)(&line, &mut caret);
                 }
             }
 
             // 何とも一致しなかったら実行します。
             if !is_done {
-                (self.other_callback)(&line, &mut caret);
+                if self.contains_callback(&self.complementary_callback) {
+                    let callback = self.get_callback(&self.complementary_callback);
+                    (callback)(&line, &mut caret);
+                }
             }
 
             if caret.quits {

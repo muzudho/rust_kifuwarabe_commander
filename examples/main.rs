@@ -11,12 +11,31 @@ fn main() {
     println!("Please enter command.");
 
     let mut shell = Shell::new();
-    shell.push_token(Token { token: "abc".to_string(), callback: do_abc});
-    shell.push_token(Token { token: "quit".to_string(), callback: do_quit});
-    shell.set_other_callback(do_other);
+
+    // コールバック関数を登録する。
+    shell.insert_callback("CB_a".to_string(), do_a);
+    shell.insert_callback("CB_ab".to_string(), do_ab);
+    shell.insert_callback("CB_abc".to_string(), do_abc);
+    shell.insert_callback("CB_quit".to_string(), do_quit);
+    shell.insert_callback("CB_other".to_string(), do_other);
+    shell.set_complementary_callback("CB_other".to_string());
+
+    // ノードを登録する。
+    shell.insert_static_node("ND_100", StaticNode { token: "a", callback: "CB_a"});
+    shell.insert_static_node("ND_101", StaticNode { token: "ab", callback: "CB_ab"});
+    shell.insert_static_node("ND_102", StaticNode { token: "abc", callback: "CB_abc"});
+    shell.insert_static_node("ND_200", StaticNode { token: "quit", callback: "CB_quit"});
 
     // 実行。
     shell.run();
+}
+
+pub fn do_a(line: &Commandline, _caret:&mut Caret){
+    println!("A! {}", line.contents);
+}
+
+pub fn do_ab(line: &Commandline, _caret:&mut Caret){
+    println!("AB! {}", line.contents);
 }
 
 pub fn do_abc(line: &Commandline, _caret:&mut Caret){

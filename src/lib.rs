@@ -67,11 +67,6 @@ pub fn none_callback(_line: &Commandline, _caret: &mut Caret) {
 
 }
 
-pub struct StaticNode {
-    pub token: &'static str,
-    pub callback: &'static str,
-}
-
 /// トークンと、コールバック関数の組みです。
 ///
 /// # Members
@@ -79,9 +74,8 @@ pub struct StaticNode {
 /// * `token` - 全文一致させたい文字列です。
 /// * `callback` - コールバックの項目名です。
 pub struct Node {
-    pub token: String,
-    pub token_len: usize,
-    pub callback: String,
+    pub token: &'static str,
+    pub callback: &'static str,
 }
 impl Node {
     /// [token]文字列の長さだけ [starts]キャレットを進めます。
@@ -92,19 +86,20 @@ impl Node {
     /// * `line` - 読み取るコマンドライン。
     /// * `caret` - 読取位置。
     /// * returns - 一致したら真。
-    pub fn starts_with_and_forward(&self, line: &Commandline, caret: &mut Caret) -> bool {
+    pub fn starts_with(&self, line: &Commandline, caret: &mut Caret) -> bool {
         if caret.starts + self.token.len() <= line.len
             && &line.contents[caret.starts..self.token.len()] == self.token {
-
-            caret.starts += self.token.len();
-            // 続きにスペース「 」が１つあれば読み飛ばす
-            if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
-                caret.starts += 1;
-            }            
-
             true
         } else {
             false
+        }
+    }
+
+    pub fn forward(&self, line: &Commandline, caret: &mut Caret) {
+        caret.starts += self.token.len();
+        // 続きにスペース「 」が１つあれば読み飛ばす
+        if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
+            caret.starts += 1;
         }
     }
 }
@@ -143,25 +138,9 @@ impl Shell {
     /// # Arguments
     /// 
     /// * `name` - 登録用の名前です。
-    /// * `static_node` - ノードです。
-    pub fn insert_static_node(&mut self, name: &'static str, static_node: StaticNode){
-        let len = static_node.token.chars().count();
-        self.node_table.insert(
-            name.to_string(),
-            Node {
-                token: static_node.token.to_string(),
-                token_len: len,
-                callback: static_node.callback.to_string()
-            }
-        );
-    }
-
-    /// # Arguments
-    /// 
-    /// * `node_name` - 登録用の名前です。
     /// * `node` - ノードです。
-    pub fn insert_node(&mut self, name: String, node: Node){
-        self.node_table.insert(name, node);
+    pub fn insert_node(&mut self, name: &'static str, node: Node){
+        self.node_table.insert(name.to_string(), node);
     }
 
     pub fn contains_callback(&self, name: &String) -> bool {
@@ -174,16 +153,23 @@ impl Shell {
 
     /// # Arguments
     /// 
-    /// * `callback_name` - 登録用の名前です。
-    /// * `callback` - コールバック関数です。
-    pub fn insert_callback(&mut self, name: String, callback: Callback){
-        self.callback_table.insert(name, callback);
+    /// * `name` - 登録名です。
+    /// * `callback` - コールバック関数の登録名です。
+    pub fn insert_callback(&mut self, name: &'static str, callback: Callback){
+        self.callback_table.insert(name.to_string(), callback);
     }
 
     /// # Arguments
     /// 
     /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    pub fn set_complementary_callback(&mut self, name: String){
+    pub fn set_complementary_callback(&mut self, name: &'static str){
+        self.complementary_callback = name.to_string();
+    }
+
+    /// # Arguments
+    /// 
+    /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
+    pub fn set_complementary_cb(&mut self, name: String){
         self.complementary_callback = name;
     }
 
@@ -207,6 +193,12 @@ impl Shell {
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
     pub fn run(&mut self) {
+
+        let empty_node = Node {
+            token : "",
+            callback : ""
+        };
+
         loop{
             let line : Commandline;
             if self.is_empty() {
@@ -232,27 +224,28 @@ impl Shell {
 
             // 最初は全てのノードが対象。
             let mut max_len = 0;
-            let mut best_callback = "".to_string();
+            let mut best_node = &empty_node;
             for (_name, node) in &self.node_table {
-                if node.starts_with_and_forward(&line, &mut caret) {
-                    if max_len < node.token_len {
-                        max_len = node.token_len;
-                        best_callback = node.callback.to_string();
+                if node.starts_with(&line, &mut caret) {
+                    let token_len = node.token.chars().count();
+                    if max_len < token_len {
+                        max_len = token_len;
+                        best_node = node;
                     };
 
                     is_done = true;
                 }
             }
 
-            {
-                if self.contains_callback(&best_callback) {
-                    let callback = self.get_callback(&best_callback);
+            if is_done {
+                best_node.starts_with(&line, &mut caret);
+                
+                if self.contains_callback(&best_node.callback.to_string()) {
+                    let callback = self.get_callback(&best_node.callback.to_string());
                     (callback)(&line, &mut caret);
                 }
-            }
-
-            // 何とも一致しなかったら実行します。
-            if !is_done {
+            } else {
+                // 何とも一致しなかったら実行します。
                 if self.contains_callback(&self.complementary_callback) {
                     let callback = self.get_callback(&self.complementary_callback);
                     (callback)(&line, &mut caret);

@@ -6,15 +6,17 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::io;
 
-/// キャレット。
+/// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
+/// - シェルを終了するなど、シェルに対して指示することができる。
+/// - また、字句解析の次のノードを指定する役割も持つ。
 /// 
 /// # Members
 /// 
-/// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
+/// * `starts` - コマンドライン文字列の次のトークンの先頭位置です。
 /// * `done_line` - 行の解析を中断するなら真にします。
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `groups` - あれば、正規表現の結果を入れておく。
-/// * `next` - カンマ区切りの登録ノード名です。
+/// * `next` - 次のノードの登録名です。カンマ区切り。
 pub struct Caret {
     pub starts: usize,
     pub done_line: bool,
@@ -54,29 +56,32 @@ impl Commandline {
     }
 }
 
-/// コマンドライン文字列に対応づく処理内容を書いてください。
+/// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。
 ///
 /// # Arguments
 ///
-/// * `row` - コマンドライン文字列の1行全体です。
-/// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
-/// * `response` - このアプリケーションへ、このあとの対応を指示します。
+/// * `line` - 入力されたコマンドライン文字列など。
+/// * `caret` - 読取位置や、次のトークンの指定など。
 ///
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-type Callback = fn(line: &Commandline, caret: &mut Caret);
+type Controller = fn(line: &Commandline, caret: &mut Caret);
 
-/// トークンと、コールバック関数の組みです。
+pub fn empty_controller(_line: &Commandline, _caret: &mut Caret) {
+
+}
+
+/// トークンと、コントローラーのペアです。
 ///
 /// # Members
 ///
 /// * `token` - 全文一致させたい文字列です。
-/// * `callback` - コールバックの項目名です。
+/// * `controller` - コールバック関数です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
 pub struct Node {
     pub token: &'static str,
-    pub callback: &'static str,
+    pub controller: Controller,
     pub token_regex: bool, 
 }
 impl Node {
@@ -155,14 +160,13 @@ impl Node {
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-/// * `token_array` - 複数件のトークン マッピングです。
-/// * `complementary_callback` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
+/// * `node_table` - 複数件のトークンです。
+/// * `complementary_controller` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
 /// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell{
     vec_row : Vec<String>,
     node_table: HashMap<String, Node>,
-    callback_table: HashMap<String, Callback>,
-    complementary_callback: String,
+    complementary_controller: Controller,
     pub next: &'static str,
 }
 impl Shell {
@@ -170,8 +174,7 @@ impl Shell {
         Shell {
             vec_row : Vec::new(),
             node_table: HashMap::new(),
-            callback_table: HashMap::new(),
-            complementary_callback: "".to_string(),
+            complementary_controller: empty_controller,
             next: "",
         }
     }
@@ -192,12 +195,12 @@ impl Shell {
     /// 
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    pub fn insert_node(&mut self, name: &'static str, token: &'static str, callback: &'static str){
+    pub fn insert_node(&mut self, name: &'static str, token: &'static str, controller: Controller){
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: token,
-                callback: callback,
+                controller: controller,
                 token_regex: false,
             }
         );
@@ -209,45 +212,22 @@ impl Shell {
     /// 
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    pub fn insert_node_re(&mut self, name: &'static str, token: &'static str, callback: &'static str){
+    pub fn insert_node_re(&mut self, name: &'static str, token: &'static str, controller: Controller){
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: token,
-                callback: callback,
+                controller: controller,
                 token_regex: true,
             }
         );
     }
 
-    pub fn contains_callback(&self, name: &String) -> bool {
-        self.callback_table.contains_key(name)
-    }
-
-    pub fn get_callback(&self, name: &String) -> &Callback {
-        self.callback_table.get(name).unwrap()
-    }
-
-    /// # Arguments
-    /// 
-    /// * `name` - 登録名です。
-    /// * `callback` - コールバック関数の登録名です。
-    pub fn insert_callback(&mut self, name: &'static str, callback: Callback){
-        self.callback_table.insert(name.to_string(), callback);
-    }
-
     /// # Arguments
     /// 
     /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    pub fn set_complementary_callback(&mut self, name: &'static str){
-        self.complementary_callback = name.to_string();
-    }
-
-    /// # Arguments
-    /// 
-    /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    pub fn set_complementary_cb(&mut self, name: String){
-        self.complementary_callback = name;
+    pub fn set_complementary_controller(&mut self, controller: Controller){
+        self.complementary_controller = controller;
     }
 
     /// コマンドを1行も入力していなければ真を返します。
@@ -273,7 +253,7 @@ impl Shell {
 
         let empty_node = Node {
             token: "",
-            callback: "",
+            controller: empty_controller,
             token_regex: false,
         };
 
@@ -371,10 +351,7 @@ impl Shell {
 
                 if is_done {
                     
-                    if self.contains_callback(&best_node.callback.to_string()) {
-                        let callback = self.get_callback(&best_node.callback.to_string());
-                        (callback)(&line, &mut caret);
-                    }
+                    (best_node.controller)(&line, &mut caret);
 
                     next = caret.next;
                     //println!("New next: {}", next);
@@ -386,10 +363,7 @@ impl Shell {
 
                 } else {
                     // 何とも一致しなかったら実行します。
-                    if self.contains_callback(&self.complementary_callback) {
-                        let callback = self.get_callback(&self.complementary_callback);
-                        (callback)(&line, &mut caret);
-                    }
+                    (self.complementary_controller)(&line, &mut caret);
                     // 次のラインへ。
                     break 'line;
                 }

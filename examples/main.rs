@@ -18,26 +18,18 @@ fn main() {
 
     let mut shell = Shell::new();
 
-    // コールバック関数を登録する。
-    shell.insert_callback("CB_a", do_a);
-    shell.insert_callback("CB_ab", do_ab);
-    shell.insert_callback("CB_abc", do_abc);
-    shell.insert_callback("CB_cde", do_cde);
-    shell.insert_callback("CB_end", do_end);
-    shell.insert_callback("CB_num", do_num);
-    shell.insert_callback("CB_quit", do_quit);
-    shell.insert_callback("CB_other", do_other);
-    shell.set_complementary_callback("CB_other");
+    // 該当なしの場合のコールバック関数を登録する。
+    shell.set_complementary_controller(do_other);
 
     // ノードを登録する。
-    shell.insert_node("ND_a", "a", "CB_a");
-    shell.insert_node("ND_ab", "ab", "CB_ab");
-    shell.insert_node("ND_abc", "abc", "CB_abc");
-    shell.insert_node("ND_cde", "cde", "CB_cde");
-    shell.insert_node("ND_end", "end", "CB_end");
-    shell.insert_node("ND_quit", "quit", "CB_quit");
+    shell.insert_node("ND_a", "a", do_a);
+    shell.insert_node("ND_ab", "ab", do_ab);
+    shell.insert_node("ND_abc", "abc", do_abc);
+    shell.insert_node("ND_cde", "cde", do_cde);
+    shell.insert_node("ND_end", "end", do_end);
+    shell.insert_node_re("ND_num", r"(\d+)", do_num);
+    shell.insert_node("ND_quit", "quit", do_quit);
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
-    shell.insert_node_re("ND_num", r"(\d+)", "CB_num");
 
     // 開始ノードを選択する。
     shell.set_next("ND_a,ND_ab,ND_abc,ND_end,ND_quit,ND_num");

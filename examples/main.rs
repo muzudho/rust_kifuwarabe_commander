@@ -65,7 +65,7 @@ pub fn do_num(_line: &Commandline, caret:&mut Caret){
 }
 
 pub fn do_other(line: &Commandline, caret:&mut Caret){
-    println!("Finish(Or not match). line.contents=[{}], caret.starts={}", line.contents, caret.starts);
+    println!("Not match. line.contents=[{}], caret.starts={}", line.contents, caret.starts);
 }
 
 pub fn do_quit(line: &Commandline, caret:&mut Caret){

@@ -299,7 +299,8 @@ impl Shell {
             let mut caret = Caret::new();
             let mut next = self.next;
 
-            'line: loop {
+            'line: while caret.starts < line.len {
+
                 // キャレットの位置そのままで次のトークンへ。
                 let mut is_done = false;
                 let mut is_done_re = false;

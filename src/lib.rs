@@ -11,10 +11,12 @@ use std::io;
 /// # Members
 /// 
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置が入っています。
+/// * `done_line` - 行の解析を中断するなら真にします。
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `groups` - あれば、正規表現の結果を入れておく。
 pub struct Caret {
     pub starts: usize,
+    pub done_line: bool,
     pub quits: bool,
     pub groups: Vec<String>,
 }
@@ -22,6 +24,7 @@ impl Caret {
     pub fn new() -> Caret {
         Caret {
             starts: 0,
+            done_line: false,
             quits: false,
             groups: Vec::new(),
         }
@@ -104,23 +107,23 @@ impl Node {
     /// * `caret` - 読取位置。
     /// * returns - 一致したら真。
     pub fn starts_with_re(&self, line: &Commandline, caret: &mut Caret) -> bool {
-        println!("starts_with_re");
+        // println!("starts_with_re");
         if caret.starts < line.len {
-            println!("self.token: {}", self.token);
+            // println!("self.token: {}", self.token);
             let re = Regex::new(self.token).unwrap();
 
             let text = &line.contents[caret.starts..];
-            println!("text: [{}]", text);
+            // println!("text: [{}]", text);
 
             let mut count = 0;
             caret.groups.clear();
             for caps in re.captures_iter(text) {
                 let cap = &caps[count];
                 caret.groups.push(cap.to_string());
-                println!("HIT. [{}] [{}]", count, cap);
+                // println!("HIT. [{}] [{}]", count, cap);
                 count += 1;
             };
-            println!("Count: {}", count);
+            // println!("Count: {}", count);
             0<count
         } else {
             false
@@ -376,6 +379,11 @@ impl Shell {
 
                     next = best_node.next;
                     //println!("New next: {}", next);
+
+                    if caret.done_line {
+                        // 行解析の終了。
+                        caret.starts = line.len;
+                    }
 
                 } else {
                     // 何とも一致しなかったら実行します。

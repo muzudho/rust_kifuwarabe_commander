@@ -9,6 +9,7 @@ use kifuwarabe_shell::*;
 /// # テスト方法。
 ///
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
+/// - 「end xyz」と打鍵して [Enter]キーを押す。
 /// - 「quit」と打鍵して [Enter]キーを押す。
 /// - [Ctrl]+[C]キー を押すなら、強制終了。
 fn main() {
@@ -22,6 +23,7 @@ fn main() {
     shell.insert_callback("CB_ab", do_ab);
     shell.insert_callback("CB_abc", do_abc);
     shell.insert_callback("CB_cde", do_cde);
+    shell.insert_callback("CB_end", do_end);
     shell.insert_callback("CB_num", do_num);
     shell.insert_callback("CB_quit", do_quit);
     shell.insert_callback("CB_other", do_other);
@@ -32,12 +34,13 @@ fn main() {
     shell.insert_node("ND_ab", "ab", "CB_ab", "ND_cde");
     shell.insert_node("ND_abc", "abc", "CB_abc", "");
     shell.insert_node("ND_cde", "cde", "CB_cde", "");
+    shell.insert_node("ND_end", "end", "CB_end", "");
     shell.insert_node("ND_quit", "quit", "CB_quit", "");
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
     shell.insert_node_re("ND_num", r"(\d+)", "CB_num", "");
 
     // 開始ノードを選択する。
-    shell.set_next("ND_a,ND_ab,ND_abc,ND_quit,ND_num");
+    shell.set_next("ND_a,ND_ab,ND_abc,ND_end,ND_quit,ND_num");
 
     // 実行。
     shell.run();
@@ -57,6 +60,11 @@ pub fn do_abc(line: &Commandline, _caret:&mut Caret){
 
 pub fn do_cde(line: &Commandline, _caret:&mut Caret){
     println!("CDE! [{}]", line.contents);
+}
+
+pub fn do_end(line: &Commandline, caret:&mut Caret){
+    caret.done_line = true;
+    println!("End! [{}]", line.contents);
 }
 
 pub fn do_num(_line: &Commandline, caret:&mut Caret){

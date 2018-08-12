@@ -30,14 +30,14 @@ fn main() {
     shell.set_complementary_callback("CB_other");
 
     // ノードを登録する。
-    shell.insert_node("ND_a", "a", "CB_a", "");
-    shell.insert_node("ND_ab", "ab", "CB_ab", "ND_cde");
-    shell.insert_node("ND_abc", "abc", "CB_abc", "");
-    shell.insert_node("ND_cde", "cde", "CB_cde", "");
-    shell.insert_node("ND_end", "end", "CB_end", "");
-    shell.insert_node("ND_quit", "quit", "CB_quit", "");
+    shell.insert_node("ND_a", "a", "CB_a");
+    shell.insert_node("ND_ab", "ab", "CB_ab");
+    shell.insert_node("ND_abc", "abc", "CB_abc");
+    shell.insert_node("ND_cde", "cde", "CB_cde");
+    shell.insert_node("ND_end", "end", "CB_end");
+    shell.insert_node("ND_quit", "quit", "CB_quit");
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
-    shell.insert_node_re("ND_num", r"(\d+)", "CB_num", "");
+    shell.insert_node_re("ND_num", r"(\d+)", "CB_num");
 
     // 開始ノードを選択する。
     shell.set_next("ND_a,ND_ab,ND_abc,ND_end,ND_quit,ND_num");
@@ -50,8 +50,9 @@ pub fn do_a(line: &Commandline, _caret:&mut Caret){
     println!("A! [{}]", line.contents);
 }
 
-pub fn do_ab(line: &Commandline, _caret:&mut Caret){
+pub fn do_ab(line: &Commandline, caret:&mut Caret){
     println!("AB! [{}]", line.contents);
+    caret.next = "ND_cde";
 }
 
 pub fn do_abc(line: &Commandline, _caret:&mut Caret){

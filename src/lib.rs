@@ -14,11 +14,13 @@ use std::io;
 /// * `done_line` - 行の解析を中断するなら真にします。
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `groups` - あれば、正規表現の結果を入れておく。
+/// * `next` - カンマ区切りの登録ノード名です。
 pub struct Caret {
     pub starts: usize,
     pub done_line: bool,
     pub quits: bool,
     pub groups: Vec<String>,
+    pub next: &'static str,
 }
 impl Caret {
     pub fn new() -> Caret {
@@ -27,6 +29,7 @@ impl Caret {
             done_line: false,
             quits: false,
             groups: Vec::new(),
+            next: "",
         }
     }
 }
@@ -70,12 +73,10 @@ type Callback = fn(line: &Commandline, caret: &mut Caret);
 ///
 /// * `token` - 全文一致させたい文字列です。
 /// * `callback` - コールバックの項目名です。
-/// * `next` - カンマ区切りの登録ノード名です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
 pub struct Node {
     pub token: &'static str,
     pub callback: &'static str,
-    pub next: &'static str,
     pub token_regex: bool, 
 }
 impl Node {
@@ -191,13 +192,12 @@ impl Shell {
     /// 
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    pub fn insert_node(&mut self, name: &'static str, token: &'static str, callback: &'static str, next: &'static str){
+    pub fn insert_node(&mut self, name: &'static str, token: &'static str, callback: &'static str){
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: token,
                 callback: callback,
-                next: next,
                 token_regex: false,
             }
         );
@@ -209,13 +209,12 @@ impl Shell {
     /// 
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    pub fn insert_node_re(&mut self, name: &'static str, token: &'static str, callback: &'static str, next: &'static str){
+    pub fn insert_node_re(&mut self, name: &'static str, token: &'static str, callback: &'static str){
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: token,
                 callback: callback,
-                next: next,
                 token_regex: true,
             }
         );
@@ -275,7 +274,6 @@ impl Shell {
         let empty_node = Node {
             token: "",
             callback: "",
-            next: "",
             token_regex: false,
         };
 
@@ -305,6 +303,7 @@ impl Shell {
             'line: while caret.starts < line.len {
 
                 // キャレットの位置そのままで次のトークンへ。
+                caret.next = "";
                 let mut is_done = false;
                 let mut is_done_re = false;
 
@@ -377,7 +376,7 @@ impl Shell {
                         (callback)(&line, &mut caret);
                     }
 
-                    next = best_node.next;
+                    next = caret.next;
                     //println!("New next: {}", next);
 
                     if caret.done_line {

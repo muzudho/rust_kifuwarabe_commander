@@ -29,9 +29,6 @@ fn main() {
 
     let mut shell = Shell::new();
 
-    // 該当なしの場合のコールバック関数を登録する。
-    shell.set_complementary_controller(do_other);
-
     // ノードを登録する。
     shell.insert_node("ND_a", "a", do_a);
     shell.insert_node("ND_ab", "ab", do_ab);
@@ -42,6 +39,9 @@ fn main() {
     shell.insert_node("ND_quit", "quit", do_quit);
     shell.insert_node_re("ND_wordvar", r"(\w+)", do_wordvar);
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
+
+    // 該当なしの場合のコールバック関数を登録する。
+    shell.set_complementary_controller(do_other);
 
     // 開始ノードを選択する。
     shell.set_next("ND_a,ND_ab,ND_abc,ND_end,ND_numvar,

@@ -48,8 +48,8 @@ pub struct Response {
     pub quits: bool,
     pub groups: Vec<String>,
     pub next: &'static str,
-    line_end_controller_changed: bool,
-    line_end_controller: Controller,
+    linebreak_controller_changed: bool,
+    linebreak_controller: Controller,
 }
 impl Response {
     pub fn new() -> Response {
@@ -59,8 +59,8 @@ impl Response {
             quits: false,
             groups: Vec::new(),
             next: "",
-            line_end_controller_changed: false,
-            line_end_controller: empty_controller,
+            linebreak_controller_changed: false,
+            linebreak_controller: empty_controller,
         }
     }
     pub fn reset(&mut self) {
@@ -69,15 +69,15 @@ impl Response {
         self.quits = false;
         self.groups.clear();
         self.next = "";
-        self.line_end_controller_changed = false;
-        self.line_end_controller = empty_controller;
+        self.linebreak_controller_changed = false;
+        self.linebreak_controller = empty_controller;
     }
-    pub fn set_line_end_controller(&mut self, controller: Controller) {
-        self.line_end_controller_changed = true;
-        self.line_end_controller = controller;
+    pub fn set_linebreak_controller(&mut self, controller: Controller) {
+        self.linebreak_controller_changed = true;
+        self.linebreak_controller = controller;
     }
-    pub fn is_line_end_controller_changed(&self) -> bool {
-        self.line_end_controller_changed
+    pub fn is_linebreak_controller_changed(&self) -> bool {
+        self.linebreak_controller_changed
     }
 }
 
@@ -300,8 +300,8 @@ impl Shell {
 
         'lines: loop{
 
-            let mut current_lineend_controller : Controller;
-            current_lineend_controller = empty_controller;
+            let mut current_linebreak_controller : Controller;
+            current_linebreak_controller = empty_controller;
 
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut request : Request;
@@ -414,8 +414,8 @@ impl Shell {
                     //println!("New next: {}", next);
 
                     // 行終了時コントローラーの更新
-                    if response.is_line_end_controller_changed() {
-                        current_lineend_controller = response.line_end_controller;
+                    if response.is_linebreak_controller_changed() {
+                        current_linebreak_controller = response.linebreak_controller;
                     }
 
                     if response.done_line {
@@ -439,7 +439,7 @@ impl Shell {
             }
 
             // 1行読取終了。
-            (current_lineend_controller)(&request, &mut response);
+            (current_linebreak_controller)(&request, &mut response);
             // caret や、next が変更されていても、無視する。
 
         } // loop

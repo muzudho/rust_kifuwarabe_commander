@@ -11,7 +11,7 @@ use kifuwarabe_shell::*;
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
 ///     Ab.
 ///     Cde.
-///     Ab-LineEnd.
+///     Ab-LineBreak.
 /// - 「end xyz」と打鍵して [Enter]キーを押す。
 ///     End.
 /// - 「xyz」と打鍵して [Enter]キーを押す。
@@ -60,11 +60,11 @@ pub fn do_ab(_request: &Request, response:&mut Response){
     response.next = "ND_cde";
 
     // 行終了時に実行されるコールバック関数を１つ設定できる。
-    response.set_line_end_controller(do_ab_line_end);
+    response.set_linebreak_controller(do_ab_linebreak);
 }
 
-pub fn do_ab_line_end(_request: &Request, _response:&mut Response){
-    println!("Ab-LineEnd.");
+pub fn do_ab_linebreak(_request: &Request, _response:&mut Response){
+    println!("Ab-LineBreak.");
 }
 
 pub fn do_abc(_request: &Request, _response:&mut Response){

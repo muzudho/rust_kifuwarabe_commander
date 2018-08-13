@@ -9,6 +9,28 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::io;
 
+/// コマンドライン文字列。
+/// 
+/// # Members
+/// 
+/// * `line` - コマンドライン文字列の1行全体です。
+/// * `line_len` - コマンドライン文字列の1行全体の文字数です。
+pub struct Request {
+    pub line: String,
+    pub line_len: usize,
+    pub caret: usize,
+}
+impl Request {
+    pub fn new(line: String) -> Request {
+        let len = line.chars().count();
+        Request {
+            line: line,
+            line_len: len,
+            caret: 0,
+        }
+    }
+}
+
 /// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
 /// - シェルを終了するなど、シェルに対して指示することができる。
 /// - また、字句解析の次のノードを指定する役割も持つ。
@@ -20,8 +42,8 @@ use std::io;
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `groups` - あれば、正規表現の結果を入れておく。
 /// * `next` - 次のノードの登録名です。カンマ区切り。
-pub struct Caret {
-    pub starts: usize,
+pub struct Response {
+    pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
     pub groups: Vec<String>,
@@ -29,10 +51,10 @@ pub struct Caret {
     line_end_controller_changed: bool,
     line_end_controller: Controller,
 }
-impl Caret {
-    pub fn new() -> Caret {
-        Caret {
-            starts: 0,
+impl Response {
+    pub fn new() -> Response {
+        Response {
+            caret: 0,
             done_line: false,
             quits: false,
             groups: Vec::new(),
@@ -41,36 +63,21 @@ impl Caret {
             line_end_controller: empty_controller,
         }
     }
+    pub fn reset(&mut self) {
+        self.caret = 0;
+        self.done_line = false;
+        self.quits = false;
+        self.groups.clear();
+        self.next = "";
+        self.line_end_controller_changed = false;
+        self.line_end_controller = empty_controller;
+    }
     pub fn set_line_end_controller(&mut self, controller: Controller) {
         self.line_end_controller_changed = true;
         self.line_end_controller = controller;
     }
-    pub fn reset_line_end_controller(&mut self) {
-        self.line_end_controller_changed = false;
-        self.line_end_controller = empty_controller;
-    }
     pub fn is_line_end_controller_changed(&self) -> bool {
         self.line_end_controller_changed
-    }
-}
-
-/// コマンドライン文字列。
-/// 
-/// # Members
-/// 
-/// * `contents` - コマンドライン文字列の1行全体です。
-/// * `len` - コマンドライン文字列の1行全体の文字数です。
-pub struct Commandline {
-    pub contents: String,
-    pub len: usize,
-}
-impl Commandline {
-    pub fn new(contents: String) -> Commandline {
-        let len = contents.chars().count();
-        Commandline {
-            contents: contents,
-            len: len,
-        }
     }
 }
 
@@ -78,15 +85,15 @@ impl Commandline {
 ///
 /// # Arguments
 ///
-/// * `line` - 入力されたコマンドライン文字列など。
-/// * `caret` - 読取位置や、次のトークンの指定など。
+/// * `request` - 入力されたコマンドライン文字列など。
+/// * `response` - 読取位置や、次のトークンの指定など。
 ///
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-type Controller = fn(line: &Commandline, caret: &mut Caret);
+type Controller = fn(request: &Request, response: &mut Response);
 
-pub fn empty_controller(_line: &Commandline, _caret: &mut Caret) {
+pub fn empty_controller(_request: &Request, _response: &mut Response) {
 
 }
 
@@ -108,15 +115,14 @@ impl Node {
     ///
     /// # Arguments
     ///
-    /// * `line` - 読み取るコマンドライン。
-    /// * `caret` - 読取位置。
+    /// * `request` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
-    pub fn starts_with(&self, line: &Commandline, caret: &mut Caret) -> bool {
-        let caret_end = caret.starts + self.token.len();
-        //println!("caret.starts={} + self.token.len()={} <= line.len={} [{}]==[{}]", caret.starts, self.token.len(), line.len,
-        //    &line.contents[caret.starts..caret_end], self.token);
-        if caret_end <= line.len
-            && &line.contents[caret.starts..caret_end] == self.token {
+    pub fn starts_with(&self, request: &Request) -> bool {
+        let caret_end = request.caret + self.token.len();
+        //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
+        //    &request.line[response.starts..caret_end], self.token);
+        if caret_end <= request.line_len
+            && &request.line[request.caret..caret_end] == self.token {
             true
         } else {
             false
@@ -127,16 +133,16 @@ impl Node {
     ///
     /// # Arguments
     ///
-    /// * `line` - 読み取るコマンドライン。
-    /// * `caret` - 読取位置。
+    /// * `request` - 読み取るコマンドライン。
+    /// * `response` - 読取位置。
     /// * returns - 一致したら真。
-    pub fn starts_with_re(&self, line: &Commandline, caret: &mut Caret) -> bool {
+    pub fn starts_with_re(&self, request: &Request, response: &mut Response) -> bool {
 
         if VERBOSE {
             println!("starts_with_re");
         }
 
-        if caret.starts < line.len {
+        if request.caret < request.line_len {
 
             if VERBOSE {
                 println!("self.token: {}", self.token);
@@ -144,19 +150,19 @@ impl Node {
 
             let re = Regex::new(self.token).unwrap();
 
-            let text = &line.contents[caret.starts..];
+            let text = &request.line[request.caret..];
 
             if VERBOSE {
                 println!("text: [{}]", text);
             }
 
             let mut group_num = 0;
-            caret.groups.clear();
+            response.groups.clear();
             for caps in re.captures_iter(text) {
                 // caps は サイズ 2 の配列 で同じものが入っている。
                 let cap = &caps[0];
 
-                caret.groups.push(cap.to_string());
+                response.groups.push(cap.to_string());
 
                 group_num += 1;
             };
@@ -171,21 +177,21 @@ impl Node {
         }
     }
 
-    pub fn forward(&self, line: &Commandline, caret: &mut Caret) {
-        caret.starts += self.token.len();
+    pub fn forward(&self, request: &Request, response: &mut Response) {
+        response.caret = request.caret + self.token.len();
         // 続きにスペース「 」が１つあれば読み飛ばす
-        if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
-            caret.starts += 1;
+        if 0<(request.line_len-response.caret) && &request.line[response.caret..(response.caret+1)]==" " {
+            response.caret += 1;
         }
     }
 
     /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-    pub fn forward_re(&self, line: &Commandline, caret: &mut Caret) {
-        let pseud_token_len = caret.groups[0].chars().count();
-        caret.starts += pseud_token_len;
+    pub fn forward_re(&self, request: &Request, response: &mut Response) {
+        let pseud_token_len = response.groups[0].chars().count();
+        response.caret = request.caret + pseud_token_len;
         // 続きにスペース「 」が１つあれば読み飛ばす
-        if 0<(line.len-caret.starts) && &line.contents[caret.starts..(caret.starts+1)]==" " {
-            caret.starts += 1;
+        if 0<(request.line_len-response.caret) && &request.line[response.caret..(response.caret+1)]==" " {
+            response.caret += 1;
         }
     }
 }
@@ -297,7 +303,8 @@ impl Shell {
             let mut current_lineend_controller : Controller;
             current_lineend_controller = empty_controller;
 
-            let line : Commandline;
+            // リクエストは、キャレットを更新するのでミュータブル。
+            let mut request : Request;
             if self.is_empty() {
                 let mut line_string = String::new();
                 // コマンド プロンプトからの入力があるまで待機します。
@@ -308,22 +315,21 @@ impl Shell {
                 // 末尾の 改行 を除きます。前後の空白も消えます。
                 line_string = line_string.trim().parse().ok().expect("info Failed to parse");
 
-                line = Commandline::new(line_string);
+                request = Request::new(line_string);
             } else {
                 // バッファーの先頭行です。
-                line = Commandline::new(self.pop_row());
+                request = Request::new(self.pop_row());
             }
 
 
 
-            let mut caret = Caret::new();
+            let mut response = Response::new();
             let mut next = self.next;
 
-            'line: while caret.starts < line.len {
+            'line: while request.caret < request.line_len {
 
-                // キャレットの位置そのままで次のトークンへ。
-                caret.next = "";
-                caret.reset_line_end_controller();
+                // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
+                response.reset();
                 let mut is_done = false;
                 let mut is_done_re = false;
 
@@ -349,14 +355,14 @@ impl Shell {
 
                         let matched;
                         if node.token_regex {
-                            if node.starts_with_re(&line, &mut caret) {
+                            if node.starts_with_re(&request, &mut response) {
                                 // 正規表現で一致したなら。
                                 best_node_re = node;
                                 is_done_re = true;
                             }
 
                         } else {
-                            matched = node.starts_with(&line, &mut caret);
+                            matched = node.starts_with(&request);
                             if matched {
                                 // 固定長トークンで一致したなら。
                                 //println!("starts_with.");
@@ -367,7 +373,7 @@ impl Shell {
                                 };
                                 is_done = true;
                             //} else {
-                            //    println!("not starts_with. line.contents={}, line.len={}, caret.starts={}", line.contents, line.len, caret.starts);
+                            //    println!("not starts_with. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
                             }
 
                         }
@@ -378,10 +384,16 @@ impl Shell {
                 // キャレットを進める。
                 if is_done || is_done_re {
                     if is_done {
-                        best_node.forward(&line, &mut caret);
-                        
+                        response.caret = request.caret;
+                        best_node.forward(&request, &mut response);
+                        request.caret = response.caret;
+                        response.caret = 0;
+
                     } else {
-                        best_node_re.forward_re(&line, &mut caret);
+                        response.caret = request.caret;
+                        best_node_re.forward_re(&request, &mut response);
+                        request.caret = response.caret;
+                        response.caret = 0;
 
                         // まとめる。
                         is_done = is_done_re;
@@ -391,37 +403,44 @@ impl Shell {
 
                 if is_done {
                     
-                    (best_node.controller)(&line, &mut caret);
-
-                    next = caret.next;
+                    // コントローラーに処理を移譲。
+                    response.caret = request.caret;
+                    response.next = next;
+                    (best_node.controller)(&request, &mut response);
+                    request.caret = response.caret;
+                    next = response.next;
+                    response.caret = 0;
+                    response.next = "";
                     //println!("New next: {}", next);
 
                     // 行終了時コントローラーの更新
-                    if caret.is_line_end_controller_changed() {
-                        current_lineend_controller = caret.line_end_controller;
+                    if response.is_line_end_controller_changed() {
+                        current_lineend_controller = response.line_end_controller;
                     }
 
-                    if caret.done_line {
+                    if response.done_line {
                         // 行解析の終了。
-                        caret.starts = line.len;
+                        request.caret = request.line_len;
                     }
 
                 } else {
                     // 何とも一致しなかったら実行します。
-                    (self.complementary_controller)(&line, &mut caret);
+                    (self.complementary_controller)(&request, &mut response);
+                    // caret や、next が変更されていても、無視する。
+
                     // 次のラインへ。
                     break 'line;
                 }
 
-                if caret.quits {
+                if response.quits {
                     // ループを抜けて、アプリケーションを終了します。
                     break 'lines;
                 }
             }
 
             // 1行読取終了。
-            (current_lineend_controller)(&line, &mut caret);
-
+            (current_lineend_controller)(&request, &mut response);
+            // caret や、next が変更されていても、無視する。
 
         } // loop
     }

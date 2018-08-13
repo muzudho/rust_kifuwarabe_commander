@@ -9,10 +9,19 @@ use kifuwarabe_shell::*;
 /// # テスト方法。
 ///
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
+///     Ab.
+///     Cde.
+///     Ab-LineEnd.
 /// - 「end xyz」と打鍵して [Enter]キーを押す。
+///     End.
 /// - 「xyz」と打鍵して [Enter]キーを押す。
+///     Word(xyz).
 /// - 「ab cde xyz」と打鍵して [Enter]キーを押す。
+///     Ab.
+///     Cde.
+///     Word(xyz).
 /// - 「quit」と打鍵して [Enter]キーを押す。
+///     Quit.
 /// - [Ctrl]+[C]キー を押すなら、強制終了。
 fn main() {
 
@@ -42,51 +51,51 @@ fn main() {
     shell.run();
 }
 
-pub fn do_a(line: &Commandline, _caret:&mut Caret){
-    println!("A! [{}]", line.contents);
+pub fn do_a(_request: &Request, _response:&mut Response){
+    println!("A.");
 }
 
-pub fn do_ab(line: &Commandline, caret:&mut Caret){
-    println!("AB! [{}]", line.contents);
-    caret.next = "ND_cde";
+pub fn do_ab(_request: &Request, response:&mut Response){
+    println!("Ab.");
+    response.next = "ND_cde";
 
     // 行終了時に実行されるコールバック関数を１つ設定できる。
-    caret.set_line_end_controller(do_ab_line_end);
+    response.set_line_end_controller(do_ab_line_end);
 }
 
-pub fn do_ab_line_end(line: &Commandline, _caret:&mut Caret){
-    println!("AB-LineEnd. [{}]", line.contents);
+pub fn do_ab_line_end(_request: &Request, _response:&mut Response){
+    println!("Ab-LineEnd.");
 }
 
-pub fn do_abc(line: &Commandline, _caret:&mut Caret){
-    println!("ABC! [{}]", line.contents);
+pub fn do_abc(_request: &Request, _response:&mut Response){
+    println!("Abc.");
 }
 
-pub fn do_cde(line: &Commandline, caret:&mut Caret){
-    println!("CDE! [{}]", line.contents);
-    caret.next = "ND_wordvar";
+pub fn do_cde(_request: &Request, response:&mut Response){
+    println!("Cde.");
+    response.next = "ND_wordvar";
 }
 
-pub fn do_end(line: &Commandline, caret:&mut Caret){
-    caret.done_line = true;
-    println!("End! [{}]", line.contents);
+pub fn do_end(_request: &Request, response:&mut Response){
+    response.done_line = true;
+    println!("End.");
 }
 
-pub fn do_numvar(_line: &Commandline, caret:&mut Caret){
-    let cap = &caret.groups[0];
-    println!("Number. [{}]", cap);
+pub fn do_numvar(_request: &Request, response:&mut Response){
+    let cap = &response.groups[0];
+    println!("Number({}).", cap);
 }
 
-pub fn do_other(line: &Commandline, caret:&mut Caret){
-    println!("Not match. line.contents=[{}], caret.starts={}", line.contents, caret.starts);
+pub fn do_other(request: &Request, _response:&mut Response){
+    println!("Not match. request.line=[{}], request.caret={}", request.line, request.caret);
 }
 
-pub fn do_quit(line: &Commandline, caret:&mut Caret){
-    println!("Quit. [{}]", line.contents);
-    caret.quits = true;
+pub fn do_quit(_request: &Request, response:&mut Response){
+    println!("Quit.");
+    response.quits = true;
 }
 
-pub fn do_wordvar(_line: &Commandline, caret:&mut Caret){
-    let cap = &caret.groups[0];
-    println!("Word. [{}]", cap);
+pub fn do_wordvar(_request: &Request, response:&mut Response){
+    let cap = &response.groups[0];
+    println!("Word({}).", cap);
 }

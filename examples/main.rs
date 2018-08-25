@@ -20,6 +20,7 @@ use kifuwarabe_shell::*;
 ///     Ab.
 ///     Cde.
 ///     Word(xyz).
+///     Ab-LineBreak.
 /// - 「quit」と打鍵して [Enter]キーを押す。
 ///     Quit.
 /// - [Ctrl]+[C]キー を押すなら、強制終了。

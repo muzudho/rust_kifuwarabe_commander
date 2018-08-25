@@ -205,7 +205,8 @@ impl Node {
 /// * `complementary_controller` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
 /// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell{
-    vec_row : Vec<String>,
+    empty_node: Node,
+    vec_row: Vec<String>,
     node_table: HashMap<String, Node>,
     complementary_controller: Controller,
     pub next: &'static str,
@@ -213,6 +214,11 @@ pub struct Shell{
 impl Shell {
     pub fn new()->Shell{
         Shell {
+            empty_node: Node {
+                token: "",
+                controller: empty_controller,
+                token_regex: false,
+            },
             vec_row : Vec::new(),
             node_table: HashMap::new(),
             complementary_controller: empty_controller,
@@ -292,16 +298,7 @@ impl Shell {
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
     pub fn run(&mut self) {
 
-        let empty_node = Node {
-            token: "",
-            controller: empty_controller,
-            token_regex: false,
-        };
-
         'lines: loop{
-
-            let mut current_linebreak_controller : Controller;
-            current_linebreak_controller = empty_controller;
 
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut request : Request;
@@ -321,128 +318,140 @@ impl Shell {
                 request = Request::new(self.pop_row());
             }
 
+            if self.parse_line(&mut request) {
+                break 'lines;
+            }
+
+        } // loop
+    }
+
+    /// # Returns.
+    ///
+    /// 0. シェルを終了するなら真。
+    pub fn parse_line(&mut self, request : &mut Request) -> bool {
+        let mut response = Response::new();
+        let mut next = self.next;
+        let mut current_linebreak_controller : Controller = empty_controller;
 
 
-            let mut response = Response::new();
-            let mut next = self.next;
+        'line: while request.caret < request.line_len {
 
-            'line: while request.caret < request.line_len {
+            // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
+            response.reset();
+            let mut is_done = false;
+            let mut is_done_re = false;
 
-                // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
-                response.reset();
-                let mut is_done = false;
-                let mut is_done_re = false;
+            let vec_next: Vec<&str>;
+            {
+                let split = next.split(",");
+                // for s in split {
+                //     println!("{}", s)
+                // }
+                vec_next = split.collect();
+            }
 
-                let vec_next: Vec<&str>;
-                {
-                    let split = next.split(",");
-                    // for s in split {
-                    //     println!("{}", s)
-                    // }
-                    vec_next = split.collect();
-                }
+            // 最初は全てのノードが対象。
+            let mut max_token_len = 0;
+            let mut best_node = &self.empty_node;
+            let mut best_node_re = &self.empty_node;
 
-                // 最初は全てのノードが対象。
-                let mut max_token_len = 0;
-                let mut best_node = &empty_node;
-                let mut best_node_re = &empty_node;
-                for i_next_node_name in vec_next {
-                    let next_node_name = i_next_node_name.trim();
-                    // println!("next_node_name: {}", next_node_name);
-                    if self.contains_node(&next_node_name.to_string()) {
-                        //println!("contains.");
-                        let node = self.get_node(&next_node_name.to_string());
+            // 次の候補。
+            for i_next_node_name in vec_next {
+                let next_node_name = i_next_node_name.trim();
+                // println!("next_node_name: {}", next_node_name);
+                if self.contains_node(&next_node_name.to_string()) {
+                    //println!("contains.");
+                    let node = self.get_node(&next_node_name.to_string());
 
-                        let matched;
-                        if node.token_regex {
-                            if node.starts_with_re(&request, &mut response) {
-                                // 正規表現で一致したなら。
-                                best_node_re = node;
-                                is_done_re = true;
-                            }
+                    let matched;
+                    if node.token_regex {
+                        if node.starts_with_re(&request, &mut response) {
+                            // 正規表現で一致したなら。
+                            best_node_re = node;
+                            is_done_re = true;
+                        }
 
-                        } else {
-                            matched = node.starts_with(&request);
-                            if matched {
-                                // 固定長トークンで一致したなら。
-                                //println!("starts_with.");
-                                let token_len = node.token.chars().count();
-                                if max_token_len < token_len {
-                                    max_token_len = token_len;
-                                    best_node = node;
-                                };
-                                is_done = true;
-                            //} else {
-                            //    println!("not starts_with. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
-                            }
-
+                    } else {
+                        matched = node.starts_with(&request);
+                        if matched {
+                            // 固定長トークンで一致したなら。
+                            //println!("starts_with.");
+                            let token_len = node.token.chars().count();
+                            if max_token_len < token_len {
+                                max_token_len = token_len;
+                                best_node = node;
+                            };
+                            is_done = true;
+                        //} else {
+                        //    println!("not starts_with. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
                         }
 
                     }
-                }
 
-                // キャレットを進める。
-                if is_done || is_done_re {
-                    if is_done {
-                        response.caret = request.caret;
-                        best_node.forward(&request, &mut response);
-                        request.caret = response.caret;
-                        response.caret = 0;
-
-                    } else {
-                        response.caret = request.caret;
-                        best_node_re.forward_re(&request, &mut response);
-                        request.caret = response.caret;
-                        response.caret = 0;
-
-                        // まとめる。
-                        is_done = is_done_re;
-                        best_node = best_node_re;
-                    }
-                }
-
-                if is_done {
-                    
-                    // コントローラーに処理を移譲。
-                    response.caret = request.caret;
-                    response.next = next;
-                    (best_node.controller)(&request, &mut response);
-                    request.caret = response.caret;
-                    next = response.next;
-                    response.caret = 0;
-                    response.next = "";
-                    //println!("New next: {}", next);
-
-                    // 行終了時コントローラーの更新
-                    if response.is_linebreak_controller_changed() {
-                        current_linebreak_controller = response.linebreak_controller;
-                    }
-
-                    if response.done_line {
-                        // 行解析の終了。
-                        request.caret = request.line_len;
-                    }
-
-                } else {
-                    // 何とも一致しなかったら実行します。
-                    (self.complementary_controller)(&request, &mut response);
-                    // caret や、next が変更されていても、無視する。
-
-                    // 次のラインへ。
-                    break 'line;
-                }
-
-                if response.quits {
-                    // ループを抜けて、アプリケーションを終了します。
-                    break 'lines;
                 }
             }
 
-            // 1行読取終了。
-            (current_linebreak_controller)(&request, &mut response);
-            // caret や、next が変更されていても、無視する。
+            // キャレットを進める。
+            if is_done || is_done_re {
+                if is_done {
+                    response.caret = request.caret;
+                    best_node.forward(&request, &mut response);
+                    request.caret = response.caret;
+                    response.caret = 0;
 
-        } // loop
+                } else {
+                    response.caret = request.caret;
+                    best_node_re.forward_re(&request, &mut response);
+                    request.caret = response.caret;
+                    response.caret = 0;
+
+                    // まとめる。
+                    is_done = is_done_re;
+                    best_node = best_node_re;
+                }
+            }
+
+            if is_done {
+                
+                // コントローラーに処理を移譲。
+                response.caret = request.caret;
+                response.next = next;
+                (best_node.controller)(&request, &mut response);
+                request.caret = response.caret;
+                next = response.next;
+                response.caret = 0;
+                response.next = "";
+                //println!("New next: {}", next);
+
+                // 行終了時コントローラーの更新
+                if response.is_linebreak_controller_changed() {
+                    current_linebreak_controller = response.linebreak_controller;
+                }
+
+                if response.done_line {
+                    // 行解析の終了。
+                    request.caret = request.line_len;
+                }
+
+            } else {
+                // 何とも一致しなかったら実行します。
+                (self.complementary_controller)(&request, &mut response);
+                // caret や、next が変更されていても、無視する。
+
+                // 次のラインへ。
+                break 'line;
+            }
+
+            if response.quits {
+                // ループを抜けて、アプリケーションを終了します。
+                return true;
+            }
+        }
+
+        // 1行読取終了。
+        (current_linebreak_controller)(&request, &mut response);
+        // caret や、next が変更されていても、無視する。
+        false
     }
 }
 

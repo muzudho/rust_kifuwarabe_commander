@@ -9,17 +9,16 @@ use kifuwarabe_shell::*;
 
 
 // 任意のオブジェクト。
-struct ShellVar {
-
+pub struct ShellVar {
+    pub count: i32,
 }
 impl ShellVar {
-    pub fn new() -> ShellVar {
+    fn new() -> ShellVar {
         ShellVar {
-
+            count: 0,
         }
     }
 }
-
 
 /// # テスト方法。
 ///
@@ -43,8 +42,10 @@ fn main() {
 
     println!("Please enter command.");
 
+    // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
 
+    // シェルの作成。
     let mut shell = new_shell();
 
     // ノードを登録する。
@@ -67,16 +68,20 @@ fn main() {
 
     // 実行。
     run(&mut shell, &mut shell_var);
+
+    println!("shell_var.count: {}", shell_var.count);
 }
 
 
 
 
-pub fn do_a<ShellVar>(_t: &mut ShellVar, _request: &Request, _response:&mut Response<ShellVar>){
+pub fn do_a(shell_var: &mut ShellVar, _request: &Request, _response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("A.");
 }
 
-pub fn do_ab<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+pub fn do_ab(shell_var: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("Ab.");
     response.next = "ND_cde";
 
@@ -84,39 +89,47 @@ pub fn do_ab<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Resp
     set_linebreak_controller(response, do_ab_linebreak);
 }
 
-pub fn do_ab_linebreak<ShellVar>(_t: &mut ShellVar, _request: &Request, _response:&mut Response<ShellVar>){
+pub fn do_ab_linebreak(shell_var: &mut ShellVar, _request: &Request, _response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("Ab-LineBreak.");
 }
 
-pub fn do_abc<ShellVar>(_t: &mut ShellVar, _request: &Request, _response:&mut Response<ShellVar>){
+pub fn do_abc(shell_var: &mut ShellVar, _request: &Request, _response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("Abc.");
 }
 
-pub fn do_cde<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+pub fn do_cde(shell_var: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("Cde.");
     response.next = "ND_wordvar";
 }
 
-pub fn do_end<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+pub fn do_end(shell_var: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     response.done_line = true;
     println!("End.");
 }
 
-pub fn do_numvar<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+pub fn do_numvar(shell_var: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     let cap = &response.groups[0];
     println!("Number({}).", cap);
 }
 
-pub fn do_other<ShellVar>(_t: &mut ShellVar, request: &Request, _response:&mut Response<ShellVar>){
+pub fn do_other(shell_var: &mut ShellVar, request: &Request, _response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("Not match. request.line=[{}], request.caret={}", request.line, request.caret);
 }
 
-pub fn do_quit<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+pub fn do_quit(shell_var: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     println!("Quit.");
     response.quits = true;
 }
 
-pub fn do_wordvar<ShellVar>(_t: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+pub fn do_wordvar(shell_var: &mut ShellVar, _request: &Request, response:&mut Response<ShellVar>){
+    shell_var.count += 1;
     let cap = &response.groups[0];
     println!("Word({}).", cap);
 }

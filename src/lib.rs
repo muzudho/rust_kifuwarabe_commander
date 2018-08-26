@@ -52,7 +52,7 @@ pub struct Response<T> {
     linebreak_controller: Controller<T>,
 }
 
-pub fn new_response<T>() -> Response<T> {
+fn new_response<T>() -> Response<T> {
     Response {
         caret: 0,
         done_line: false,
@@ -63,7 +63,7 @@ pub fn new_response<T>() -> Response<T> {
         linebreak_controller: empty_controller,
     }
 }
-pub fn reset<T>(response: &mut Response<T>) {
+fn reset<T>(response: &mut Response<T>) {
     response.caret = 0;
     response.done_line = false;
     response.quits = false;
@@ -76,7 +76,7 @@ pub fn set_linebreak_controller<T>(response: &mut Response<T>, controller: Contr
     response.linebreak_controller_changed = true;
     response.linebreak_controller = controller;
 }
-pub fn is_linebreak_controller_changed<T>(response: &Response<T>) -> bool {
+fn is_linebreak_controller_changed<T>(response: &Response<T>) -> bool {
     response.linebreak_controller_changed
 }
 
@@ -187,7 +187,7 @@ pub fn starts_with_re<T>(node: &Node<T>, request: &Request, response: &mut Respo
     }
 }
 
-pub fn forward<T>(node: &Node<T>, request: &Request, response: &mut Response<T>) {
+fn forward<T>(node: &Node<T>, request: &Request, response: &mut Response<T>) {
     response.caret = request.caret + node.token.len();
     // 続きにスペース「 」が１つあれば読み飛ばす
     if 0<(request.line_len-response.caret) && &request.line[response.caret..(response.caret+1)]==" " {
@@ -196,7 +196,7 @@ pub fn forward<T>(node: &Node<T>, request: &Request, response: &mut Response<T>)
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-pub fn forward_re<T>(request: &Request, response: &mut Response<T>) {
+fn forward_re<T>(request: &Request, response: &mut Response<T>) {
     let pseud_token_len = response.groups[0].chars().count();
     response.caret = request.caret + pseud_token_len;
     // 続きにスペース「 」が１つあれば読み飛ばす
@@ -226,6 +226,16 @@ pub struct Shell<T> {
     node_table: HashMap<String, Node<T>>,
     complementary_controller: Controller<T>,
     pub next: &'static str,
+}
+pub trait ShellTrait {
+    fn new<T>() -> Shell<T> {
+        Shell {
+            vec_row : Vec::new(),
+            node_table: HashMap::new(),
+            complementary_controller: empty_controller,
+            next: "",
+        }
+    }
 }
 
 /*
@@ -346,7 +356,7 @@ pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
 /// # Returns.
 ///
 /// 0. シェルを終了するなら真。
-pub fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> bool {
+fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> bool {
     let mut response = new_response();
     let mut next = shell.next;
     let mut current_linebreak_controller : Controller<T> = empty_controller;

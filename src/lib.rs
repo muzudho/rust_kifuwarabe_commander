@@ -21,10 +21,10 @@ pub struct Request {
     pub caret: usize,
 }
 impl Request {
-    pub fn new(line: String) -> Request {
-        let len = line.chars().count();
+    pub fn new(line2: String) -> Request {
+        let len = line2.chars().count();
         Request {
-            line: line,
+            line: line2,
             line_len: len,
             caret: 0,
         }
@@ -131,12 +131,8 @@ pub fn starts_with<T>(node: &Node<T>, request: &Request) -> bool {
     let caret_end = request.caret + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
-    if caret_end <= request.line_len
-        && &request.line[request.caret..caret_end] == node.token {
-        true
-    } else {
-        false
-    }
+    caret_end <= request.line_len
+        && &request.line[request.caret..caret_end] == node.token
 }
 
 /// 正規表現を使う。
@@ -261,7 +257,7 @@ pub fn set_next<T>(shell: &mut Shell<T>, next: &'static str) {
     shell.next = next;
 }
 
-pub fn contains_node<T>(shell: &Shell<T>, name: &String) -> bool {
+pub fn contains_node<T>(shell: &Shell<T>, name: &str) -> bool {
     shell.node_table.contains_key(name)
 }
 
@@ -269,12 +265,12 @@ pub fn contains_node<T>(shell: &Shell<T>, name: &String) -> bool {
 /// 
 /// * `name` - 登録用の名前です。
 /// * `node` - ノードです。
-pub fn insert_node<T>(shell: &mut Shell<T>, name: &'static str, token: &'static str, controller: Controller<T>){
+pub fn insert_node<T>(shell: &mut Shell<T>, name: &'static str, token2: &'static str, controller2: Controller<T>){
     shell.node_table.insert(
         name.to_string(),
         Node {
-            token: token,
-            controller: controller,
+            token: token2,
+            controller: controller2,
             token_regex: false,
         }
     );
@@ -286,12 +282,12 @@ pub fn insert_node<T>(shell: &mut Shell<T>, name: &'static str, token: &'static 
 /// 
 /// * `name` - 登録用の名前です。
 /// * `node` - ノードです。
-pub fn insert_node_re<T>(shell: &mut Shell<T>, name: &'static str, token: &'static str, controller: Controller<T>){
+pub fn insert_node_re<T>(shell: &mut Shell<T>, name: &'static str, token2: &'static str, controller2: Controller<T>){
     shell.node_table.insert(
         name.to_string(),
         Node {
-            token: token,
-            controller: controller,
+            token: token2,
+            controller: controller2,
             token_regex: true,
         }
     );
@@ -305,13 +301,13 @@ pub fn is_empty<T>(shell: &Shell<T>) -> bool {
 /// # Arguments
 /// 
 /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-pub fn set_complementary_controller<T>(shell: &mut Shell<T>, controller: Controller<T>){
-    shell.complementary_controller = controller;
+pub fn set_complementary_controller<T>(shell: &mut Shell<T>, controller2: Controller<T>){
+    shell.complementary_controller = controller2;
 }
 
 /// コンソール入力以外の方法で、コマンド1行を追加したいときに使います。
 /// 行の末尾に改行は付けないでください。
-pub fn push_row<T>(shell: &mut Shell<T>, row: &String) {
+pub fn push_row<T>(shell: &mut Shell<T>, row: &str) {
     shell.vec_row.push( format!("{}\n", row ) );
 }
 
@@ -329,22 +325,19 @@ pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
     'lines: loop{
 
         // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request : Request;
-        if is_empty(shell) {
+        let mut request = if is_empty(shell) {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
-            io::stdin().read_line(&mut line_string)
-                .ok() // read_line が返す Resultオブジェクト の okメソッド。
-                .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
+            io::stdin().read_line(&mut line_string).expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
 
             // 末尾の 改行 を除きます。前後の空白も消えます。
-            line_string = line_string.trim().parse().ok().expect("info Failed to parse");
+            line_string = line_string.trim().parse().expect("info Failed to parse");
 
-            request = Request::new(line_string);
+            Request::new(line_string)
         } else {
             // バッファーの先頭行です。
-            request = Request::new(pop_row(shell));
-        }
+            Request::new(pop_row(shell))
+        };
 
         if parse_line(shell, t, &mut request) {
             break 'lines;
@@ -371,7 +364,7 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
 
         let vec_next: Vec<&str>;
         {
-            let split = next.split(",");
+            let split = next.split(',');
             // for s in split {
             //     println!("{}", s)
             // }
@@ -398,7 +391,7 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
             if contains_node(shell, &next_node_name.to_string()) {
                 //println!("contains.");
 
-                let node = &shell.node_table.get(&next_node_name.to_string()).unwrap();
+                let node = &shell.node_table[&next_node_name.to_string()];
 
                 let matched;
                 if node.token_regex {

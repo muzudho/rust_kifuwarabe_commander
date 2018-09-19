@@ -9,7 +9,7 @@
 /// ```
 use flowchart::*;
 use regex::Regex;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::io;
 
 /// 不具合を取りたいときに真にする。
@@ -42,8 +42,6 @@ pub fn set_linebreak_controller<T>(response: &mut Response<T>, controller: Contr
 fn is_linebreak_controller_changed<T>(response: &Response<T>) -> bool {
     response.linebreak_controller_changed
 }
-
-pub fn empty_controller<T>(_t: &mut T, _request: &Request, _response: &mut Response<T>) {}
 
 /// [token]文字列の長さだけ [starts]キャレットを進めます。
 /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
@@ -132,28 +130,23 @@ fn forward_re<T>(request: &Request, response: &mut Response<T>) {
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-/// * `flowchart` - アプリケーション１つにつき、１つのフローチャートを共有します。
 /// * `node_table` - 複数件のトークンです。
 /// * `complementary_controller` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
 /// * `next` - カンマ区切りの登録ノード名です。
-pub struct Shell<T> {
+pub struct Shell {
     vec_row: Vec<String>,
-    flowchart: Flowchart<T>,
-    complementary_controller: Controller<T>,
     pub next: &'static str,
 }
+/*
 pub trait ShellTrait {
-    fn new<T>() -> Shell<T> {
+    fn new() -> Shell {
         Shell {
             vec_row: Vec::new(),
-            flowchart: Flowchart {
-                node_table: HashMap::new(),
-            },
-            complementary_controller: empty_controller,
             next: "",
         }
     }
 }
+*/
 
 /*
 pub fn new_empty_node<T>() -> Node<T> {
@@ -165,94 +158,37 @@ pub fn new_empty_node<T>() -> Node<T> {
 }
  */
 
-pub fn new_shell<T>() -> Shell<T> {
+pub fn new_shell() -> Shell {
     Shell {
         vec_row: Vec::new(),
-        flowchart: Flowchart {
-            node_table: HashMap::new(),
-        },
-        complementary_controller: empty_controller,
         next: "",
     }
 }
 
-pub fn set_next<T>(shell: &mut Shell<T>, next: &'static str) {
+pub fn set_next(shell: &mut Shell, next: &'static str) {
     shell.next = next;
 }
 
-pub fn contains_node<T>(shell: &Shell<T>, name: &str) -> bool {
-    shell.flowchart.node_table.contains_key(name)
-}
-
-/// # Arguments
-///
-/// * `name` - 登録用の名前です。
-/// * `node` - ノードです。
-pub fn insert_node<T>(
-    shell: &mut Shell<T>,
-    name: &'static str,
-    token2: &'static str,
-    controller2: Controller<T>,
-) {
-    shell.flowchart.node_table.insert(
-        name.to_string(),
-        Node {
-            token: token2,
-            controller: controller2,
-            token_regex: false,
-        },
-    );
-}
-
-/// 正規表現を使うなら。
-///
-/// # Arguments
-///
-/// * `name` - 登録用の名前です。
-/// * `node` - ノードです。
-pub fn insert_node_re<T>(
-    shell: &mut Shell<T>,
-    name: &'static str,
-    token2: &'static str,
-    controller2: Controller<T>,
-) {
-    shell.flowchart.node_table.insert(
-        name.to_string(),
-        Node {
-            token: token2,
-            controller: controller2,
-            token_regex: true,
-        },
-    );
-}
-
 /// コマンドを1行も入力していなければ真を返します。
-pub fn is_empty<T>(shell: &Shell<T>) -> bool {
+pub fn is_empty(shell: &Shell) -> bool {
     shell.vec_row.len() == 0
-}
-
-/// # Arguments
-///
-/// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-pub fn set_complementary_controller<T>(shell: &mut Shell<T>, controller2: Controller<T>) {
-    shell.complementary_controller = controller2;
 }
 
 /// コンソール入力以外の方法で、コマンド1行を追加したいときに使います。
 /// 行の末尾に改行は付けないでください。
-pub fn push_row<T>(shell: &mut Shell<T>, row: &str) {
+pub fn push_row<T>(shell: &mut Shell, row: &str) {
     shell.vec_row.push(format!("{}\n", row));
 }
 
 /// 先頭のコマンド1行をキューから削除して返します。
-pub fn pop_row<T>(shell: &mut Shell<T>) -> String {
+pub fn pop_row(shell: &mut Shell) -> String {
     shell.vec_row.pop().unwrap()
 }
 
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
 /// スレッドはブロックします。
 /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
+pub fn run<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut request = if is_empty(shell) {
@@ -271,7 +207,7 @@ pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
             Request::new(pop_row(shell))
         };
 
-        if parse_line(shell, t, &mut request) {
+        if parse_line(flowchart, shell, t, &mut request) {
             break 'lines;
         }
     } // loop
@@ -280,7 +216,7 @@ pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
 /// # Returns.
 ///
 /// 0. シェルを終了するなら真。
-fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request: &mut Request) -> bool {
+fn parse_line<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T, request: &mut Request) -> bool {
     let mut response = new_response();
     let mut next = shell.next;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
@@ -317,10 +253,10 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request: &mut Request) -> bool
         for i_next_node_name in vec_next {
             let next_node_name = i_next_node_name.trim();
             // println!("next_node_name: {}", next_node_name);
-            if contains_node(shell, &next_node_name.to_string()) {
+            if contains_node(flowchart, &next_node_name.to_string()) {
                 //println!("contains.");
 
-                let node = &shell.flowchart.node_table[&next_node_name.to_string()];
+                let node = &flowchart.node_table[&next_node_name.to_string()];
 
                 let matched;
                 if node.token_regex {
@@ -388,7 +324,7 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request: &mut Request) -> bool
             }
         } else {
             // 何とも一致しなかったら実行します。
-            (shell.complementary_controller)(t, &request, &mut response);
+            (flowchart.complementary_controller)(t, &request, &mut response);
             // caret や、next が変更されていても、無視する。
 
             // 次のラインへ。

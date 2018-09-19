@@ -72,7 +72,23 @@ pub struct Node<T> {
 /// アプリケーション１つにつき、１つのフローチャートを持ちます。
 pub struct Flowchart<T> {
     pub node_table: HashMap<String, Node<T>>,
+    pub complementary_controller: Controller<T>,
 }
+
+pub fn contains_node<T>(flowchart: &Flowchart<T>, name: &str) -> bool {
+    flowchart.node_table.contains_key(name)
+}
+
+pub fn empty_controller<T>(_t: &mut T, _request: &Request, _response: &mut Response<T>) {}
+
+/// アプリケーション１つにつき、１つのフローチャートを共有します。
+pub fn new_flowchart<T>() -> Flowchart<T> {
+    Flowchart {
+        node_table: HashMap::new(),
+        complementary_controller: empty_controller,
+    }
+}
+
 /*
 trait FlowchartTrait {
     fn new<T>() -> Flowchart<T>;
@@ -85,3 +101,53 @@ impl Flowchart{
     }
 }
 */
+
+
+/// # Arguments
+///
+/// * `name` - 登録用の名前です。
+/// * `node` - ノードです。
+pub fn insert_node<T>(
+    flowchart: &mut Flowchart<T>,
+    name: &'static str,
+    token2: &'static str,
+    controller2: Controller<T>,
+) {
+    flowchart.node_table.insert(
+        name.to_string(),
+        Node {
+            token: token2,
+            controller: controller2,
+            token_regex: false,
+        },
+    );
+}
+
+/// 正規表現を使うなら。
+///
+/// # Arguments
+///
+/// * `name` - 登録用の名前です。
+/// * `node` - ノードです。
+pub fn insert_node_re<T>(
+    flowchart: &mut Flowchart<T>,
+    name: &'static str,
+    token2: &'static str,
+    controller2: Controller<T>,
+) {
+    flowchart.node_table.insert(
+        name.to_string(),
+        Node {
+            token: token2,
+            controller: controller2,
+            token_regex: true,
+        },
+    );
+}
+
+/// # Arguments
+///
+/// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
+pub fn set_complementary_controller<T>(flowchart: &mut Flowchart<T>, controller2: Controller<T>) {
+    flowchart.complementary_controller = controller2;
+}

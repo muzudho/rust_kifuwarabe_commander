@@ -4,8 +4,8 @@
 /// ```
 extern crate kifuwarabe_shell;
 
-use kifuwarabe_shell::*;
-
+use kifuwarabe_shell::flowchart::*;
+use kifuwarabe_shell::shell::*;
 
 
 // 任意のオブジェクト。

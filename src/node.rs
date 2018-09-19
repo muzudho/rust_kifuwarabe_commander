@@ -1,4 +1,3 @@
-
 /// コマンドライン文字列。
 ///
 /// # Members
@@ -10,15 +9,8 @@ pub struct Request {
     pub line_len: usize,
     pub caret: usize,
 }
-impl Request {
-    pub fn new(line2: String) -> Request {
-        let len = line2.chars().count();
-        Request {
-            line: line2,
-            line_len: len,
-            caret: 0,
-        }
-    }
+pub trait RequestTrait {
+    fn new(line2: String) -> Request;
 }
 
 /// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。

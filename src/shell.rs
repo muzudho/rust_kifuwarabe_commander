@@ -9,8 +9,20 @@
 /// ```
 use graph::*;
 use node::*;
+use node::RequestTrait;
 use regex::Regex;
 use std::io;
+
+impl RequestTrait for Request {
+    fn new(line2: String) -> Request {
+        let len = line2.chars().count();
+        Request {
+            line: line2,
+            line_len: len,
+            caret: 0,
+        }
+    }
+}
 
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;

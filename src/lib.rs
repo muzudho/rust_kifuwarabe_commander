@@ -1,56 +1,23 @@
 /// # Rust きふわらべ シェル
 /// 行単位です。
+///
+/// コマンド例
+///
+/// ```
+/// cd C:\MuzudhoDrive\projects_rust\rust_kifuwarabe_shell
+/// cargo clippy
+/// ```
 extern crate regex;
 
-/// 不具合を取りたいときに真にする。
-const VERBOSE : bool = false;
+mod flowchart;
 
+use flowchart::*;
 use regex::Regex;
 use std::collections::HashMap;
 use std::io;
 
-/// コマンドライン文字列。
-/// 
-/// # Members
-/// 
-/// * `line` - コマンドライン文字列の1行全体です。
-/// * `line_len` - コマンドライン文字列の1行全体の文字数です。
-pub struct Request {
-    pub line: String,
-    pub line_len: usize,
-    pub caret: usize,
-}
-impl Request {
-    pub fn new(line2: String) -> Request {
-        let len = line2.chars().count();
-        Request {
-            line: line2,
-            line_len: len,
-            caret: 0,
-        }
-    }
-}
-
-/// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
-/// - シェルを終了するなど、シェルに対して指示することができる。
-/// - また、字句解析の次のノードを指定する役割も持つ。
-/// 
-/// # Members
-/// 
-/// * `starts` - コマンドライン文字列の次のトークンの先頭位置です。
-/// * `done_line` - 行の解析を中断するなら真にします。
-/// * `quits` - アプリケーションを終了するなら真にします。
-/// * `groups` - あれば、正規表現の結果を入れておく。
-/// * `next` - 次のノードの登録名です。カンマ区切り。
-pub struct Response<T> {
-    pub caret: usize,
-    pub done_line: bool,
-    pub quits: bool,
-    pub groups: Vec<String>,
-    pub next: &'static str,
-    linebreak_controller_changed: bool,
-    linebreak_controller: Controller<T>,
-}
+/// 不具合を取りたいときに真にする。
+const VERBOSE: bool = false;
 
 fn new_response<T>() -> Response<T> {
     Response {
@@ -80,45 +47,7 @@ fn is_linebreak_controller_changed<T>(response: &Response<T>) -> bool {
     response.linebreak_controller_changed
 }
 
-
-
-
-
-
-
-
-
-
-
-/// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。
-///
-/// # Arguments
-///
-/// * `t` - 任意のオブジェクト。
-/// * `request` - 入力されたコマンドライン文字列など。
-/// * `response` - 読取位置や、次のトークンの指定など。
-///
-/// # 参考
-/// - Rustのコールバック関数について。  
-/// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-type Controller<T> = fn(t: &mut T, request: &Request, response: &mut Response<T>);
-
-pub fn empty_controller<T>(_t: &mut T, _request: &Request, _response: &mut Response<T>) {
-
-}
-
-/// トークンと、コントローラーのペアです。
-///
-/// # Members
-///
-/// * `token` - 全文一致させたい文字列です。
-/// * `controller` - コールバック関数です。
-/// * `token_regex` - トークンに正規表現を使うなら真です。
-pub struct Node<T> {
-    pub token: &'static str,
-    pub controller: Controller<T>,
-    pub token_regex: bool, 
-}
+pub fn empty_controller<T>(_t: &mut T, _request: &Request, _response: &mut Response<T>) {}
 
 /// [token]文字列の長さだけ [starts]キャレットを進めます。
 /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
@@ -131,8 +60,7 @@ pub fn starts_with<T>(node: &Node<T>, request: &Request) -> bool {
     let caret_end = request.caret + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
-    caret_end <= request.line_len
-        && &request.line[request.caret..caret_end] == node.token
+    caret_end <= request.line_len && &request.line[request.caret..caret_end] == node.token
 }
 
 /// 正規表現を使う。
@@ -143,13 +71,11 @@ pub fn starts_with<T>(node: &Node<T>, request: &Request) -> bool {
 /// * `response` - 読取位置。
 /// * returns - 一致したら真。
 pub fn starts_with_re<T>(node: &Node<T>, request: &Request, response: &mut Response<T>) -> bool {
-
     if VERBOSE {
         println!("starts_with_re");
     }
 
     if request.caret < request.line_len {
-
         if VERBOSE {
             println!("node.token: {}", node.token);
         }
@@ -171,13 +97,13 @@ pub fn starts_with_re<T>(node: &Node<T>, request: &Request, response: &mut Respo
             response.groups.push(cap.to_string());
 
             group_num += 1;
-        };
+        }
 
         if VERBOSE {
             println!("Group num: {}", group_num);
         }
 
-        0<group_num
+        0 < group_num
     } else {
         false
     }
@@ -186,7 +112,9 @@ pub fn starts_with_re<T>(node: &Node<T>, request: &Request, response: &mut Respo
 fn forward<T>(node: &Node<T>, request: &Request, response: &mut Response<T>) {
     response.caret = request.caret + node.token.len();
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0<(request.line_len-response.caret) && &request.line[response.caret..(response.caret+1)]==" " {
+    if 0 < (request.line_len - response.caret)
+        && &request.line[response.caret..(response.caret + 1)] == " "
+    {
         response.caret += 1;
     }
 }
@@ -196,29 +124,25 @@ fn forward_re<T>(request: &Request, response: &mut Response<T>) {
     let pseud_token_len = response.groups[0].chars().count();
     response.caret = request.caret + pseud_token_len;
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0<(request.line_len-response.caret) && &request.line[response.caret..(response.caret+1)]==" " {
+    if 0 < (request.line_len - response.caret)
+        && &request.line[response.caret..(response.caret + 1)] == " "
+    {
         response.caret += 1;
     }
 }
 
-
-
-
-
-
-
-
-
-/// このアプリケーションです。
+/// クライアント１つにつき、１つのシェルを与えます。
 ///
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
+/// * `flowchart` - アプリケーション１つにつき、１つのフローチャートを共有します。
 /// * `node_table` - 複数件のトークンです。
 /// * `complementary_controller` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
 /// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell<T> {
     vec_row: Vec<String>,
+    flowchart: Flowchart,
     node_table: HashMap<String, Node<T>>,
     complementary_controller: Controller<T>,
     pub next: &'static str,
@@ -226,7 +150,8 @@ pub struct Shell<T> {
 pub trait ShellTrait {
     fn new<T>() -> Shell<T> {
         Shell {
-            vec_row : Vec::new(),
+            vec_row: Vec::new(),
+            flowchart: Flowchart::new(),
             node_table: HashMap::new(),
             complementary_controller: empty_controller,
             next: "",
@@ -246,7 +171,8 @@ pub fn new_empty_node<T>() -> Node<T> {
 
 pub fn new_shell<T>() -> Shell<T> {
     Shell {
-        vec_row : Vec::new(),
+        vec_row: Vec::new(),
+        flowchart: Flowchart::new(),
         node_table: HashMap::new(),
         complementary_controller: empty_controller,
         next: "",
@@ -262,53 +188,63 @@ pub fn contains_node<T>(shell: &Shell<T>, name: &str) -> bool {
 }
 
 /// # Arguments
-/// 
+///
 /// * `name` - 登録用の名前です。
 /// * `node` - ノードです。
-pub fn insert_node<T>(shell: &mut Shell<T>, name: &'static str, token2: &'static str, controller2: Controller<T>){
+pub fn insert_node<T>(
+    shell: &mut Shell<T>,
+    name: &'static str,
+    token2: &'static str,
+    controller2: Controller<T>,
+) {
     shell.node_table.insert(
         name.to_string(),
         Node {
             token: token2,
             controller: controller2,
             token_regex: false,
-        }
+        },
     );
 }
 
 /// 正規表現を使うなら。
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `name` - 登録用の名前です。
 /// * `node` - ノードです。
-pub fn insert_node_re<T>(shell: &mut Shell<T>, name: &'static str, token2: &'static str, controller2: Controller<T>){
+pub fn insert_node_re<T>(
+    shell: &mut Shell<T>,
+    name: &'static str,
+    token2: &'static str,
+    controller2: Controller<T>,
+) {
     shell.node_table.insert(
         name.to_string(),
         Node {
             token: token2,
             controller: controller2,
             token_regex: true,
-        }
+        },
     );
 }
 
 /// コマンドを1行も入力していなければ真を返します。
 pub fn is_empty<T>(shell: &Shell<T>) -> bool {
-    shell.vec_row.len()==0
+    shell.vec_row.len() == 0
 }
 
 /// # Arguments
-/// 
+///
 /// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-pub fn set_complementary_controller<T>(shell: &mut Shell<T>, controller2: Controller<T>){
+pub fn set_complementary_controller<T>(shell: &mut Shell<T>, controller2: Controller<T>) {
     shell.complementary_controller = controller2;
 }
 
 /// コンソール入力以外の方法で、コマンド1行を追加したいときに使います。
 /// 行の末尾に改行は付けないでください。
 pub fn push_row<T>(shell: &mut Shell<T>, row: &str) {
-    shell.vec_row.push( format!("{}\n", row ) );
+    shell.vec_row.push(format!("{}\n", row));
 }
 
 /// 先頭のコマンド1行をキューから削除して返します。
@@ -316,19 +252,18 @@ pub fn pop_row<T>(shell: &mut Shell<T>) -> String {
     shell.vec_row.pop().unwrap()
 }
 
-
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
 /// スレッドはブロックします。
 /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
 pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
-
-    'lines: loop{
-
+    'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut request = if is_empty(shell) {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
-            io::stdin().read_line(&mut line_string).expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
+            io::stdin()
+                .read_line(&mut line_string)
+                .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
 
             // 末尾の 改行 を除きます。前後の空白も消えます。
             line_string = line_string.trim().parse().expect("info Failed to parse");
@@ -342,21 +277,18 @@ pub fn run<T>(shell: &mut Shell<T>, t: &mut T) {
         if parse_line(shell, t, &mut request) {
             break 'lines;
         }
-
     } // loop
 }
 
 /// # Returns.
 ///
 /// 0. シェルを終了するなら真。
-fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> bool {
+fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request: &mut Request) -> bool {
     let mut response = new_response();
     let mut next = shell.next;
-    let mut current_linebreak_controller : Controller<T> = empty_controller;
-
+    let mut current_linebreak_controller: Controller<T> = empty_controller;
 
     'line: while request.caret < request.line_len {
-
         // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
         reset(&mut response);
         let mut is_done = false;
@@ -373,12 +305,12 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
 
         // 最初は全てのノードが対象。
         let mut max_token_len = 0;
-        let mut best_node : &Node<T> = &Node {
+        let mut best_node: &Node<T> = &Node {
             token: "",
             controller: empty_controller,
             token_regex: false,
         };
-        let mut best_node_re : &Node<T> = &Node {
+        let mut best_node_re: &Node<T> = &Node {
             token: "",
             controller: empty_controller,
             token_regex: false,
@@ -400,7 +332,6 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
                         best_node_re = node;
                         is_done_re = true;
                     }
-
                 } else {
                     matched = starts_with(node, &request);
                     if matched {
@@ -412,12 +343,10 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
                             best_node = node;
                         };
                         is_done = true;
-                    //} else {
-                    //    println!("not starts_with. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
+                        //} else {
+                        //    println!("not starts_with. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
                     }
-
                 }
-
             }
         }
 
@@ -428,7 +357,6 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
                 forward(&best_node, &request, &mut response);
                 request.caret = response.caret;
                 response.caret = 0;
-
             } else {
                 response.caret = request.caret;
                 forward_re(&request, &mut response);
@@ -442,7 +370,6 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
         }
 
         if is_done {
-            
             // コントローラーに処理を移譲。
             response.caret = request.caret;
             response.next = next;
@@ -462,7 +389,6 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request : &mut Request) -> boo
                 // 行解析の終了。
                 request.caret = request.line_len;
             }
-
         } else {
             // 何とも一致しなかったら実行します。
             (shell.complementary_controller)(t, &request, &mut response);

@@ -1,4 +1,5 @@
 extern crate regex;
 
-pub mod flowchart;
+pub mod graph;
 pub mod shell;
+pub mod node;

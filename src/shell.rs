@@ -1,4 +1,4 @@
-/// # Rust きふわらべ シェル
+/// クライアント１つにつき、１つのシェルを与えます。
 /// 行単位です。
 ///
 /// コマンド例
@@ -7,41 +7,13 @@
 /// cd C:\MuzudhoDrive\projects_rust\rust_kifuwarabe_shell
 /// cargo clippy
 /// ```
-use flowchart::*;
+use graph::*;
+use node::*;
 use regex::Regex;
-// use std::collections::HashMap;
 use std::io;
 
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
-
-fn new_response<T>() -> Response<T> {
-    Response {
-        caret: 0,
-        done_line: false,
-        quits: false,
-        groups: Vec::new(),
-        next: "",
-        linebreak_controller_changed: false,
-        linebreak_controller: empty_controller,
-    }
-}
-fn reset<T>(response: &mut Response<T>) {
-    response.caret = 0;
-    response.done_line = false;
-    response.quits = false;
-    response.groups.clear();
-    response.next = "";
-    response.linebreak_controller_changed = false;
-    response.linebreak_controller = empty_controller;
-}
-pub fn set_linebreak_controller<T>(response: &mut Response<T>, controller: Controller<T>) {
-    response.linebreak_controller_changed = true;
-    response.linebreak_controller = controller;
-}
-fn is_linebreak_controller_changed<T>(response: &Response<T>) -> bool {
-    response.linebreak_controller_changed
-}
 
 /// [token]文字列の長さだけ [starts]キャレットを進めます。
 /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
@@ -125,7 +97,7 @@ fn forward_re<T>(request: &Request, response: &mut Response<T>) {
     }
 }
 
-/// クライアント１つにつき、１つのシェルを与えます。
+/// シェル。
 ///
 /// # Arguments
 ///
@@ -137,26 +109,6 @@ pub struct Shell {
     vec_row: Vec<String>,
     pub next: &'static str,
 }
-/*
-pub trait ShellTrait {
-    fn new() -> Shell {
-        Shell {
-            vec_row: Vec::new(),
-            next: "",
-        }
-    }
-}
-*/
-
-/*
-pub fn new_empty_node<T>() -> Node<T> {
-    Node {
-        token: "",
-        controller: empty_controller,
-        token_regex: false,
-    }
-}
- */
 
 pub fn new_shell() -> Shell {
     Shell {
@@ -176,7 +128,7 @@ pub fn is_empty(shell: &Shell) -> bool {
 
 /// コンソール入力以外の方法で、コマンド1行を追加したいときに使います。
 /// 行の末尾に改行は付けないでください。
-pub fn push_row<T>(shell: &mut Shell, row: &str) {
+pub fn push_row(shell: &mut Shell, row: &str) {
     shell.vec_row.push(format!("{}\n", row));
 }
 
@@ -188,7 +140,7 @@ pub fn pop_row(shell: &mut Shell) -> String {
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
 /// スレッドはブロックします。
 /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-pub fn run<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T) {
+pub fn run<T>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut request = if is_empty(shell) {
@@ -207,7 +159,7 @@ pub fn run<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T) {
             Request::new(pop_row(shell))
         };
 
-        if parse_line(flowchart, shell, t, &mut request) {
+        if parse_line(graph, shell, t, &mut request) {
             break 'lines;
         }
     } // loop
@@ -216,7 +168,12 @@ pub fn run<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T) {
 /// # Returns.
 ///
 /// 0. シェルを終了するなら真。
-fn parse_line<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T, request: &mut Request) -> bool {
+fn parse_line<T>(
+    graph: &Graph<T>,
+    shell: &mut Shell,
+    t: &mut T,
+    request: &mut Request,
+) -> bool {
     let mut response = new_response();
     let mut next = shell.next;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
@@ -253,10 +210,10 @@ fn parse_line<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T, req
         for i_next_node_name in vec_next {
             let next_node_name = i_next_node_name.trim();
             // println!("next_node_name: {}", next_node_name);
-            if contains_node(flowchart, &next_node_name.to_string()) {
+            if contains_node(graph, &next_node_name.to_string()) {
                 //println!("contains.");
 
-                let node = &flowchart.node_table[&next_node_name.to_string()];
+                let node = &graph.node_table[&next_node_name.to_string()];
 
                 let matched;
                 if node.token_regex {
@@ -324,7 +281,7 @@ fn parse_line<T>(flowchart: &mut Flowchart<T>, shell: &mut Shell, t: &mut T, req
             }
         } else {
             // 何とも一致しなかったら実行します。
-            (flowchart.complementary_controller)(t, &request, &mut response);
+            (graph.complementary_controller)(t, &request, &mut response);
             // caret や、next が変更されていても、無視する。
 
             // 次のラインへ。

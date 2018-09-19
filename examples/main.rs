@@ -4,7 +4,8 @@
 /// ```
 extern crate kifuwarabe_shell;
 
-use kifuwarabe_shell::flowchart::*;
+use kifuwarabe_shell::graph::*;
+use kifuwarabe_shell::node::*;
 use kifuwarabe_shell::shell::*;
 
 
@@ -46,31 +47,31 @@ fn main() {
     let mut shell_var = ShellVar::new();
 
     // フローチャートの作成。
-    let mut flowchart = new_flowchart();
+    let mut graph = new_graph();
 
     // シェルの作成。
     let mut shell = new_shell();
 
     // ノードを登録する。
-    insert_node(&mut flowchart, "ND_a", "a", do_a);
-    insert_node(&mut flowchart, "ND_ab", "ab", do_ab);
-    insert_node(&mut flowchart, "ND_abc", "abc", do_abc);
-    insert_node(&mut flowchart, "ND_cde", "cde", do_cde);
-    insert_node(&mut flowchart, "ND_end", "end", do_end);
-    insert_node_re(&mut flowchart, "ND_numvar", r"(\d+)", do_numvar);
-    insert_node(&mut flowchart, "ND_quit", "quit", do_quit);
-    insert_node_re(&mut flowchart, "ND_wordvar", r"(\w+)", do_wordvar);
+    insert_node(&mut graph, "ND_a", "a", do_a);
+    insert_node(&mut graph, "ND_ab", "ab", do_ab);
+    insert_node(&mut graph, "ND_abc", "abc", do_abc);
+    insert_node(&mut graph, "ND_cde", "cde", do_cde);
+    insert_node(&mut graph, "ND_end", "end", do_end);
+    insert_node_re(&mut graph, "ND_numvar", r"(\d+)", do_numvar);
+    insert_node(&mut graph, "ND_quit", "quit", do_quit);
+    insert_node_re(&mut graph, "ND_wordvar", r"(\w+)", do_wordvar);
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
 
     // 該当なしの場合のコールバック関数を登録する。
-    set_complementary_controller(&mut flowchart, do_other);
+    set_complementary_controller(&mut graph, do_other);
 
     // 開始ノードを選択する。
     set_next(&mut shell, "ND_a,ND_ab,ND_abc,ND_end,ND_numvar,
         ND_quit,ND_wordvar");
 
     // 実行。
-    run(&mut flowchart, &mut shell, &mut shell_var);
+    run(&mut graph, &mut shell, &mut shell_var);
 
     println!("shell_var.count: {}", shell_var.count);
 }

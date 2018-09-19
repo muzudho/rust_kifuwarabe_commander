@@ -142,8 +142,7 @@ fn forward_re<T>(request: &Request, response: &mut Response<T>) {
 /// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell<T> {
     vec_row: Vec<String>,
-    flowchart: Flowchart,
-    node_table: HashMap<String, Node<T>>,
+    flowchart: Flowchart<T>,
     complementary_controller: Controller<T>,
     pub next: &'static str,
 }
@@ -151,8 +150,9 @@ pub trait ShellTrait {
     fn new<T>() -> Shell<T> {
         Shell {
             vec_row: Vec::new(),
-            flowchart: Flowchart::new(),
-            node_table: HashMap::new(),
+            flowchart: Flowchart {
+                node_table: HashMap::new(),
+            },
             complementary_controller: empty_controller,
             next: "",
         }
@@ -172,8 +172,9 @@ pub fn new_empty_node<T>() -> Node<T> {
 pub fn new_shell<T>() -> Shell<T> {
     Shell {
         vec_row: Vec::new(),
-        flowchart: Flowchart::new(),
-        node_table: HashMap::new(),
+        flowchart: Flowchart {
+            node_table: HashMap::new(),
+        },
         complementary_controller: empty_controller,
         next: "",
     }
@@ -184,7 +185,7 @@ pub fn set_next<T>(shell: &mut Shell<T>, next: &'static str) {
 }
 
 pub fn contains_node<T>(shell: &Shell<T>, name: &str) -> bool {
-    shell.node_table.contains_key(name)
+    shell.flowchart.node_table.contains_key(name)
 }
 
 /// # Arguments
@@ -197,7 +198,7 @@ pub fn insert_node<T>(
     token2: &'static str,
     controller2: Controller<T>,
 ) {
-    shell.node_table.insert(
+    shell.flowchart.node_table.insert(
         name.to_string(),
         Node {
             token: token2,
@@ -219,7 +220,7 @@ pub fn insert_node_re<T>(
     token2: &'static str,
     controller2: Controller<T>,
 ) {
-    shell.node_table.insert(
+    shell.flowchart.node_table.insert(
         name.to_string(),
         Node {
             token: token2,
@@ -323,7 +324,7 @@ fn parse_line<T>(shell: &mut Shell<T>, t: &mut T, request: &mut Request) -> bool
             if contains_node(shell, &next_node_name.to_string()) {
                 //println!("contains.");
 
-                let node = &shell.node_table[&next_node_name.to_string()];
+                let node = &shell.flowchart.node_table[&next_node_name.to_string()];
 
                 let matched;
                 if node.token_regex {

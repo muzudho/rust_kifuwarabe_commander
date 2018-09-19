@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 
 /// コマンドライン文字列。
 ///
@@ -69,9 +70,18 @@ pub struct Node<T> {
 }
 
 /// アプリケーション１つにつき、１つのフローチャートを持ちます。
-pub struct Flowchart {}
-impl Flowchart {
-    pub fn new() -> Flowchart {
-        Flowchart {}
+pub struct Flowchart<T> {
+    pub node_table: HashMap<String, Node<T>>,
+}
+/*
+trait FlowchartTrait {
+    fn new<T>() -> Flowchart<T>;
+}
+impl Flowchart{
+    fn new<T>() -> Flowchart<T> {
+        Flowchart {
+            node_table: HashMap::new(),
+        }
     }
 }
+*/

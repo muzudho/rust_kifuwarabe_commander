@@ -5,12 +5,18 @@
 /// * `line` - コマンドライン文字列の1行全体です。
 /// * `line_len` - コマンドライン文字列の1行全体の文字数です。
 pub struct Request {
-    pub line: String,
+    pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
     pub line_len: usize,
     pub caret: usize,
 }
-pub trait RequestTrait {
-    fn new(line2: String) -> Request;
+pub trait RequestAccessor {
+    // fn new(line: Box<String>) -> Request;
+    fn get_line(&self) -> &Box<String>;
+    fn set_line(&mut self, s:Box<String>);
+    fn get_line_len(&self) -> usize;
+    fn set_line_len(&mut self, len:usize);
+    fn get_caret(&self) -> usize;
+    fn set_caret(&mut self, caret:usize);
 }
 
 /// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。
@@ -24,7 +30,7 @@ pub trait RequestTrait {
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-pub type Controller<T> = fn(t: &mut T, request: &Request, response: &mut Response<T>);
+pub type Controller<T> = fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Response<T>);
 
 /// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
 /// - シェルを終了するなど、シェルに対して指示することができる。
@@ -60,7 +66,7 @@ pub struct Node<T> {
     pub token_regex: bool,
 }
 
-pub fn empty_controller<T>(_t: &mut T, _request: &Request, _response: &mut Response<T>) {}
+pub fn empty_controller<T>(_t: &mut T, _request: &Box<RequestAccessor>, _response: &mut Response<T>) {}
 
 pub fn new_response<T>() -> Response<T> {
     Response {

@@ -9,18 +9,36 @@
 /// ```
 use graph::*;
 use node::*;
-use node::RequestTrait;
 use regex::Regex;
 use std::io;
 
-impl RequestTrait for Request {
-    fn new(line2: String) -> Request {
-        let len = line2.chars().count();
-        Request {
-            line: line2,
-            line_len: len,
-            caret: 0,
-        }
+fn new_request(line2: Box<String>) -> Box<Request> {
+    let len = line2.chars().count();
+    Box::new(Request {
+        line: line2,
+        line_len: len,
+        caret: 0,
+    })
+}
+
+impl RequestAccessor for Request {
+    fn get_line(&self) -> &Box<String> {
+        &self.line
+    }
+    fn set_line(&mut self, s:Box<String>) {
+        self.line = s
+    }
+    fn get_line_len(&self) -> usize {
+        self.line_len
+    }
+    fn set_line_len(&mut self, len:usize) {
+        self.line_len = len
+    }
+    fn get_caret(&self) -> usize {
+        self.caret
+    }
+    fn set_caret(&mut self, caret2:usize) {
+        self.caret = caret2
     }
 }
 
@@ -34,11 +52,11 @@ const VERBOSE: bool = false;
 ///
 /// * `request` - 読み取るコマンドラインと、読取位置。
 /// * returns - 一致したら真。
-pub fn starts_with<T>(node: &Node<T>, request: &Request) -> bool {
-    let caret_end = request.caret + node.token.len();
+pub fn starts_with<T>(node: &Node<T>, request: &Box<RequestAccessor>) -> bool {
+    let caret_end = request.get_caret() + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
-    caret_end <= request.line_len && &request.line[request.caret..caret_end] == node.token
+    caret_end <= request.get_line_len() && &request.get_line()[request.get_caret()..caret_end] == node.token
 }
 
 /// 正規表現を使う。
@@ -48,19 +66,19 @@ pub fn starts_with<T>(node: &Node<T>, request: &Request) -> bool {
 /// * `request` - 読み取るコマンドライン。
 /// * `response` - 読取位置。
 /// * returns - 一致したら真。
-pub fn starts_with_re<T>(node: &Node<T>, request: &Request, response: &mut Response<T>) -> bool {
+pub fn starts_with_re<T>(node: &Node<T>, request: &Box<RequestAccessor>, response: &mut Response<T>) -> bool {
     if VERBOSE {
         println!("starts_with_re");
     }
 
-    if request.caret < request.line_len {
+    if request.get_caret() < request.get_line_len() {
         if VERBOSE {
             println!("node.token: {}", node.token);
         }
 
         let re = Regex::new(node.token).unwrap();
 
-        let text = &request.line[request.caret..];
+        let text = &request.get_line()[request.get_caret()..];
 
         if VERBOSE {
             println!("text: [{}]", text);
@@ -87,23 +105,23 @@ pub fn starts_with_re<T>(node: &Node<T>, request: &Request, response: &mut Respo
     }
 }
 
-fn forward<T>(node: &Node<T>, request: &Request, response: &mut Response<T>) {
-    response.caret = request.caret + node.token.len();
+fn forward<T>(node: &Node<T>, request: &Box<RequestAccessor>, response: &mut Response<T>) {
+    response.caret = request.get_caret() + node.token.len();
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.line_len - response.caret)
-        && &request.line[response.caret..(response.caret + 1)] == " "
+    if 0 < (request.get_line_len() - response.caret)
+        && &request.get_line()[response.caret..(response.caret + 1)] == " "
     {
         response.caret += 1;
     }
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_re<T>(request: &Request, response: &mut Response<T>) {
+fn forward_re<T>(request: &Box<RequestAccessor>, response: &mut Response<T>) {
     let pseud_token_len = response.groups[0].chars().count();
-    response.caret = request.caret + pseud_token_len;
+    response.caret = request.get_caret() + pseud_token_len;
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.line_len - response.caret)
-        && &request.line[response.caret..(response.caret + 1)] == " "
+    if 0 < (request.get_line_len() - response.caret)
+        && &request.get_line()[response.caret..(response.caret + 1)] == " "
     {
         response.caret += 1;
     }
@@ -145,8 +163,8 @@ pub fn push_row(shell: &mut Shell, row: &str) {
 }
 
 /// 先頭のコマンド1行をキューから削除して返します。
-pub fn pop_row(shell: &mut Shell) -> String {
-    shell.vec_row.pop().unwrap()
+pub fn pop_row(shell: &mut Shell) -> Box<String> {
+    Box::new(shell.vec_row.pop().unwrap())
 }
 
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
@@ -155,7 +173,7 @@ pub fn pop_row(shell: &mut Shell) -> String {
 pub fn run<T>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request = if is_empty(shell) {
+        let mut request : Box<dyn RequestAccessor> = if is_empty(shell) {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
             io::stdin()
@@ -165,10 +183,10 @@ pub fn run<T>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
             // 末尾の 改行 を除きます。前後の空白も消えます。
             line_string = line_string.trim().parse().expect("info Failed to parse");
 
-            Request::new(line_string)
+            new_request(Box::new(line_string))
         } else {
             // バッファーの先頭行です。
-            Request::new(pop_row(shell))
+            new_request(pop_row(shell))
         };
 
         if parse_line(graph, shell, t, &mut request) {
@@ -184,13 +202,13 @@ fn parse_line<T>(
     graph: &Graph<T>,
     shell: &mut Shell,
     t: &mut T,
-    request: &mut Request,
+    request: &mut Box<dyn RequestAccessor>,
 ) -> bool {
     let mut response = new_response();
     let mut next = shell.next;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
 
-    'line: while request.caret < request.line_len {
+    'line: while request.get_caret() < request.get_line_len() {
         // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
         reset(&mut response);
         let mut is_done = false;
@@ -229,13 +247,13 @@ fn parse_line<T>(
 
                 let matched;
                 if node.token_regex {
-                    if starts_with_re(node, &request, &mut response) {
+                    if starts_with_re(node, request, &mut response) {
                         // 正規表現で一致したなら。
                         best_node_re = node;
                         is_done_re = true;
                     }
                 } else {
-                    matched = starts_with(node, &request);
+                    matched = starts_with(node, request);
                     if matched {
                         // 固定長トークンで一致したなら。
                         //println!("starts_with.");
@@ -255,14 +273,14 @@ fn parse_line<T>(
         // キャレットを進める。
         if is_done || is_done_re {
             if is_done {
-                response.caret = request.caret;
-                forward(&best_node, &request, &mut response);
-                request.caret = response.caret;
+                response.caret = request.get_caret();
+                forward(&best_node, request, &mut response);
+                request.set_caret(response.caret);
                 response.caret = 0;
             } else {
-                response.caret = request.caret;
-                forward_re(&request, &mut response);
-                request.caret = response.caret;
+                response.caret = request.get_caret();
+                forward_re(request, &mut response);
+                request.set_caret(response.caret);
                 response.caret = 0;
 
                 // まとめる。
@@ -273,10 +291,10 @@ fn parse_line<T>(
 
         if is_done {
             // コントローラーに処理を移譲。
-            response.caret = request.caret;
+            response.caret = request.get_caret();
             response.next = next;
-            (best_node.controller)(t, &request, &mut response);
-            request.caret = response.caret;
+            (best_node.controller)(t, request, &mut response);
+            request.set_caret(response.caret);
             next = response.next;
             response.caret = 0;
             response.next = "";
@@ -289,11 +307,12 @@ fn parse_line<T>(
 
             if response.done_line {
                 // 行解析の終了。
-                request.caret = request.line_len;
+                let len = request.get_line_len();
+                request.set_caret(len);
             }
         } else {
             // 何とも一致しなかったら実行します。
-            (graph.complementary_controller)(t, &request, &mut response);
+            (graph.complementary_controller)(t, request, &mut response);
             // caret や、next が変更されていても、無視する。
 
             // 次のラインへ。
@@ -307,7 +326,7 @@ fn parse_line<T>(
     }
 
     // 1行読取終了。
-    (current_linebreak_controller)(t, &request, &mut response);
+    (current_linebreak_controller)(t, request, &mut response);
     // caret や、next が変更されていても、無視する。
     false
 }

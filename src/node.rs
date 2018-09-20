@@ -34,19 +34,70 @@ pub struct Response<T> {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
-    pub groups: Vec<String>,
+    pub groups: Box<Vec<String>>,
     pub next: &'static str,
     pub linebreak_controller_changed: bool,
     pub linebreak_controller: Controller<T>,
 }
 pub trait ResponseAccessor<T> {
     fn get_caret(&self) -> usize;
+    fn set_caret(&mut self, usize);
     fn is_done_line(&self) -> bool;
+    fn set_done_line(&mut self, bool);
     fn is_quits(&self) -> bool;
+    fn set_quits(&mut self, bool);
     fn get_groups(&self) -> &Box<Vec<String>>;
+    fn set_groups(&mut self, Box<Vec<String>>);
     fn get_next(&self) -> &'static str;
+    fn set_next(&mut self, &'static str);
     fn get_linebreak_controller_changed(&self) -> bool;
+    fn set_linebreak_controller_changed(&mut self, bool);
     fn get_linebreak_controller(&self) -> Controller<T>;
+    fn set_linebreak_controller(&mut self, Controller<T>);
+}
+impl<T> ResponseAccessor<T> for Response<T> {
+    fn get_caret(&self) -> usize {
+        self.caret
+    }
+    fn set_caret(&mut self, caret2:usize) {
+        self.caret = caret2
+    }
+    fn is_done_line(&self) -> bool {
+        self.done_line
+    }
+    fn set_done_line(&mut self, done_line2:bool) {
+        self.done_line = done_line2
+    }
+    fn is_quits(&self) -> bool {
+        self.quits
+    }
+    fn set_quits(&mut self, quits2:bool) {
+        self.quits = quits2
+    }
+    fn get_groups(&self) -> &Box<Vec<String>> {
+        &self.groups
+    }
+    fn set_groups(&mut self, groups:Box<Vec<String>>) {
+        self.groups = groups
+    }
+    fn get_next(&self) -> &'static str {
+        &self.next
+    }
+    fn set_next(&mut self, next2:&'static str) {
+        self.next = next2
+    }
+    fn get_linebreak_controller_changed(&self) -> bool {
+        self.linebreak_controller_changed
+    }
+    fn set_linebreak_controller_changed(&mut self, value:bool) {
+        self.linebreak_controller_changed = value
+    }
+    fn get_linebreak_controller(&self) -> Controller<T> {
+        self.linebreak_controller
+    }
+    fn set_linebreak_controller(&mut self, value:Controller<T>) {
+        self.linebreak_controller = value
+    }
 }
 
 /// トークンと、コントローラーのペアです。
@@ -69,7 +120,7 @@ pub fn new_response<T>() -> Response<T> {
         caret: 0,
         done_line: false,
         quits: false,
-        groups: Vec::new(),
+        groups: Box::new(Vec::new()),
         next: "",
         linebreak_controller_changed: false,
         linebreak_controller: empty_controller,

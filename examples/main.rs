@@ -46,7 +46,7 @@ fn main() {
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
 
-    // フローチャートの作成。
+    // グラフの作成。
     let mut graph = new_graph();
 
     // シェルの作成。

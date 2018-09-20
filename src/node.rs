@@ -1,20 +1,7 @@
-/// コマンドライン文字列。
-///
-/// # Members
-///
-/// * `line` - コマンドライン文字列の1行全体です。
-/// * `line_len` - コマンドライン文字列の1行全体の文字数です。
-pub struct Request {
-    pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
-    pub line_len: usize,
-    pub caret: usize,
-}
 pub trait RequestAccessor {
     // fn new(line: Box<String>) -> Request;
     fn get_line(&self) -> &Box<String>;
-    fn set_line(&mut self, s:Box<String>);
     fn get_line_len(&self) -> usize;
-    fn set_line_len(&mut self, len:usize);
     fn get_caret(&self) -> usize;
     fn set_caret(&mut self, caret:usize);
 }
@@ -51,6 +38,15 @@ pub struct Response<T> {
     pub next: &'static str,
     pub linebreak_controller_changed: bool,
     pub linebreak_controller: Controller<T>,
+}
+pub trait ResponseAccessor<T> {
+    fn get_caret(&self) -> usize;
+    fn is_done_line(&self) -> bool;
+    fn is_quits(&self) -> bool;
+    fn get_groups(&self) -> &Box<Vec<String>>;
+    fn get_next(&self) -> &'static str;
+    fn get_linebreak_controller_changed(&self) -> bool;
+    fn get_linebreak_controller(&self) -> Controller<T>;
 }
 
 /// トークンと、コントローラーのペアです。

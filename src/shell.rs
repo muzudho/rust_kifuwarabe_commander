@@ -12,6 +12,18 @@ use node::*;
 use regex::Regex;
 use std::io;
 
+/// コマンドライン文字列。
+///
+/// # Members
+///
+/// * `line` - コマンドライン文字列の1行全体です。
+/// * `line_len` - コマンドライン文字列の1行全体の文字数です。
+pub struct Request {
+    pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
+    pub line_len: usize,
+    pub caret: usize,
+}
+
 fn new_request(line2: Box<String>) -> Box<Request> {
     let len = line2.chars().count();
     Box::new(Request {
@@ -25,14 +37,8 @@ impl RequestAccessor for Request {
     fn get_line(&self) -> &Box<String> {
         &self.line
     }
-    fn set_line(&mut self, s:Box<String>) {
-        self.line = s
-    }
     fn get_line_len(&self) -> usize {
         self.line_len
-    }
-    fn set_line_len(&mut self, len:usize) {
-        self.line_len = len
     }
     fn get_caret(&self) -> usize {
         self.caret

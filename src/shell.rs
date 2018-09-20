@@ -12,6 +12,9 @@ use node::*;
 use regex::Regex;
 use std::io;
 
+/// 不具合を取りたいときに真にする。
+const VERBOSE: bool = false;
+
 /// コマンドライン文字列。
 ///
 /// # Members
@@ -43,13 +46,94 @@ impl RequestAccessor for Request {
     fn get_caret(&self) -> usize {
         self.caret
     }
-    fn set_caret(&mut self, caret2:usize) {
+    fn set_caret(&mut self, caret2: usize) {
         self.caret = caret2
     }
 }
 
-/// 不具合を取りたいときに真にする。
-const VERBOSE: bool = false;
+/// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
+/// - シェルを終了するなど、シェルに対して指示することができる。
+/// - また、字句解析の次のノードを指定する役割も持つ。
+///
+/// # Members
+///
+/// * `starts` - コマンドライン文字列の次のトークンの先頭位置です。
+/// * `done_line` - 行の解析を中断するなら真にします。
+/// * `quits` - アプリケーションを終了するなら真にします。
+/// * `groups` - あれば、正規表現の結果を入れておく。
+/// * `next` - 次のノードの登録名です。カンマ区切り。
+pub struct Response<T> {
+    pub caret: usize,
+    pub done_line: bool,
+    pub quits: bool,
+    pub groups: Box<Vec<String>>,
+    pub next: &'static str,
+    pub linebreak_controller_changed: bool,
+    pub linebreak_controller: Controller<T>,
+}
+
+fn new_response<T>() -> Box<Response<T>> {
+    Box::new(Response {
+        caret: 0,
+        done_line: false,
+        quits: false,
+        groups: Box::new(Vec::new()),
+        next: "",
+        linebreak_controller_changed: false,
+        linebreak_controller: empty_controller,
+    })
+}
+
+impl<T> ResponseAccessor<T> for Response<T> {
+    fn get_caret(&self) -> usize {
+        self.caret
+    }
+    fn set_caret(&mut self, caret2: usize) {
+        self.caret = caret2
+    }
+    fn is_done_line(&self) -> bool {
+        self.done_line
+    }
+    fn set_done_line(&mut self, done_line2: bool) {
+        self.done_line = done_line2
+    }
+    fn is_quits(&self) -> bool {
+        self.quits
+    }
+    fn set_quits(&mut self, quits2: bool) {
+        self.quits = quits2
+    }
+    fn clear_groups(&mut self) {
+        &self.groups.clear();
+    }
+    fn get_groups(&self) -> &Box<Vec<String>> {
+        &self.groups
+    }
+    fn push_to_groups(&mut self, value:String) {
+        self.groups.push(value);
+    }
+    fn set_groups(&mut self, groups: Box<Vec<String>>) {
+        self.groups = groups
+    }
+    fn get_next(&self) -> &'static str {
+        &self.next
+    }
+    fn set_next(&mut self, next2: &'static str) {
+        self.next = next2
+    }
+    fn is_linebreak_controller_changed(&self) -> bool {
+        self.linebreak_controller_changed
+    }
+    fn set_linebreak_controller_changed(&mut self, value: bool) {
+        self.linebreak_controller_changed = value
+    }
+    fn get_linebreak_controller(&self) -> Controller<T> {
+        self.linebreak_controller
+    }
+    fn set_linebreak_controller(&mut self, value: Controller<T>) {
+        self.linebreak_controller = value
+    }
+}
 
 /// [token]文字列の長さだけ [starts]キャレットを進めます。
 /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
@@ -62,7 +146,8 @@ pub fn starts_with<T>(node: &Node<T>, request: &Box<RequestAccessor>) -> bool {
     let caret_end = request.get_caret() + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
-    caret_end <= request.get_line_len() && &request.get_line()[request.get_caret()..caret_end] == node.token
+    caret_end <= request.get_line_len()
+        && &request.get_line()[request.get_caret()..caret_end] == node.token
 }
 
 /// 正規表現を使う。
@@ -72,7 +157,11 @@ pub fn starts_with<T>(node: &Node<T>, request: &Box<RequestAccessor>) -> bool {
 /// * `request` - 読み取るコマンドライン。
 /// * `response` - 読取位置。
 /// * returns - 一致したら真。
-pub fn starts_with_re<T>(node: &Node<T>, request: &Box<RequestAccessor>, response: &mut Response<T>) -> bool {
+pub fn starts_with_re<T>(
+    node: &Node<T>,
+    request: &Box<RequestAccessor>,
+    response: &mut Box<dyn ResponseAccessor<T>>,
+) -> bool {
     if VERBOSE {
         println!("starts_with_re");
     }
@@ -91,12 +180,12 @@ pub fn starts_with_re<T>(node: &Node<T>, request: &Box<RequestAccessor>, respons
         }
 
         let mut group_num = 0;
-        response.groups.clear();
+        response.clear_groups();
         for caps in re.captures_iter(text) {
             // caps は サイズ 2 の配列 で同じものが入っている。
             let cap = &caps[0];
 
-            response.groups.push(cap.to_string());
+            response.push_to_groups(cap.to_string());
 
             group_num += 1;
         }
@@ -111,25 +200,31 @@ pub fn starts_with_re<T>(node: &Node<T>, request: &Box<RequestAccessor>, respons
     }
 }
 
-fn forward<T>(node: &Node<T>, request: &Box<RequestAccessor>, response: &mut Response<T>) {
-    response.caret = request.get_caret() + node.token.len();
+fn forward<T>(
+    node: &Node<T>,
+    request: &Box<RequestAccessor>,
+    response: &mut Box<dyn ResponseAccessor<T>>,
+) {
+    response.set_caret(request.get_caret() + node.token.len());
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.get_line_len() - response.caret)
-        && &request.get_line()[response.caret..(response.caret + 1)] == " "
+    if 0 < (request.get_line_len() - response.get_caret())
+        && &request.get_line()[response.get_caret()..(response.get_caret() + 1)] == " "
     {
-        response.caret += 1;
+        let caret = response.get_caret();
+        response.set_caret(caret + 1);
     }
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_re<T>(request: &Box<RequestAccessor>, response: &mut Response<T>) {
-    let pseud_token_len = response.groups[0].chars().count();
-    response.caret = request.get_caret() + pseud_token_len;
+fn forward_re<T>(request: &Box<RequestAccessor>, response: &mut Box<dyn ResponseAccessor<T>>) {
+    let pseud_token_len = response.get_groups()[0].chars().count();
+    response.set_caret(request.get_caret() + pseud_token_len);
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.get_line_len() - response.caret)
-        && &request.get_line()[response.caret..(response.caret + 1)] == " "
+    if 0 < (request.get_line_len() - response.get_caret())
+        && &request.get_line()[response.get_caret()..(response.get_caret() + 1)] == " "
     {
-        response.caret += 1;
+        let caret = response.get_caret();
+        response.set_caret(caret + 1);
     }
 }
 
@@ -176,10 +271,10 @@ pub fn pop_row(shell: &mut Shell) -> Box<String> {
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
 /// スレッドはブロックします。
 /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-pub fn run<T>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
+pub fn run<T: 'static>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request : Box<dyn RequestAccessor> = if is_empty(shell) {
+        let mut request: Box<dyn RequestAccessor> = if is_empty(shell) {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
             io::stdin()
@@ -204,13 +299,13 @@ pub fn run<T>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
 /// # Returns.
 ///
 /// 0. シェルを終了するなら真。
-fn parse_line<T>(
+fn parse_line<T: 'static>(
     graph: &Graph<T>,
     shell: &mut Shell,
     t: &mut T,
     request: &mut Box<dyn RequestAccessor>,
 ) -> bool {
-    let mut response = new_response();
+    let mut response: Box<dyn ResponseAccessor<T>> = new_response::<T>();
     let mut next = shell.next;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
 
@@ -279,15 +374,15 @@ fn parse_line<T>(
         // キャレットを進める。
         if is_done || is_done_re {
             if is_done {
-                response.caret = request.get_caret();
+                response.set_caret(request.get_caret());
                 forward(&best_node, request, &mut response);
-                request.set_caret(response.caret);
-                response.caret = 0;
+                request.set_caret(response.get_caret());
+                response.set_caret(0);
             } else {
-                response.caret = request.get_caret();
+                response.set_caret(request.get_caret());
                 forward_re(request, &mut response);
-                request.set_caret(response.caret);
-                response.caret = 0;
+                request.set_caret(response.get_caret());
+                response.set_caret( 0);
 
                 // まとめる。
                 is_done = is_done_re;
@@ -297,21 +392,21 @@ fn parse_line<T>(
 
         if is_done {
             // コントローラーに処理を移譲。
-            response.caret = request.get_caret();
-            response.next = next;
+            response.set_caret( request.get_caret());
+            response.set_next( next);
             (best_node.controller)(t, request, &mut response);
-            request.set_caret(response.caret);
-            next = response.next;
-            response.caret = 0;
-            response.next = "";
+            request.set_caret(response.get_caret());
+            next = response.get_next();
+            response.set_caret( 0);
+            response.set_next( "");
             //println!("New next: {}", next);
 
             // 行終了時コントローラーの更新
             if is_linebreak_controller_changed(&response) {
-                current_linebreak_controller = response.linebreak_controller;
+                current_linebreak_controller = response.get_linebreak_controller();
             }
 
-            if response.done_line {
+            if response.is_done_line() {
                 // 行解析の終了。
                 let len = request.get_line_len();
                 request.set_caret(len);
@@ -325,7 +420,7 @@ fn parse_line<T>(
             break 'line;
         }
 
-        if response.quits {
+        if response.is_quits() {
             // ループを抜けて、アプリケーションを終了します。
             return true;
         }

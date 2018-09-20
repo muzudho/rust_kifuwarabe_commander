@@ -78,62 +78,61 @@ fn main() {
 
 
 
-
-pub fn do_a(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Response<ShellVar>){
+pub fn do_a(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("A.");
 }
 
-pub fn do_ab(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Response<ShellVar>){
+pub fn do_ab(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Ab.");
-    response.next = "ND_cde";
+    response.set_next("ND_cde");
 
     // 行終了時に実行されるコールバック関数を１つ設定できる。
     set_linebreak_controller(response, do_ab_linebreak);
 }
 
-pub fn do_ab_linebreak(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Response<ShellVar>){
+pub fn do_ab_linebreak(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Ab-LineBreak.");
 }
 
-pub fn do_abc(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Response<ShellVar>){
+pub fn do_abc(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Abc.");
 }
 
-pub fn do_cde(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Response<ShellVar>){
+pub fn do_cde(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Cde.");
-    response.next = "ND_wordvar";
+    response.set_next("ND_wordvar");
 }
 
-pub fn do_end(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Response<ShellVar>){
+pub fn do_end(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
-    response.done_line = true;
+    response.set_done_line(true);
     println!("End.");
 }
 
-pub fn do_numvar(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Response<ShellVar>){
+pub fn do_numvar(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
-    let cap = &response.groups[0];
+    let cap = &response.get_groups()[0];
     println!("Number({}).", cap);
 }
 
-pub fn do_other(shell_var: &mut ShellVar, request: &Box<RequestAccessor>, _response:&mut Response<ShellVar>){
+pub fn do_other(shell_var: &mut ShellVar, request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Not match. request.line=[{}], request.caret={}", request.get_line(), request.get_caret());
 }
 
-pub fn do_quit(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Response<ShellVar>){
+pub fn do_quit(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Quit.");
-    response.quits = true;
+    response.set_quits(true);
 }
 
-pub fn do_wordvar(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Response<ShellVar>){
+pub fn do_wordvar(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
-    let cap = &response.groups[0];
+    let cap = &response.get_groups()[0];
     println!("Word({}).", cap);
 }

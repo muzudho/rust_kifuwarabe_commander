@@ -73,8 +73,6 @@ pub struct Response {
     pub done_line: bool,
     pub quits: bool,
     pub next_node_alies: &'static str,
-    pub linebreak_node_name_changed: bool,
-    pub linebreak_node_name: &'static str,
 }
 
 fn new_response() -> Box<Response> {
@@ -83,8 +81,6 @@ fn new_response() -> Box<Response> {
         done_line: false,
         quits: false,
         next_node_alies: "",
-        linebreak_node_name_changed: false,
-        linebreak_node_name: "",
     })
 }
 
@@ -103,12 +99,6 @@ impl ResponseAccessor for Response {
     }
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
-    }
-    fn set_linebreak_node_name_changed(&mut self, value: bool) {
-        self.linebreak_node_name_changed = value
-    }
-    fn set_linebreak_node_name(&mut self, node_name: &'static str) {
-        self.linebreak_node_name = node_name
     }
 }
 
@@ -398,7 +388,13 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
             // コントローラーに処理を移譲。
             response.set_caret(request.get_caret());
             response.forward("");
-            (&graph.node_table[&best_node_name].controller)(t, request, &mut response);
+            let node = &graph.node_table[&best_node_name];
+            (&node.controller)(t, request, &mut response);
+
+            // 行終了時コントローラーの更新
+            if node.next_link.contains_key("#linebreak") {
+                current_linebreak_controller = graph.node_table[node.next_link["#linebreak"]].controller;
+            }
 
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response>() {
@@ -407,13 +403,9 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                     if res.next_node_alies == "" {
                         next_node_list = "";
                     } else {
-                        next_node_list = &graph.node_table[&best_node_name].next_link[res.next_node_alies];
+                        next_node_list = &node.next_link[res.next_node_alies];
                     }
 
-                    // 行終了時コントローラーの更新
-                    if res.linebreak_node_name_changed && res.linebreak_node_name != "" {
-                        current_linebreak_controller = graph.node_table[res.linebreak_node_name].controller;
-                    }
                 } else {
                     panic!("Downcast fail.");
                 }

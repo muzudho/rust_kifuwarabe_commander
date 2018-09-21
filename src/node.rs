@@ -29,8 +29,6 @@ pub trait ResponseAccessor {
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
     fn forward(&mut self, &'static str);
-    fn set_linebreak_node_name_changed(&mut self, bool);
-    fn set_linebreak_node_name(&mut self, node_name: &'static str);
 }
 
 /// トークンと、コントローラーのペアです。
@@ -63,10 +61,4 @@ pub fn reset(response: &mut Box<dyn ResponseAccessor>) {
     response.set_done_line(false);
     response.set_quits(false);
     response.forward("");
-    response.set_linebreak_node_name_changed(false);
-    response.set_linebreak_node_name("");
-}
-pub fn set_linebreak_node_name(response: &mut Box<dyn ResponseAccessor>, node_name: &'static str) {
-    response.set_linebreak_node_name_changed(true);
-    response.set_linebreak_node_name(node_name);
 }

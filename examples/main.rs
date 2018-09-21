@@ -52,7 +52,7 @@ fn main() {
 
     // グラフのノード構成。
     insert_node(&mut graph, "ND_a", "a", do_a, hashmap![]);
-    insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap!["next" => "ND_cde"]);
+    insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap!["next" => "ND_cde", "#linebreak" => "ND_ab_linebreak"]); // #linebreak コールバック関数は行終了時に実行される。
     insert_node(&mut graph, "ND_abc", "abc", do_abc, hashmap![]);
     insert_node(&mut graph, "ND_cde", "cde", do_cde, hashmap!["next" => "ND_wordvar"]);
     insert_node(&mut graph, "ND_end", "end", do_end, hashmap![]);
@@ -87,9 +87,6 @@ pub fn do_ab(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response
     shell_var.count += 1;
     println!("Ab.");
     response.forward("next");
-
-    // 行終了時に実行されるコールバック関数を１つ設定できる。
-    set_linebreak_node_name(response, "ND_ab_linebreak");
 }
 
 pub fn do_ab_linebreak(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor>){

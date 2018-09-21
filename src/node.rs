@@ -28,7 +28,6 @@ pub trait ResponseAccessor<T> {
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
-    fn set_next(&mut self, &'static str);
     fn forward(&mut self, &'static str);
     fn set_linebreak_controller_changed(&mut self, bool);
     fn set_linebreak_controller(&mut self, Controller<T>);
@@ -63,7 +62,7 @@ pub fn reset<T>(response: &mut Box<dyn ResponseAccessor<T>>) {
     response.set_caret(0);
     response.set_done_line(false);
     response.set_quits(false);
-    response.set_next("");
+    response.forward("");
     response.set_linebreak_controller_changed(false);
     response.set_linebreak_controller(empty_controller);
 }

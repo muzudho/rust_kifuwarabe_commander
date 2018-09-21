@@ -62,7 +62,7 @@ fn main() {
 
     // グラフのノード構成。
     insert_node(&mut graph, "ND_a", "a", do_a, hashmap![]);
-    insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap![]);
+    insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap!["next" => "ND_cde"]);
     insert_node(&mut graph, "ND_abc", "abc", do_abc, hashmap![]);
     insert_node(&mut graph, "ND_cde", "cde", do_cde, hashmap!["next" => "ND_wordvar"]);
     insert_node(&mut graph, "ND_end", "end", do_end, hashmap![]);
@@ -95,7 +95,7 @@ pub fn do_a(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _response
 pub fn do_ab(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Ab.");
-    response.set_next("ND_cde");
+    response.forward("next");
 
     // 行終了時に実行されるコールバック関数を１つ設定できる。
     set_linebreak_controller(response, do_ab_linebreak);
@@ -114,7 +114,6 @@ pub fn do_abc(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, _respon
 pub fn do_cde(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
     println!("Cde.");
-    response.set_next("ND_wordvar");
     response.forward("next");
 }
 

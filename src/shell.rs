@@ -76,13 +76,12 @@ impl RequestAccessor for Request {
 /// * `done_line` - 行の解析を中断するなら真にします。
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `groups` - あれば、正規表現の結果を入れておく。
-/// * `next` - 次のノードの登録名です。カンマ区切り。
+/// * `next_node_alies` - 次のノードの登録名です。カンマ区切り。
 pub struct Response<T> {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
-    pub next: &'static str,
-    pub forward: &'static str,
+    pub next_node_alies: &'static str,
     pub linebreak_controller_changed: bool,
     pub linebreak_controller: Controller<T>,
 }
@@ -92,8 +91,7 @@ fn new_response<T>() -> Box<Response<T>> {
         caret: 0,
         done_line: false,
         quits: false,
-        next: "",
-        forward: "",
+        next_node_alies: "",
         linebreak_controller_changed: false,
         linebreak_controller: empty_controller,
     })
@@ -103,6 +101,9 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     fn as_any(&self) -> &dyn Any {
         self
     }
+    fn forward(&mut self, next_node_alies2: &'static str) {
+        self.next_node_alies = next_node_alies2
+    }
     fn set_caret(&mut self, caret2: usize) {
         self.caret = caret2
     }
@@ -111,12 +112,6 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     }
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
-    }
-    fn set_next(&mut self, next2: &'static str) {
-        self.next = next2
-    }
-    fn forward(&mut self, forward2: &'static str) {
-        self.forward = forward2
     }
     fn set_linebreak_controller_changed(&mut self, value: bool) {
         self.linebreak_controller_changed = value
@@ -257,8 +252,8 @@ pub fn new_shell() -> Shell {
     }
 }
 
-pub fn set_next(shell: &mut Shell, next: &'static str) {
-    shell.next = next;
+pub fn set_next(shell: &mut Shell, next2: &'static str) {
+    shell.next = next2;
 }
 
 /// コマンドを1行も入力していなければ真を返します。
@@ -315,8 +310,7 @@ fn parse_line<T: 'static>(
     request: &mut Box<dyn RequestAccessor>,
 ) -> bool {
     let mut response: Box<dyn ResponseAccessor<T>> = new_response::<T>();
-    let mut next = shell.next;
-    let mut forward_str = "";
+    let mut next_node_list = shell.next;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
 
     'line: while request.get_caret() < request.get_line_len() {
@@ -327,7 +321,7 @@ fn parse_line<T: 'static>(
 
         let vec_next: Vec<&str>;
         {
-            let split = next.split(',');
+            let split = next_node_list.split(',');
             // for s in split {
             //     println!("{}", s)
             // }
@@ -413,18 +407,19 @@ fn parse_line<T: 'static>(
         if is_done {
             // コントローラーに処理を移譲。
             response.set_caret(request.get_caret());
-            response.set_next(next);
+            response.forward("");
             (&graph.node_table[&best_node_name].controller)(t, request, &mut response);
 
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
                     req.caret = res.caret;
-                    forward_str = res.forward; // 新仕様
-                    if forward_str == "" {
-                        next = res.next; // 旧仕様
+
+                    if res.next_node_alies == "" {
+                        next_node_list = "";
                     } else {
-                        next = &graph.node_table[&best_node_name].next_link[forward_str];
+                        next_node_list = &graph.node_table[&best_node_name].next_link[res.next_node_alies];
                     }
+
                     // 行終了時コントローラーの更新
                     if res.linebreak_controller_changed {
                         current_linebreak_controller = res.linebreak_controller;
@@ -437,9 +432,7 @@ fn parse_line<T: 'static>(
             }
 
             response.set_caret(0);
-            response.set_next("");
             response.forward("");
-            //println!("New next: {}", next);
 
 
             if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
@@ -459,7 +452,7 @@ fn parse_line<T: 'static>(
         } else {
             // 何とも一致しなかったら実行します。
             (graph.complementary_controller)(t, request, &mut response);
-            // caret や、next が変更されていても、無視する。
+            // responseは無視する。
 
             // 次のラインへ。
             break 'line;
@@ -477,6 +470,6 @@ fn parse_line<T: 'static>(
 
     // 1行読取終了。
     (current_linebreak_controller)(t, request, &mut response);
-    // caret や、next が変更されていても、無視する。
+    // responseは無視する。
     false
 }

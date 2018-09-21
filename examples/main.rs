@@ -112,9 +112,9 @@ pub fn do_end(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, respons
     println!("End.");
 }
 
-pub fn do_numvar(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
+pub fn do_numvar(shell_var: &mut ShellVar, request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
-    let cap = &response.get_groups()[0];
+    let cap = &request.get_groups()[0];
     println!("Number({}).", cap);
 }
 
@@ -129,8 +129,8 @@ pub fn do_quit(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, respon
     response.set_quits(true);
 }
 
-pub fn do_wordvar(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){
+pub fn do_wordvar(shell_var: &mut ShellVar, request: &Box<RequestAccessor>, _response:&mut Box<dyn ResponseAccessor<ShellVar>>){
     shell_var.count += 1;
-    let cap = &response.get_groups()[0];
+    let cap = &request.get_groups()[0];
     println!("Word({}).", cap);
 }

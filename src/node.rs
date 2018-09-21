@@ -5,6 +5,11 @@ pub trait RequestAccessor {
     fn get_line(&self) -> &Box<String>;
     fn get_line_len(&self) -> usize;
     fn get_caret(&self) -> usize;
+
+    fn clear_groups(&mut self);
+    fn get_groups(&self) -> &Box<Vec<String>>;
+    fn push_to_groups(&mut self, String);
+    // fn set_groups(&mut self, Box<Vec<String>>);
 }
 
 /// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。
@@ -25,10 +30,6 @@ pub trait ResponseAccessor<T> {
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
-    fn clear_groups(&mut self);
-    fn get_groups(&self) -> &Box<Vec<String>>;
-    fn push_to_groups(&mut self, String);
-    fn set_groups(&mut self, Box<Vec<String>>);
     fn set_next(&mut self, &'static str);
     fn set_linebreak_controller_changed(&mut self, bool);
     fn set_linebreak_controller(&mut self, Controller<T>);
@@ -53,7 +54,7 @@ pub fn reset<T>(response: &mut Box<dyn ResponseAccessor<T>>) {
     response.set_caret(0);
     response.set_done_line(false);
     response.set_quits(false);
-    response.clear_groups();
+    // response.clear_groups();
     response.set_next("");
     response.set_linebreak_controller_changed(false);
     response.set_linebreak_controller(empty_controller);

@@ -26,6 +26,7 @@ pub struct Request {
     pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
     pub line_len: usize,
     pub caret: usize,
+    pub groups: Box<Vec<String>>,
 }
 
 fn new_request(line2: Box<String>) -> Box<Request> {
@@ -34,6 +35,7 @@ fn new_request(line2: Box<String>) -> Box<Request> {
         line: line2,
         line_len: len,
         caret: 0,
+        groups: Box::new(Vec::new()),
     })
 }
 
@@ -50,6 +52,18 @@ impl RequestAccessor for Request {
     fn get_caret(&self) -> usize {
         self.caret
     }
+    fn clear_groups(&mut self) {
+        &self.groups.clear();
+    }
+    fn get_groups(&self) -> &Box<Vec<String>> {
+        &self.groups
+    }
+    fn push_to_groups(&mut self, value: String) {
+        self.groups.push(value);
+    }
+    // fn set_groups(&mut self, groups: Box<Vec<String>>) {
+    //     self.groups = groups
+    // }
 }
 
 /// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
@@ -67,7 +81,6 @@ pub struct Response<T> {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
-    pub groups: Box<Vec<String>>,
     pub next: &'static str,
     pub linebreak_controller_changed: bool,
     pub linebreak_controller: Controller<T>,
@@ -78,7 +91,6 @@ fn new_response<T>() -> Box<Response<T>> {
         caret: 0,
         done_line: false,
         quits: false,
-        groups: Box::new(Vec::new()),
         next: "",
         linebreak_controller_changed: false,
         linebreak_controller: empty_controller,
@@ -97,18 +109,6 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     }
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
-    }
-    fn clear_groups(&mut self) {
-        &self.groups.clear();
-    }
-    fn get_groups(&self) -> &Box<Vec<String>> {
-        &self.groups
-    }
-    fn push_to_groups(&mut self, value: String) {
-        self.groups.push(value);
-    }
-    fn set_groups(&mut self, groups: Box<Vec<String>>) {
-        self.groups = groups
     }
     fn set_next(&mut self, next2: &'static str) {
         self.next = next2
@@ -141,12 +141,10 @@ pub fn starts_with<T>(node: &Node<T>, request: &Box<RequestAccessor>) -> bool {
 /// # Arguments
 ///
 /// * `request` - 読み取るコマンドライン。
-/// * `response` - 読取位置。
 /// * returns - 一致したら真。
 pub fn starts_with_re<T>(
     node: &Node<T>,
-    request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor<T>>,
+    request: &mut Box<RequestAccessor>,
 ) -> bool {
     if VERBOSE {
         println!("starts_with_re");
@@ -158,26 +156,31 @@ pub fn starts_with_re<T>(
         }
 
         let re = Regex::new(node.token).unwrap();
+        request.clear_groups();
 
-        let text = &request.get_line()[request.get_caret()..];
-
-        if VERBOSE {
-            println!("text: [{}]", text);
-        }
-
+        let text;
         let mut group_num = 0;
-        response.clear_groups();
-        for caps in re.captures_iter(text) {
-            // caps は サイズ 2 の配列 で同じものが入っている。
-            let cap = &caps[0];
+        if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+            text = &req.line[req.caret..];
 
-            response.push_to_groups(cap.to_string());
+            if VERBOSE {
+                println!("text: [{}]", text);
+            }
 
-            group_num += 1;
-        }
+            for caps in re.captures_iter(text) {
+                // caps は サイズ 2 の配列 で同じものが入っている。
+                let cap = &caps[0];
 
-        if VERBOSE {
-            println!("Group num: {}", group_num);
+                req.groups.push(cap.to_string());
+
+                group_num += 1;
+            }
+
+            if VERBOSE {
+                println!("Group num: {}", group_num);
+            }
+        } else {
+            panic!("Downcast fail.");
         }
 
         0 < group_num
@@ -219,7 +222,7 @@ fn forward_re<T: 'static>(
         panic!("Downcast fail.");
     }
 
-    let pseud_token_len = response.get_groups()[0].chars().count();
+    let pseud_token_len = request.get_groups()[0].chars().count();
     response.set_caret(request.get_caret() + pseud_token_len);
     // 続きにスペース「 」が１つあれば読み飛ばす
     if 0 < (request.get_line_len() - res_caret)
@@ -349,7 +352,7 @@ fn parse_line<T: 'static>(
 
                 let matched;
                 if node.token_regex {
-                    if starts_with_re(node, request, &mut response) {
+                    if starts_with_re(node, request) {
                         // 正規表現で一致したなら。
                         best_node_re = node;
                         is_done_re = true;
@@ -392,8 +395,12 @@ fn parse_line<T: 'static>(
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                     if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
                         req.caret = res.caret;
-                    };
-                };
+                    } else {
+                        panic!("Downcast fail.");
+                    }
+                } else {
+                    panic!("Downcast fail.");
+                }
 
                 response.set_caret(0);
 

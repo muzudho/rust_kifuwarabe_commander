@@ -82,6 +82,7 @@ pub struct Response<T> {
     pub done_line: bool,
     pub quits: bool,
     pub next: &'static str,
+    pub forward: &'static str,
     pub linebreak_controller_changed: bool,
     pub linebreak_controller: Controller<T>,
 }
@@ -92,6 +93,7 @@ fn new_response<T>() -> Box<Response<T>> {
         done_line: false,
         quits: false,
         next: "",
+        forward: "",
         linebreak_controller_changed: false,
         linebreak_controller: empty_controller,
     })
@@ -112,6 +114,9 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     }
     fn set_next(&mut self, next2: &'static str) {
         self.next = next2
+    }
+    fn forward(&mut self, forward2: &'static str) {
+        self.forward = forward2
     }
     fn set_linebreak_controller_changed(&mut self, value: bool) {
         self.linebreak_controller_changed = value
@@ -311,6 +316,7 @@ fn parse_line<T: 'static>(
 ) -> bool {
     let mut response: Box<dyn ResponseAccessor<T>> = new_response::<T>();
     let mut next = shell.next;
+    let mut forward_str = "";
     let mut current_linebreak_controller: Controller<T> = empty_controller;
 
     'line: while request.get_caret() < request.get_line_len() {
@@ -332,23 +338,7 @@ fn parse_line<T: 'static>(
         let mut max_token_len = 0;
         
         let mut best_node_name = "".to_string();
-        /*
-        let mut best_node: Node<T> = Node {
-            token: "",
-            controller: empty_controller,
-            token_regex: false,
-            next_link: hashmap!["_".to_string() => "".to_string()],
-        };
-         */
         let mut best_node_re_name = "".to_string();
-        /*
-        let mut best_node_re: Node<T> = Node {
-            token: "",
-            controller: empty_controller,
-            token_regex: false,
-            next_link: hashmap!["_".to_string() => "".to_string()],
-        };
-         */
 
         // 次の候補。
         for i_next_node_name in vec_next {
@@ -429,7 +419,12 @@ fn parse_line<T: 'static>(
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
                     req.caret = res.caret;
-                    next = res.next;
+                    forward_str = res.forward; // 新仕様
+                    if forward_str == "" {
+                        next = res.next; // 旧仕様
+                    } else {
+                        next = &graph.node_table[&best_node_name].next_link[forward_str];
+                    }
                     // 行終了時コントローラーの更新
                     if res.linebreak_controller_changed {
                         current_linebreak_controller = res.linebreak_controller;
@@ -443,6 +438,7 @@ fn parse_line<T: 'static>(
 
             response.set_caret(0);
             response.set_next("");
+            response.forward("");
             //println!("New next: {}", next);
 
 

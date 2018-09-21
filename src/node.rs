@@ -1,6 +1,6 @@
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::collections::HashMap;
-use std::clone::Clone;
+// use std::clone::Clone;
 
 pub trait RequestAccessor {
     fn as_mut_any(&mut self) -> &mut dyn Any;
@@ -29,6 +29,7 @@ pub trait ResponseAccessor<T> {
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
     fn set_next(&mut self, &'static str);
+    fn forward(&mut self, &'static str);
     fn set_linebreak_controller_changed(&mut self, bool);
     fn set_linebreak_controller(&mut self, Controller<T>);
 }
@@ -46,7 +47,7 @@ pub struct Node<T> {
     pub controller: Controller<T>,
     pub token_regex: bool,
     #[derive(Clone)]
-    pub next_link: HashMap<String, String>,
+    pub next_link: HashMap<&'static str, &'static str>,
 }
 /*
 impl<T> Clone for Node<T> {

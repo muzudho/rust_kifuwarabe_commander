@@ -29,7 +29,7 @@ pub fn insert_node<T>(
     name: &'static str,
     token2: &'static str,
     controller2: Controller<T>,
-    next_link2: HashMap<String, String>,
+    next_link2: HashMap<&'static str, &'static str>,
 ) {
     graph.node_table.insert(
         name.to_string(),
@@ -54,7 +54,7 @@ pub fn insert_node_re<T>(
     name: &'static str,
     token2: &'static str,
     controller2: Controller<T>,
-    next_link2: HashMap<String, String>,
+    next_link2: HashMap<&'static str, &'static str>,
 ) {
     graph.node_table.insert(
         name.to_string(),

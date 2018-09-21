@@ -64,7 +64,7 @@ fn main() {
     insert_node(&mut graph, "ND_a", "a", do_a, hashmap![]);
     insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap![]);
     insert_node(&mut graph, "ND_abc", "abc", do_abc, hashmap![]);
-    insert_node(&mut graph, "ND_cde", "cde", do_cde, hashmap![]);
+    insert_node(&mut graph, "ND_cde", "cde", do_cde, hashmap!["next" => "ND_wordvar"]);
     insert_node(&mut graph, "ND_end", "end", do_end, hashmap![]);
     insert_node_re(&mut graph, "ND_numvar", r"(\d+)", do_numvar, hashmap![]);
     insert_node(&mut graph, "ND_quit", "quit", do_quit, hashmap![]);
@@ -115,6 +115,7 @@ pub fn do_cde(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, respons
     shell_var.count += 1;
     println!("Cde.");
     response.set_next("ND_wordvar");
+    response.forward("next");
 }
 
 pub fn do_end(shell_var: &mut ShellVar, _request: &Box<RequestAccessor>, response:&mut Box<dyn ResponseAccessor<ShellVar>>){

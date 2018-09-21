@@ -92,14 +92,8 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     fn set_caret(&mut self, caret2: usize) {
         self.caret = caret2
     }
-    fn is_done_line(&self) -> bool {
-        self.done_line
-    }
     fn set_done_line(&mut self, done_line2: bool) {
         self.done_line = done_line2
-    }
-    fn is_quits(&self) -> bool {
-        self.quits
     }
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
@@ -424,8 +418,12 @@ fn parse_line<T: 'static>(
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
                     req.caret = res.caret;
-                };
-            };
+                } else {
+                    panic!("Downcast fail.");
+                }
+            } else {
+                panic!("Downcast fail.");
+            }
 
             next = response.get_next();
             response.set_caret( 0);
@@ -437,13 +435,17 @@ fn parse_line<T: 'static>(
                 current_linebreak_controller = response.get_linebreak_controller();
             }
 
-            if response.is_done_line() {
-                // 行解析の終了。
-                let len = request.get_line_len();
+            if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                if res.done_line {
+                    // 行解析の終了。
+                    let len = request.get_line_len();
 
-                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    req.caret = len;
-                };
+                    if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                        req.caret = len;
+                    } else {
+                        panic!("Downcast fail.");
+                    }
+                }
             }
         } else {
             // 何とも一致しなかったら実行します。
@@ -454,9 +456,11 @@ fn parse_line<T: 'static>(
             break 'line;
         }
 
-        if response.is_quits() {
-            // ループを抜けて、アプリケーションを終了します。
-            return true;
+        if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+            if res.quits {
+                // ループを抜けて、アプリケーションを終了します。
+                return true;
+            }
         }
     }
 

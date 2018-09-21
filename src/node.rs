@@ -23,9 +23,7 @@ pub type Controller<T> = fn(t: &mut T, request: &Box<RequestAccessor>, response:
 pub trait ResponseAccessor<T> {
     fn as_any(&self) -> &dyn Any;
     fn set_caret(&mut self, usize);
-    fn is_done_line(&self) -> bool;
     fn set_done_line(&mut self, bool);
-    fn is_quits(&self) -> bool;
     fn set_quits(&mut self, bool);
     fn clear_groups(&mut self);
     fn get_groups(&self) -> &Box<Vec<String>>;

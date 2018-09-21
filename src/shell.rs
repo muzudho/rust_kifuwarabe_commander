@@ -52,18 +52,9 @@ impl RequestAccessor for Request {
     fn get_caret(&self) -> usize {
         self.caret
     }
-    fn clear_groups(&mut self) {
-        &self.groups.clear();
-    }
     fn get_groups(&self) -> &Box<Vec<String>> {
         &self.groups
     }
-    fn push_to_groups(&mut self, value: String) {
-        self.groups.push(value);
-    }
-    // fn set_groups(&mut self, groups: Box<Vec<String>>) {
-    //     self.groups = groups
-    // }
 }
 
 /// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
@@ -156,11 +147,11 @@ pub fn starts_with_re<T>(
         }
 
         let re = Regex::new(node.token).unwrap();
-        request.clear_groups();
 
         let text;
         let mut group_num = 0;
         if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+            req.groups.clear();
             text = &req.line[req.caret..];
 
             if VERBOSE {

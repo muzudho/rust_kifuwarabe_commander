@@ -21,16 +21,16 @@ pub trait RequestAccessor {
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-pub type Controller<T> = fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Box<ResponseAccessor<T>>);
+pub type Controller<T> = fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Box<ResponseAccessor>);
 
-pub trait ResponseAccessor<T> {
+pub trait ResponseAccessor {
     fn as_any(&self) -> &dyn Any;
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
     fn forward(&mut self, &'static str);
-    fn set_linebreak_controller_changed(&mut self, bool);
-    fn set_linebreak_controller(&mut self, Controller<T>);
+    fn set_linebreak_node_name_changed(&mut self, bool);
+    fn set_linebreak_node_name(&mut self, node_name: &'static str);
 }
 
 /// トークンと、コントローラーのペアです。
@@ -56,17 +56,17 @@ impl<T> Clone for Node<T> {
 }
 */
 
-pub fn empty_controller<T>(_t: &mut T, _request: &Box<RequestAccessor>, _response: &mut Box<dyn ResponseAccessor<T>>) {}
+pub fn empty_controller<T>(_t: &mut T, _request: &Box<RequestAccessor>, _response: &mut Box<dyn ResponseAccessor>) {}
 
-pub fn reset<T>(response: &mut Box<dyn ResponseAccessor<T>>) {
+pub fn reset(response: &mut Box<dyn ResponseAccessor>) {
     response.set_caret(0);
     response.set_done_line(false);
     response.set_quits(false);
     response.forward("");
-    response.set_linebreak_controller_changed(false);
-    response.set_linebreak_controller(empty_controller);
+    response.set_linebreak_node_name_changed(false);
+    response.set_linebreak_node_name("");
 }
-pub fn set_linebreak_controller<T>(response: &mut Box<dyn ResponseAccessor<T>>, controller: Controller<T>) {
-    response.set_linebreak_controller_changed(true);
-    response.set_linebreak_controller(controller);
+pub fn set_linebreak_node_name(response: &mut Box<dyn ResponseAccessor>, node_name: &'static str) {
+    response.set_linebreak_node_name_changed(true);
+    response.set_linebreak_node_name(node_name);
 }

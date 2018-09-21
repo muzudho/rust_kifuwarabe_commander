@@ -68,27 +68,27 @@ impl RequestAccessor for Request {
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `groups` - あれば、正規表現の結果を入れておく。
 /// * `next_node_alies` - 次のノードの登録名です。カンマ区切り。
-pub struct Response<T> {
+pub struct Response {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
     pub next_node_alies: &'static str,
-    pub linebreak_controller_changed: bool,
-    pub linebreak_controller: Controller<T>,
+    pub linebreak_node_name_changed: bool,
+    pub linebreak_node_name: &'static str,
 }
 
-fn new_response<T>() -> Box<Response<T>> {
+fn new_response() -> Box<Response> {
     Box::new(Response {
         caret: 0,
         done_line: false,
         quits: false,
         next_node_alies: "",
-        linebreak_controller_changed: false,
-        linebreak_controller: empty_controller,
+        linebreak_node_name_changed: false,
+        linebreak_node_name: "",
     })
 }
 
-impl<T: 'static> ResponseAccessor<T> for Response<T> {
+impl ResponseAccessor for Response {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -104,11 +104,11 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
     }
-    fn set_linebreak_controller_changed(&mut self, value: bool) {
-        self.linebreak_controller_changed = value
+    fn set_linebreak_node_name_changed(&mut self, value: bool) {
+        self.linebreak_node_name_changed = value
     }
-    fn set_linebreak_controller(&mut self, value: Controller<T>) {
-        self.linebreak_controller = value
+    fn set_linebreak_node_name(&mut self, node_name: &'static str) {
+        self.linebreak_node_name = node_name
     }
 }
 
@@ -183,11 +183,11 @@ pub fn starts_with_re<T, S: ::std::hash::BuildHasher>(
 fn forward<T: 'static, S: ::std::hash::BuildHasher>(
     node: &Node<T, S>,
     request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor<T>>,
+    response: &mut Box<dyn ResponseAccessor>,
 ) {
     response.set_caret(request.get_caret() + node.token.len());
     let res_caret;
-    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+    if let Some(res) = response.as_any().downcast_ref::<Response>() {
         res_caret = res.caret;
     } else {
         panic!("Downcast fail.");
@@ -202,12 +202,12 @@ fn forward<T: 'static, S: ::std::hash::BuildHasher>(
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_re<T: 'static>(
+fn forward_re(
     request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor<T>>,
+    response: &mut Box<dyn ResponseAccessor>,
 ) {
     let res_caret;
-    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+    if let Some(res) = response.as_any().downcast_ref::<Response>() {
         res_caret = res.caret;
     } else {
         panic!("Downcast fail.");
@@ -299,7 +299,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
     t: &mut T,
     request: &mut Box<dyn RequestAccessor>,
 ) -> bool {
-    let mut response: Box<dyn ResponseAccessor<T>> = new_response::<T>();
+    let mut response: Box<dyn ResponseAccessor> = new_response();
     let mut next_node_list = shell.next;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
 
@@ -366,7 +366,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                 forward(&graph.node_table[&best_node_name], request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
                         req.caret = res.caret;
                     };
                 };
@@ -377,7 +377,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                 forward_re(request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
                         req.caret = res.caret;
                     } else {
                         panic!("Downcast fail.");
@@ -401,7 +401,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
             (&graph.node_table[&best_node_name].controller)(t, request, &mut response);
 
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                if let Some(res) = response.as_any().downcast_ref::<Response>() {
                     req.caret = res.caret;
 
                     if res.next_node_alies == "" {
@@ -411,8 +411,8 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                     }
 
                     // 行終了時コントローラーの更新
-                    if res.linebreak_controller_changed {
-                        current_linebreak_controller = res.linebreak_controller;
+                    if res.linebreak_node_name_changed && res.linebreak_node_name != "" {
+                        current_linebreak_controller = graph.node_table[res.linebreak_node_name].controller;
                     }
                 } else {
                     panic!("Downcast fail.");
@@ -425,7 +425,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
             response.forward("");
 
 
-            if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+            if let Some(res) = response.as_any().downcast_ref::<Response>() {
                 if res.done_line {
                     // 行解析の終了。
                     let len = request.get_line_len();
@@ -448,7 +448,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
             break 'line;
         }
 
-        if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+        if let Some(res) = response.as_any().downcast_ref::<Response>() {
             if res.quits {
                 // ループを抜けて、アプリケーションを終了します。
                 return true;

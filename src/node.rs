@@ -29,11 +29,9 @@ pub trait ResponseAccessor<T> {
     fn get_groups(&self) -> &Box<Vec<String>>;
     fn push_to_groups(&mut self, String);
     fn set_groups(&mut self, Box<Vec<String>>);
-    fn get_next(&self) -> &'static str;
     fn set_next(&mut self, &'static str);
     fn is_linebreak_controller_changed(&self) -> bool;
     fn set_linebreak_controller_changed(&mut self, bool);
-    fn get_linebreak_controller(&self) -> Controller<T>;
     fn set_linebreak_controller(&mut self, Controller<T>);
 }
 

@@ -104,14 +104,11 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     fn get_groups(&self) -> &Box<Vec<String>> {
         &self.groups
     }
-    fn push_to_groups(&mut self, value:String) {
+    fn push_to_groups(&mut self, value: String) {
         self.groups.push(value);
     }
     fn set_groups(&mut self, groups: Box<Vec<String>>) {
         self.groups = groups
-    }
-    fn get_next(&self) -> &'static str {
-        &self.next
     }
     fn set_next(&mut self, next2: &'static str) {
         self.next = next2
@@ -121,9 +118,6 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     }
     fn set_linebreak_controller_changed(&mut self, value: bool) {
         self.linebreak_controller_changed = value
-    }
-    fn get_linebreak_controller(&self) -> Controller<T> {
-        self.linebreak_controller
     }
     fn set_linebreak_controller(&mut self, value: Controller<T>) {
         self.linebreak_controller = value
@@ -217,7 +211,10 @@ fn forward<T: 'static>(
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_re<T: 'static>(request: &Box<RequestAccessor>, response: &mut Box<dyn ResponseAccessor<T>>) {
+fn forward_re<T: 'static>(
+    request: &Box<RequestAccessor>,
+    response: &mut Box<dyn ResponseAccessor<T>>,
+) {
     let res_caret;
     if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
         res_caret = res.caret;
@@ -281,7 +278,7 @@ pub fn pop_row(shell: &mut Shell) -> Box<String> {
 pub fn run<T: 'static>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request : Box<dyn RequestAccessor> = if is_empty(shell) {
+        let mut request: Box<dyn RequestAccessor> = if is_empty(shell) {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
             io::stdin()
@@ -401,7 +398,7 @@ fn parse_line<T: 'static>(
                     };
                 };
 
-                response.set_caret( 0);
+                response.set_caret(0);
 
                 // まとめる。
                 is_done = is_done_re;
@@ -411,13 +408,18 @@ fn parse_line<T: 'static>(
 
         if is_done {
             // コントローラーに処理を移譲。
-            response.set_caret( request.get_caret());
-            response.set_next( next);
+            response.set_caret(request.get_caret());
+            response.set_next(next);
             (best_node.controller)(t, request, &mut response);
 
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
                     req.caret = res.caret;
+                    next = res.next;
+                    // 行終了時コントローラーの更新
+                    if is_linebreak_controller_changed(&response) {
+                        current_linebreak_controller = res.linebreak_controller;
+                    }
                 } else {
                     panic!("Downcast fail.");
                 }
@@ -425,15 +427,10 @@ fn parse_line<T: 'static>(
                 panic!("Downcast fail.");
             }
 
-            next = response.get_next();
-            response.set_caret( 0);
-            response.set_next( "");
+            response.set_caret(0);
+            response.set_next("");
             //println!("New next: {}", next);
 
-            // 行終了時コントローラーの更新
-            if is_linebreak_controller_changed(&response) {
-                current_linebreak_controller = response.get_linebreak_controller();
-            }
 
             if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
                 if res.done_line {
@@ -446,6 +443,8 @@ fn parse_line<T: 'static>(
                         panic!("Downcast fail.");
                     }
                 }
+            } else {
+                panic!("Downcast fail.");
             }
         } else {
             // 何とも一致しなかったら実行します。
@@ -461,6 +460,8 @@ fn parse_line<T: 'static>(
                 // ループを抜けて、アプリケーションを終了します。
                 return true;
             }
+        } else {
+            panic!("Downcast fail.");
         }
     }
 

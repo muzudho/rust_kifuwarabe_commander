@@ -50,9 +50,6 @@ impl RequestAccessor for Request {
     fn get_caret(&self) -> usize {
         self.caret
     }
-    fn set_caret(&mut self, caret2: usize) {
-        self.caret = caret2
-    }
 }
 
 /// キャレット。本来、文字列解析のカーソル位置だが、ほかの機能も持たされている。
@@ -88,9 +85,9 @@ fn new_response<T>() -> Box<Response<T>> {
     })
 }
 
-impl<T> ResponseAccessor<T> for Response<T> {
-    fn get_caret(&self) -> usize {
-        self.caret
+impl<T: 'static> ResponseAccessor<T> for Response<T> {
+    fn as_any(&self) -> &dyn Any {
+        self
     }
     fn set_caret(&mut self, caret2: usize) {
         self.caret = caret2
@@ -204,31 +201,43 @@ pub fn starts_with_re<T>(
     }
 }
 
-fn forward<T>(
+fn forward<T: 'static>(
     node: &Node<T>,
     request: &Box<RequestAccessor>,
     response: &mut Box<dyn ResponseAccessor<T>>,
 ) {
     response.set_caret(request.get_caret() + node.token.len());
+    let res_caret;
+    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+        res_caret = res.caret;
+    } else {
+        panic!("Downcast fail.");
+    }
+
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.get_line_len() - response.get_caret())
-        && &request.get_line()[response.get_caret()..(response.get_caret() + 1)] == " "
+    if 0 < (request.get_line_len() - res_caret)
+        && &request.get_line()[res_caret..(res_caret + 1)] == " "
     {
-        let caret = response.get_caret();
-        response.set_caret(caret + 1);
+        response.set_caret(res_caret + 1);
     }
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_re<T>(request: &Box<RequestAccessor>, response: &mut Box<dyn ResponseAccessor<T>>) {
+fn forward_re<T: 'static>(request: &Box<RequestAccessor>, response: &mut Box<dyn ResponseAccessor<T>>) {
+    let res_caret;
+    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+        res_caret = res.caret;
+    } else {
+        panic!("Downcast fail.");
+    }
+
     let pseud_token_len = response.get_groups()[0].chars().count();
     response.set_caret(request.get_caret() + pseud_token_len);
     // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.get_line_len() - response.get_caret())
-        && &request.get_line()[response.get_caret()..(response.get_caret() + 1)] == " "
+    if 0 < (request.get_line_len() - res_caret)
+        && &request.get_line()[res_caret..(res_caret + 1)] == " "
     {
-        let caret = response.get_caret();
-        response.set_caret(caret + 1);
+        response.set_caret(res_caret + 1);
     }
 }
 
@@ -382,7 +391,9 @@ fn parse_line<T: 'static>(
                 forward(&best_node, request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    req.caret = response.get_caret();
+                    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                        req.caret = res.caret;
+                    };
                 };
 
                 response.set_caret(0);
@@ -391,7 +402,9 @@ fn parse_line<T: 'static>(
                 forward_re(request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    req.caret = response.get_caret();
+                    if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                        req.caret = res.caret;
+                    };
                 };
 
                 response.set_caret( 0);
@@ -409,7 +422,9 @@ fn parse_line<T: 'static>(
             (best_node.controller)(t, request, &mut response);
 
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                req.caret = response.get_caret();
+                if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
+                    req.caret = res.caret;
+                };
             };
 
             next = response.get_next();

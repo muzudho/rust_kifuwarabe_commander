@@ -1,12 +1,10 @@
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 
 pub trait RequestAccessor {
-    // fn new(line: Box<String>) -> Request;
     fn as_mut_any(&mut self) -> &mut dyn Any;
     fn get_line(&self) -> &Box<String>;
     fn get_line_len(&self) -> usize;
     fn get_caret(&self) -> usize;
-    fn set_caret(&mut self, caret:usize);
 }
 
 /// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。
@@ -23,7 +21,7 @@ pub trait RequestAccessor {
 pub type Controller<T> = fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Box<ResponseAccessor<T>>);
 
 pub trait ResponseAccessor<T> {
-    fn get_caret(&self) -> usize;
+    fn as_any(&self) -> &dyn Any;
     fn set_caret(&mut self, usize);
     fn is_done_line(&self) -> bool;
     fn set_done_line(&mut self, bool);

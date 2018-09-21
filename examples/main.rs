@@ -59,6 +59,7 @@ fn main() {
     insert_node_re(&mut graph, "ND_numvar", r"(\d+)", do_numvar, hashmap![]);
     insert_node(&mut graph, "ND_quit", "quit", do_quit, hashmap![]);
     insert_node_re(&mut graph, "ND_wordvar", r"(\w+)", do_wordvar, hashmap![]);
+    insert_node_single("ND_ab_linebreak", do_ab_linebreak);
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
 
     // 任意のオブジェクト。

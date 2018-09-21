@@ -229,7 +229,6 @@ fn forward_re<T: 'static>(
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
 /// * `node_table` - 複数件のトークンです。
-/// * `complementary_controller` - トークン マッピングに一致しなかったときに呼び出されるコールバック関数の名前です。
 /// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell {
     vec_row: Vec<String>,

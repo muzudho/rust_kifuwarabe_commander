@@ -1,9 +1,5 @@
 extern crate regex;
 
-pub mod graph;
-pub mod shell;
-pub mod node;
-
 /// https://stackoverflow.com/questions/28392008/more-concise-hashmap-initialization |More concise HashMap initialization
 #[macro_export]
 macro_rules! hashmap {
@@ -13,3 +9,7 @@ macro_rules! hashmap {
          map
     }}
 }
+
+pub mod graph;
+pub mod node;
+pub mod shell;

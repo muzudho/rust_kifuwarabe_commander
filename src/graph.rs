@@ -23,11 +23,13 @@ pub fn new_graph<T>() -> Graph<T> {
 ///
 /// * `name` - 登録用の名前です。
 /// * `node` - ノードです。
+/// * `next_link2` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub fn insert_node<T>(
     graph: &mut Graph<T>,
     name: &'static str,
     token2: &'static str,
     controller2: Controller<T>,
+    next_link2: HashMap<String, String>,
 ) {
     graph.node_table.insert(
         name.to_string(),
@@ -35,6 +37,7 @@ pub fn insert_node<T>(
             token: token2,
             controller: controller2,
             token_regex: false,
+            next_link: next_link2,
         },
     );
 }
@@ -45,11 +48,13 @@ pub fn insert_node<T>(
 ///
 /// * `name` - 登録用の名前です。
 /// * `node` - ノードです。
+/// * `next_link2` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub fn insert_node_re<T>(
     graph: &mut Graph<T>,
     name: &'static str,
     token2: &'static str,
     controller2: Controller<T>,
+    next_link2: HashMap<String, String>,
 ) {
     graph.node_table.insert(
         name.to_string(),
@@ -57,6 +62,7 @@ pub fn insert_node_re<T>(
             token: token2,
             controller: controller2,
             token_regex: true,
+            next_link: next_link2,
         },
     );
 }

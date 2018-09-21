@@ -16,6 +16,15 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
+/// https://stackoverflow.com/questions/28392008/more-concise-hashmap-initialization |More concise HashMap initialization
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
+
 /// コマンドライン文字列。
 ///
 /// # Members
@@ -321,16 +330,25 @@ fn parse_line<T: 'static>(
 
         // 最初は全てのノードが対象。
         let mut max_token_len = 0;
-        let mut best_node: &Node<T> = &Node {
+        
+        let mut best_node_name = "".to_string();
+        /*
+        let mut best_node: Node<T> = Node {
             token: "",
             controller: empty_controller,
             token_regex: false,
+            next_link: hashmap!["_".to_string() => "".to_string()],
         };
-        let mut best_node_re: &Node<T> = &Node {
+         */
+        let mut best_node_re_name = "".to_string();
+        /*
+        let mut best_node_re: Node<T> = Node {
             token: "",
             controller: empty_controller,
             token_regex: false,
+            next_link: hashmap!["_".to_string() => "".to_string()],
         };
+         */
 
         // 次の候補。
         for i_next_node_name in vec_next {
@@ -339,13 +357,14 @@ fn parse_line<T: 'static>(
             if contains_node(graph, &next_node_name.to_string()) {
                 //println!("contains.");
 
-                let node = &graph.node_table[&next_node_name.to_string()];
+                let node_name = next_node_name.to_string();
+                let node = &graph.node_table[&node_name];
 
                 let matched;
                 if node.token_regex {
                     if starts_with_re(node, request) {
                         // 正規表現で一致したなら。
-                        best_node_re = node;
+                        best_node_re_name = node_name;
                         is_done_re = true;
                     }
                 } else {
@@ -356,7 +375,7 @@ fn parse_line<T: 'static>(
                         let token_len = node.token.chars().count();
                         if max_token_len < token_len {
                             max_token_len = token_len;
-                            best_node = node;
+                            best_node_name = node_name;
                         };
                         is_done = true;
                         //} else {
@@ -370,7 +389,7 @@ fn parse_line<T: 'static>(
         if is_done || is_done_re {
             if is_done {
                 response.set_caret(request.get_caret());
-                forward(&best_node, request, &mut response);
+                forward(&graph.node_table[&best_node_name], request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                     if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {
@@ -397,7 +416,7 @@ fn parse_line<T: 'static>(
 
                 // まとめる。
                 is_done = is_done_re;
-                best_node = best_node_re;
+                best_node_name = best_node_re_name;
             }
         }
 
@@ -405,7 +424,7 @@ fn parse_line<T: 'static>(
             // コントローラーに処理を移譲。
             response.set_caret(request.get_caret());
             response.set_next(next);
-            (best_node.controller)(t, request, &mut response);
+            (&graph.node_table[&best_node_name].controller)(t, request, &mut response);
 
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response<T>>() {

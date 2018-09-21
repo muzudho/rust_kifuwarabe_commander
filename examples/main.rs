@@ -2,11 +2,22 @@
 /// ### 以下のコマンドで実行。 
 /// cargo run --example main
 /// ```
+// #[macro_use(hashmap)]
 extern crate kifuwarabe_shell;
+/// https://stackoverflow.com/questions/28392008/more-concise-hashmap-initialization |More concise HashMap initialization
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
+
 
 use kifuwarabe_shell::graph::*;
 use kifuwarabe_shell::node::*;
 use kifuwarabe_shell::shell::*;
+use std::collections::HashMap;
 
 
 // 任意のオブジェクト。
@@ -46,19 +57,19 @@ fn main() {
     // グラフの作成。
     let mut graph = new_graph();
 
-    // ノードを登録する。
-    insert_node(&mut graph, "ND_a", "a", do_a);
-    insert_node(&mut graph, "ND_ab", "ab", do_ab);
-    insert_node(&mut graph, "ND_abc", "abc", do_abc);
-    insert_node(&mut graph, "ND_cde", "cde", do_cde);
-    insert_node(&mut graph, "ND_end", "end", do_end);
-    insert_node_re(&mut graph, "ND_numvar", r"(\d+)", do_numvar);
-    insert_node(&mut graph, "ND_quit", "quit", do_quit);
-    insert_node_re(&mut graph, "ND_wordvar", r"(\w+)", do_wordvar);
-    // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
-
     // 該当なしの場合のコールバック関数を登録する。
     set_complementary_controller(&mut graph, do_other);
+
+    // グラフのノード構成。
+    insert_node(&mut graph, "ND_a", "a", do_a, hashmap![]);
+    insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap![]);
+    insert_node(&mut graph, "ND_abc", "abc", do_abc, hashmap![]);
+    insert_node(&mut graph, "ND_cde", "cde", do_cde, hashmap![]);
+    insert_node(&mut graph, "ND_end", "end", do_end, hashmap![]);
+    insert_node_re(&mut graph, "ND_numvar", r"(\d+)", do_numvar, hashmap![]);
+    insert_node(&mut graph, "ND_quit", "quit", do_quit, hashmap![]);
+    insert_node_re(&mut graph, "ND_wordvar", r"(\w+)", do_wordvar, hashmap![]);
+    // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
 
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();

@@ -1,4 +1,6 @@
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
+use std::collections::HashMap;
+use std::clone::Clone;
 
 pub trait RequestAccessor {
     fn as_mut_any(&mut self) -> &mut dyn Any;
@@ -38,11 +40,21 @@ pub trait ResponseAccessor<T> {
 /// * `token` - 全文一致させたい文字列です。
 /// * `controller` - コールバック関数です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
+/// * `next_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node<T> {
     pub token: &'static str,
     pub controller: Controller<T>,
     pub token_regex: bool,
+    #[derive(Clone)]
+    pub next_link: HashMap<String, String>,
 }
+/*
+impl<T> Clone for Node<T> {
+    fn clone(&self) -> Node<T> {
+        self.clone()
+    }
+}
+*/
 
 pub fn empty_controller<T>(_t: &mut T, _request: &Box<RequestAccessor>, _response: &mut Box<dyn ResponseAccessor<T>>) {}
 

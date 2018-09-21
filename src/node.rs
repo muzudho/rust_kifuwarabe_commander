@@ -41,12 +41,12 @@ pub trait ResponseAccessor<T> {
 /// * `controller` - コールバック関数です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
 /// * `next_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
-pub struct Node<T> {
+pub struct Node<T, S: ::std::hash::BuildHasher> {
     pub token: &'static str,
     pub controller: Controller<T>,
     pub token_regex: bool,
-    #[derive(Clone)]
-    pub next_link: HashMap<&'static str, &'static str>,
+    // #[derive(Clone)]
+    pub next_link: HashMap<&'static str, &'static str, S>,
 }
 /*
 impl<T> Clone for Node<T> {

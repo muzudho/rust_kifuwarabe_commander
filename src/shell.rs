@@ -16,15 +16,6 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
-/// https://stackoverflow.com/questions/28392008/more-concise-hashmap-initialization |More concise HashMap initialization
-macro_rules! hashmap {
-    ($( $key: expr => $val: expr ),*) => {{
-         let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
-         map
-    }}
-}
-
 /// コマンドライン文字列。
 ///
 /// # Members
@@ -128,7 +119,7 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
 ///
 /// * `request` - 読み取るコマンドラインと、読取位置。
 /// * returns - 一致したら真。
-pub fn starts_with<T>(node: &Node<T>, request: &Box<RequestAccessor>) -> bool {
+pub fn starts_with<T, S: ::std::hash::BuildHasher>(node: &Node<T, S>, request: &Box<RequestAccessor>) -> bool {
     let caret_end = request.get_caret() + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
@@ -142,8 +133,8 @@ pub fn starts_with<T>(node: &Node<T>, request: &Box<RequestAccessor>) -> bool {
 ///
 /// * `request` - 読み取るコマンドライン。
 /// * returns - 一致したら真。
-pub fn starts_with_re<T>(
-    node: &Node<T>,
+pub fn starts_with_re<T, S: ::std::hash::BuildHasher>(
+    node: &Node<T, S>,
     request: &mut Box<RequestAccessor>,
 ) -> bool {
     if VERBOSE {
@@ -189,8 +180,8 @@ pub fn starts_with_re<T>(
     }
 }
 
-fn forward<T: 'static>(
-    node: &Node<T>,
+fn forward<T: 'static, S: ::std::hash::BuildHasher>(
+    node: &Node<T, S>,
     request: &Box<RequestAccessor>,
     response: &mut Box<dyn ResponseAccessor<T>>,
 ) {
@@ -275,7 +266,7 @@ pub fn pop_row(shell: &mut Shell) -> Box<String> {
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
 /// スレッドはブロックします。
 /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-pub fn run<T: 'static>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
+pub fn run<T: 'static, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut request: Box<dyn RequestAccessor> = if is_empty(shell) {
@@ -303,8 +294,8 @@ pub fn run<T: 'static>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
 /// # Returns.
 ///
 /// 0. シェルを終了するなら真。
-fn parse_line<T: 'static>(
-    graph: &Graph<T>,
+fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
+    graph: &Graph<T, S>,
     shell: &mut Shell,
     t: &mut T,
     request: &mut Box<dyn RequestAccessor>,

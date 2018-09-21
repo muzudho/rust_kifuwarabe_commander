@@ -113,9 +113,6 @@ impl<T: 'static> ResponseAccessor<T> for Response<T> {
     fn set_next(&mut self, next2: &'static str) {
         self.next = next2
     }
-    fn is_linebreak_controller_changed(&self) -> bool {
-        self.linebreak_controller_changed
-    }
     fn set_linebreak_controller_changed(&mut self, value: bool) {
         self.linebreak_controller_changed = value
     }
@@ -417,7 +414,7 @@ fn parse_line<T: 'static>(
                     req.caret = res.caret;
                     next = res.next;
                     // 行終了時コントローラーの更新
-                    if is_linebreak_controller_changed(&response) {
+                    if res.linebreak_controller_changed {
                         current_linebreak_controller = res.linebreak_controller;
                     }
                 } else {

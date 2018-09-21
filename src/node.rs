@@ -30,7 +30,6 @@ pub trait ResponseAccessor<T> {
     fn push_to_groups(&mut self, String);
     fn set_groups(&mut self, Box<Vec<String>>);
     fn set_next(&mut self, &'static str);
-    fn is_linebreak_controller_changed(&self) -> bool;
     fn set_linebreak_controller_changed(&mut self, bool);
     fn set_linebreak_controller(&mut self, Controller<T>);
 }
@@ -62,7 +61,4 @@ pub fn reset<T>(response: &mut Box<dyn ResponseAccessor<T>>) {
 pub fn set_linebreak_controller<T>(response: &mut Box<dyn ResponseAccessor<T>>, controller: Controller<T>) {
     response.set_linebreak_controller_changed(true);
     response.set_linebreak_controller(controller);
-}
-pub fn is_linebreak_controller_changed<T>(response: &Box<dyn ResponseAccessor<T>>) -> bool {
-    response.is_linebreak_controller_changed()
 }

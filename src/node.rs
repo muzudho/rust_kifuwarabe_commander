@@ -1,5 +1,8 @@
+use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
+
 pub trait RequestAccessor {
     // fn new(line: Box<String>) -> Request;
+    fn as_mut_any(&mut self) -> &mut dyn Any;
     fn get_line(&self) -> &Box<String>;
     fn get_line_len(&self) -> usize;
     fn get_caret(&self) -> usize;

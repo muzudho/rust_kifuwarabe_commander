@@ -43,14 +43,8 @@ fn main() {
 
     println!("Please enter command.");
 
-    // 任意のオブジェクト。
-    let mut shell_var = ShellVar::new();
-
     // グラフの作成。
     let mut graph = new_graph();
-
-    // シェルの作成。
-    let mut shell = new_shell();
 
     // ノードを登録する。
     insert_node(&mut graph, "ND_a", "a", do_a);
@@ -66,6 +60,10 @@ fn main() {
     // 該当なしの場合のコールバック関数を登録する。
     set_complementary_controller(&mut graph, do_other);
 
+    // 任意のオブジェクト。
+    let mut shell_var = ShellVar::new();
+    // シェルの作成。
+    let mut shell = new_shell();
     // 開始ノードを選択する。
     set_next(&mut shell, "ND_a,ND_ab,ND_abc,ND_end,ND_numvar,
         ND_quit,ND_wordvar");

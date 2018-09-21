@@ -10,6 +10,7 @@
 use graph::*;
 use node::*;
 use regex::Regex;
+use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::io;
 
 /// 不具合を取りたいときに真にする。
@@ -37,6 +38,9 @@ fn new_request(line2: Box<String>) -> Box<Request> {
 }
 
 impl RequestAccessor for Request {
+    fn as_mut_any(&mut self) -> &mut dyn Any {
+        self
+    }
     fn get_line(&self) -> &Box<String> {
         &self.line
     }
@@ -274,7 +278,7 @@ pub fn pop_row(shell: &mut Shell) -> Box<String> {
 pub fn run<T: 'static>(graph: &Graph<T>, shell: &mut Shell, t: &mut T) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request: Box<dyn RequestAccessor> = if is_empty(shell) {
+        let mut request : Box<dyn RequestAccessor> = if is_empty(shell) {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
             io::stdin()
@@ -376,12 +380,20 @@ fn parse_line<T: 'static>(
             if is_done {
                 response.set_caret(request.get_caret());
                 forward(&best_node, request, &mut response);
-                request.set_caret(response.get_caret());
+
+                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                    req.caret = response.get_caret();
+                };
+
                 response.set_caret(0);
             } else {
                 response.set_caret(request.get_caret());
                 forward_re(request, &mut response);
-                request.set_caret(response.get_caret());
+
+                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                    req.caret = response.get_caret();
+                };
+
                 response.set_caret( 0);
 
                 // まとめる。
@@ -395,7 +407,11 @@ fn parse_line<T: 'static>(
             response.set_caret( request.get_caret());
             response.set_next( next);
             (best_node.controller)(t, request, &mut response);
-            request.set_caret(response.get_caret());
+
+            if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                req.caret = response.get_caret();
+            };
+
             next = response.get_next();
             response.set_caret( 0);
             response.set_next( "");
@@ -409,7 +425,10 @@ fn parse_line<T: 'static>(
             if response.is_done_line() {
                 // 行解析の終了。
                 let len = request.get_line_len();
-                request.set_caret(len);
+
+                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                    req.caret = len;
+                };
             }
         } else {
             // 何とも一致しなかったら実行します。

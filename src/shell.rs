@@ -22,6 +22,7 @@ const VERBOSE: bool = false;
 ///
 /// * `line` - コマンドライン文字列の1行全体です。
 /// * `line_len` - コマンドライン文字列の1行全体の文字数です。
+/// * `groups` - あれば、正規表現の結果を入れておく。
 pub struct Request {
     pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
     pub line_len: usize,
@@ -66,7 +67,6 @@ impl RequestAccessor for Request {
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置です。
 /// * `done_line` - 行の解析を中断するなら真にします。
 /// * `quits` - アプリケーションを終了するなら真にします。
-/// * `groups` - あれば、正規表現の結果を入れておく。
 /// * `next_node_alies` - 次のノードの登録名です。カンマ区切り。
 pub struct Response {
     pub caret: usize,
@@ -123,12 +123,12 @@ pub fn starts_with<T, S: ::std::hash::BuildHasher>(node: &Node<T, S>, request: &
 ///
 /// * `request` - 読み取るコマンドライン。
 /// * returns - 一致したら真。
-pub fn starts_with_re<T, S: ::std::hash::BuildHasher>(
+fn starts_with_re<T, S: ::std::hash::BuildHasher>(
     node: &Node<T, S>,
     request: &mut Box<RequestAccessor>,
 ) -> bool {
     if VERBOSE {
-        println!("starts_with_re");
+        println!("Starts_with_re");
     }
 
     if request.get_caret() < request.get_line_len() {
@@ -141,7 +141,6 @@ pub fn starts_with_re<T, S: ::std::hash::BuildHasher>(
         let text;
         let mut group_num = 0;
         if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-            req.groups.clear();
             text = &req.line[req.caret..];
 
             if VERBOSE {
@@ -296,6 +295,12 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
     'line: while request.get_caret() < request.get_line_len() {
         // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
         reset(&mut response);
+        if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+            req.groups.clear(); // クリアー
+        } else {
+            panic!("Downcast fail.");
+        }
+
         let mut is_done = false;
         let mut is_done_re = false;
 

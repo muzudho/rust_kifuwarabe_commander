@@ -43,7 +43,8 @@ impl RequestAccessor for Request {
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self
     }
-    fn get_line(&self) -> &String { // &Box<String>
+    fn get_line(&self) -> &String {
+        // &Box<String>
         &self.line
     }
     fn get_line_len(&self) -> usize {
@@ -52,7 +53,8 @@ impl RequestAccessor for Request {
     fn get_caret(&self) -> usize {
         self.caret
     }
-    fn get_groups(&self) -> &Vec<String> { // &Box<Vec<String>>
+    fn get_groups(&self) -> &Vec<String> {
+        // &Box<Vec<String>>
         &self.groups // &self.groups
     }
 }
@@ -117,11 +119,12 @@ impl ResponseAccessor for Response {
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
+#[derive(Default)]
 pub struct Shell {
     vec_row: Vec<String>,
 }
 impl Shell {
-    pub fn default() -> Shell {
+    pub fn new() -> Shell {
         Shell {
             vec_row: Vec::new(),
         }
@@ -215,7 +218,7 @@ impl Shell {
     fn forward_literal<T: 'static, S: ::std::hash::BuildHasher>(
         &self,
         node: &Node<T, S>,
-        request: &dyn RequestAccessor, // &Box<RequestAccessor>
+        request: &dyn RequestAccessor,       // &Box<RequestAccessor>
         response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
     ) {
         response.set_caret(request.get_caret() + node.token.len());
@@ -257,14 +260,11 @@ impl Shell {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run<T: 'static, S: ::std::hash::BuildHasher>(
-        &mut self,
-        graph: &Graph<T, S>,
-        t: &mut T,
-    ) {
+    pub fn run<T: 'static, S: ::std::hash::BuildHasher>(&mut self, graph: &Graph<T, S>, t: &mut T) {
         'lines: loop {
             // リクエストは、キャレットを更新するのでミュータブル。
-            let mut request = if self.is_empty() { // Box<dyn RequestAccessor>
+            let mut request = if self.is_empty() {
+                // Box<dyn RequestAccessor>
                 let mut line_string = String::new();
                 // コマンド プロンプトからの入力があるまで待機します。
                 io::stdin()
@@ -287,7 +287,12 @@ impl Shell {
     }
 
     /// 一致するノード名。
-    fn next_node_name<T: 'static, S: ::std::hash::BuildHasher>(&self, graph: &Graph<T, S>, request: &mut dyn RequestAccessor, next_node_list: &'static str) -> (String, String) {
+    fn next_node_name<T: 'static, S: ::std::hash::BuildHasher>(
+        &self,
+        graph: &Graph<T, S>,
+        request: &mut dyn RequestAccessor,
+        next_node_list: &'static str,
+    ) -> (String, String) {
         let mut best_node_name = "".to_string();
         let mut best_node_re_name = "".to_string();
 
@@ -305,7 +310,7 @@ impl Shell {
         for i_next_node_name in vec_next {
             let next_node_name = i_next_node_name.trim();
             // println!("next_node_name: {}", next_node_name);
-            if contains_node(graph, &next_node_name.to_string()) {
+            if graph.contains_node(&next_node_name.to_string()) {
                 //println!("contains.");
 
                 let node_name = next_node_name.to_string();
@@ -363,11 +368,12 @@ impl Shell {
             }
 
             // 次のノード名
-            let (mut best_node_name, best_node_re_name) = self.next_node_name(graph, request, next_node_list);
+            let (mut best_node_name, best_node_re_name) =
+                self.next_node_name(graph, request, next_node_list);
 
             // キャレットを進める。
             let mut is_done = false;
-            if best_node_name!=""{
+            if best_node_name != "" {
                 response.set_caret(request.get_caret());
                 self.forward_literal(&graph.node_table[&best_node_name], request, response);
 
@@ -379,7 +385,7 @@ impl Shell {
 
                 is_done = true;
                 response.set_caret(0);
-            } else if best_node_re_name!=""{
+            } else if best_node_re_name != "" {
                 response.set_caret(request.get_caret());
                 self.forward_reg(request, response);
 

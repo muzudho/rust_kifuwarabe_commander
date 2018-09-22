@@ -46,10 +46,6 @@ fn main() {
 
     // グラフの作成。
     let mut graph = new_graph();
-
-    // 該当なしの場合のコールバック関数を登録する。
-    set_complementary_controller(&mut graph, do_other);
-
     // グラフのノード構成。
     insert_node(&mut graph, "ND_a", "a", do_a, hashmap![]);
     insert_node(&mut graph, "ND_ab", "ab", do_ab, hashmap!["next" => "ND_cde", "#linebreak" => "ND_ab_linebreak"]); // #linebreak コールバック関数は行終了時に実行される。
@@ -60,6 +56,7 @@ fn main() {
     insert_node(&mut graph, "ND_quit", "quit", do_quit, hashmap![]);
     insert_node_re(&mut graph, "ND_wordvar", r"(\w+)", do_wordvar, hashmap![]);
     insert_node_single(&mut graph, "ND_ab_linebreak", do_ab_linebreak);
+    insert_node_single(&mut graph, "#ND_complementary", do_other); // 該当なしの場合のコールバック関数を登録する。
     // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
 
     // 任意のオブジェクト。

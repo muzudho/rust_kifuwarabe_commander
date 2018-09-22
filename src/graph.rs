@@ -45,6 +45,7 @@ pub struct Node<T, S: ::std::hash::BuildHasher> {
     pub token: &'static str,
     pub controller: Controller<T>,
     pub token_regex: bool,
+    // 特殊な任意の名前 '#linebreak'
     pub next_link: HashMap<&'static str, &'static str, S>,
 }
 
@@ -57,9 +58,8 @@ pub fn empty_controller<T>(
 
 pub struct Graph<T, S: ::std::hash::BuildHasher> {
     /// 特殊なノード名
-    /// '#linebreak', '#complementary'
+    /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     pub node_table: HashMap<String, Node<T, S>>,
-    pub complementary_controller: Controller<T>,
 }
 
 pub fn contains_node<T, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, name: &str) -> bool {
@@ -70,7 +70,6 @@ pub fn contains_node<T, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, name: 
 pub fn new_graph<T, S: ::std::hash::BuildHasher>() -> Graph<T, S> {
     Graph {
         node_table: HashMap::new(),
-        complementary_controller: empty_controller,
     }
 }
 
@@ -144,14 +143,4 @@ pub fn insert_node_single<T, S: ::std::hash::BuildHasher>(
             next_link: next_link2,
         },
     );
-}
-
-/// # Arguments
-///
-/// * `map` - 一致するトークンが無かったときに呼び出されるコールバック関数です。
-pub fn set_complementary_controller<T, S: ::std::hash::BuildHasher>(
-    graph: &mut Graph<T, S>,
-    controller2: Controller<T>,
-) {
-    graph.complementary_controller = controller2;
 }

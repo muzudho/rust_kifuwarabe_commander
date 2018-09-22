@@ -455,7 +455,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
             }
         } else {
             // 何とも一致しなかったら実行します。
-            (graph.complementary_controller)(t, request, &mut response);
+            (graph.node_table["#ND_complementary"].controller)(t, request, &mut response);
             // responseは無視する。
 
             // 次のラインへ。

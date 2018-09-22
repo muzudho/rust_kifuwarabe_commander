@@ -35,7 +35,7 @@ fn main() {
     shell.insert_node("ND_usi", "usi", do_usi);
     
     // 該当なしの場合のコールバック関数を登録する。
-    shell.set_complementary_controller(do_other);
+    shell.insert_node_single("#complementary", do_other);
 
     // 開始ノードを選択する。
     shell.set_next("ND_isready, ND_position,

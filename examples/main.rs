@@ -74,7 +74,7 @@ fn main() {
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
     // シェルの作成。
-    let mut shell = Shell::new();
+    let mut shell = Shell::default();
 
     // 実行。
     shell.run(&mut graph, &mut shell_var);
@@ -84,8 +84,8 @@ fn main() {
 
 pub fn do_a(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!("A.");
@@ -93,8 +93,8 @@ pub fn do_a(
 
 pub fn do_ab(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!("Ab.");
@@ -103,8 +103,8 @@ pub fn do_ab(
 
 pub fn do_ab_linebreak(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!("Ab-LineBreak.");
@@ -112,8 +112,8 @@ pub fn do_ab_linebreak(
 
 pub fn do_abc(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!("Abc.");
@@ -121,8 +121,8 @@ pub fn do_abc(
 
 pub fn do_cde(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!("Cde.");
@@ -131,8 +131,8 @@ pub fn do_cde(
 
 pub fn do_end(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     response.set_done_line(true);
@@ -141,8 +141,8 @@ pub fn do_end(
 
 pub fn do_numvar(
     shell_var: &mut ShellVar,
-    request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     let cap = &request.get_groups()[0];
@@ -151,8 +151,8 @@ pub fn do_numvar(
 
 pub fn do_other(
     shell_var: &mut ShellVar,
-    request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!(
@@ -164,8 +164,8 @@ pub fn do_other(
 
 pub fn do_quit(
     shell_var: &mut ShellVar,
-    _request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor,
+    response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     println!("Quit.");
@@ -174,8 +174,8 @@ pub fn do_quit(
 
 pub fn do_wordvar(
     shell_var: &mut ShellVar,
-    request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
     let cap = &request.get_groups()[0];

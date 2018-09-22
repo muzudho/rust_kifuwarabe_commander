@@ -4,10 +4,10 @@ use std::collections::HashMap;
 
 pub trait RequestAccessor {
     fn as_mut_any(&mut self) -> &mut dyn Any;
-    fn get_line(&self) -> &Box<String>;
+    fn get_line(&self) -> &String; // &Box<String>
     fn get_line_len(&self) -> usize;
     fn get_caret(&self) -> usize;
-    fn get_groups(&self) -> &Box<Vec<String>>;
+    fn get_groups(&self) -> &Vec<String>; // &Box<Vec<String>>
 }
 
 /// コールバック関数です。トークンを読み取った時に対応づく作業内容を書いてください。
@@ -22,7 +22,8 @@ pub trait RequestAccessor {
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 pub type Controller<T> =
-    fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Box<ResponseAccessor>);
+    fn(t: &mut T, request: &RequestAccessor, response: &mut dyn ResponseAccessor);
+//     fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Box<ResponseAccessor>);
 
 pub trait ResponseAccessor {
     fn as_any(&self) -> &dyn Any; // トレイトを実装している方を返すのに使う。
@@ -51,8 +52,8 @@ pub struct Node<T, S: ::std::hash::BuildHasher> {
 
 pub fn empty_controller<T>(
     _t: &mut T,
-    _request: &Box<RequestAccessor>,
-    _response: &mut Box<dyn ResponseAccessor>,
+    _request: &RequestAccessor, // &Box<RequestAccessor>
+    _response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
 ) {
 }
 

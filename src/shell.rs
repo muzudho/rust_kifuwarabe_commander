@@ -114,20 +114,40 @@ impl ResponseAccessor for Response {
     }
 }
 
+pub type Reader<T> = fn(t: &mut T) -> String;
+
+pub fn standard_input_reader<T>(
+    _t: &mut T,
+) -> String {
+    let mut line_string = String::new();
+    // コマンド プロンプトからの入力があるまで待機します。
+    io::stdin()
+        .read_line(&mut line_string)
+        .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
+
+    // 末尾の 改行 を除きます。前後の空白も消えます。
+    line_string.trim().parse().expect("info Failed to parse")
+}
+
 /// シェル。
 ///
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-#[derive(Default)]
-pub struct Shell {
+// #[derive(Default)]
+pub struct Shell<T: 'static> {
     vec_row: Vec<String>,
+    reader: Reader<T>,
 }
-impl Shell {
-    pub fn new() -> Shell {
+impl<T: 'static> Shell<T> {
+    pub fn new() -> Shell<T> {
         Shell {
             vec_row: Vec::new(),
+            reader: standard_input_reader,
         }
+    }
+    pub fn set_reader(&mut self, reader2: Reader<T>) {
+        self.reader = reader2;
     }
     /// コマンドを1行も入力していなければ真を返します。
     pub fn is_empty(&self) -> bool {
@@ -150,7 +170,7 @@ impl Shell {
     ///
     /// * `request` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
-    fn starts_with_literal<T, S: ::std::hash::BuildHasher>(
+    fn starts_with_literal<S: ::std::hash::BuildHasher>(
         &self,
         node: &Node<T, S>,
         request: &mut dyn RequestAccessor, // &Box<RequestAccessor>
@@ -168,7 +188,7 @@ impl Shell {
     ///
     /// * `request` - 読み取るコマンドライン。
     /// * returns - 一致したら真。
-    fn starts_with_reg<T, S: ::std::hash::BuildHasher>(
+    fn starts_with_reg<S: ::std::hash::BuildHasher>(
         &self,
         node: &Node<T, S>,
         request: &mut dyn RequestAccessor, // &mut Box<RequestAccessor>
@@ -215,7 +235,7 @@ impl Shell {
         }
     }
 
-    fn forward_literal<T: 'static, S: ::std::hash::BuildHasher>(
+    fn forward_literal<S: ::std::hash::BuildHasher>(
         &self,
         node: &Node<T, S>,
         request: &dyn RequestAccessor,       // &Box<RequestAccessor>
@@ -260,20 +280,11 @@ impl Shell {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run<T: 'static, S: ::std::hash::BuildHasher>(&mut self, graph: &Graph<T, S>, t: &mut T) {
+    pub fn run<S: ::std::hash::BuildHasher>(&mut self, graph: &Graph<T, S>, t: &mut T) {
         'lines: loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut request = if self.is_empty() {
-                // Box<dyn RequestAccessor>
-                let mut line_string = String::new();
-                // コマンド プロンプトからの入力があるまで待機します。
-                io::stdin()
-                    .read_line(&mut line_string)
-                    .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
-
-                // 末尾の 改行 を除きます。前後の空白も消えます。
-                line_string = line_string.trim().parse().expect("info Failed to parse");
-
+                let line_string = (self.reader)(t);
                 Request::new(Box::new(line_string))
             } else {
                 // バッファーの先頭行です。
@@ -287,7 +298,7 @@ impl Shell {
     }
 
     /// 一致するノード名。
-    fn next_node_name<T: 'static, S: ::std::hash::BuildHasher>(
+    fn next_node_name<S: ::std::hash::BuildHasher>(
         &self,
         graph: &Graph<T, S>,
         request: &mut dyn RequestAccessor,
@@ -346,7 +357,7 @@ impl Shell {
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
+    fn parse_line<S: ::std::hash::BuildHasher>(
         &self,
         graph: &Graph<T, S>,
         t: &mut T,

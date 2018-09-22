@@ -23,7 +23,6 @@ pub trait RequestAccessor {
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 pub type Controller<T> =
     fn(t: &mut T, request: &RequestAccessor, response: &mut dyn ResponseAccessor);
-//     fn(t: &mut T, request: &Box<RequestAccessor>, response: &mut Box<ResponseAccessor>);
 
 pub trait ResponseAccessor {
     fn as_any(&self) -> &dyn Any; // トレイトを実装している方を返すのに使う。
@@ -64,8 +63,8 @@ impl<T, S: ::std::hash::BuildHasher> Node<T, S> {
 
 pub fn empty_controller<T>(
     _t: &mut T,
-    _request: &RequestAccessor,           // &Box<RequestAccessor>
-    _response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
+    _request: &RequestAccessor,
+    _response: &mut dyn ResponseAccessor,
 ) {
 }
 

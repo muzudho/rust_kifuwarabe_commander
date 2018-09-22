@@ -286,6 +286,58 @@ impl Shell {
         } // loop
     }
 
+    /// 一致するノード名。
+    fn next_node_name<T: 'static, S: ::std::hash::BuildHasher>(&self, graph: &Graph<T, S>, request: &mut dyn RequestAccessor, next_node_list: &'static str) -> (String, String) {
+        let mut best_node_name = "".to_string();
+        let mut best_node_re_name = "".to_string();
+
+        let vec_next: Vec<&str>;
+        {
+            let split = next_node_list.split(',');
+            // for s in split {
+            //     println!("{}", s)
+            // }
+            vec_next = split.collect();
+        }
+
+        // 次の候補。
+        let mut max_token_len = 0;
+        for i_next_node_name in vec_next {
+            let next_node_name = i_next_node_name.trim();
+            // println!("next_node_name: {}", next_node_name);
+            if contains_node(graph, &next_node_name.to_string()) {
+                //println!("contains.");
+
+                let node_name = next_node_name.to_string();
+                let node = &graph.node_table[&node_name];
+
+                let matched;
+                if node.token_regex {
+                    if self.starts_with_reg(node, request) {
+                        // 正規表現で一致したなら。
+                        best_node_re_name = node_name;
+                        // is_done_re = true;
+                    }
+                } else {
+                    matched = self.starts_with_literal(node, request);
+                    if matched {
+                        // 一番長い、固定長トークンの一致を探す。
+                        //println!("starts_with_literal.");
+                        let token_len = node.token.chars().count();
+                        if max_token_len < token_len {
+                            max_token_len = token_len;
+                            best_node_name = node_name;
+                        };
+                        // is_done = true;
+                        //} else {
+                        //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
+                    }
+                }
+            }
+        }
+        (best_node_name, best_node_re_name)
+    }
+
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
@@ -310,92 +362,42 @@ impl Shell {
                 panic!("Downcast fail.");
             }
 
-            let mut is_done = false;
-            let mut is_done_re = false;
-
-            let vec_next: Vec<&str>;
-            {
-                let split = next_node_list.split(',');
-                // for s in split {
-                //     println!("{}", s)
-                // }
-                vec_next = split.collect();
-            }
-
-            // 最初は全てのノードが対象。
-            let mut max_token_len = 0;
-
-            let mut best_node_name = "".to_string();
-            let mut best_node_re_name = "".to_string();
-
-            // 次の候補。
-            for i_next_node_name in vec_next {
-                let next_node_name = i_next_node_name.trim();
-                // println!("next_node_name: {}", next_node_name);
-                if contains_node(graph, &next_node_name.to_string()) {
-                    //println!("contains.");
-
-                    let node_name = next_node_name.to_string();
-                    let node = &graph.node_table[&node_name];
-
-                    let matched;
-                    if node.token_regex {
-                        if self.starts_with_reg(node, request) {
-                            // 正規表現で一致したなら。
-                            best_node_re_name = node_name;
-                            is_done_re = true;
-                        }
-                    } else {
-                        matched = self.starts_with_literal(node, request);
-                        if matched {
-                            // 固定長トークンで一致したなら。
-                            //println!("starts_with_literal.");
-                            let token_len = node.token.chars().count();
-                            if max_token_len < token_len {
-                                max_token_len = token_len;
-                                best_node_name = node_name;
-                            };
-                            is_done = true;
-                            //} else {
-                            //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
-                        }
-                    }
-                }
-            }
+            // 次のノード名
+            let (mut best_node_name, best_node_re_name) = self.next_node_name(graph, request, next_node_list);
 
             // キャレットを進める。
-            if is_done || is_done_re {
-                if is_done {
-                    response.set_caret(request.get_caret());
-                    self.forward_literal(&graph.node_table[&best_node_name], request, response);
+            let mut is_done = false;
+            if best_node_name!=""{
+                response.set_caret(request.get_caret());
+                self.forward_literal(&graph.node_table[&best_node_name], request, response);
 
-                    if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                        if let Some(res) = response.as_any().downcast_ref::<Response>() {
-                            req.caret = res.caret;
-                        };
+                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
+                        req.caret = res.caret;
                     };
+                };
 
-                    response.set_caret(0);
-                } else {
-                    response.set_caret(request.get_caret());
-                    self.forward_reg(request, response);
+                is_done = true;
+                response.set_caret(0);
+            } else if best_node_re_name!=""{
+                response.set_caret(request.get_caret());
+                self.forward_reg(request, response);
 
-                    if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                        if let Some(res) = response.as_any().downcast_ref::<Response>() {
-                            req.caret = res.caret;
-                        } else {
-                            panic!("Downcast fail.");
-                        }
+                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
+                        req.caret = res.caret;
                     } else {
                         panic!("Downcast fail.");
                     }
-
-                    response.set_caret(0);
-
-                    // まとめる。
-                    is_done = is_done_re;
-                    best_node_name = best_node_re_name;
+                } else {
+                    panic!("Downcast fail.");
                 }
+
+                response.set_caret(0);
+
+                // 一方に、まとめる。
+                is_done = true;
+                best_node_name = best_node_re_name;
             }
 
             if is_done {

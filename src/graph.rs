@@ -47,7 +47,19 @@ pub struct Node<T, S: ::std::hash::BuildHasher> {
     pub controller: Controller<T>,
     pub token_regex: bool,
     // 特殊な任意の名前 '#linebreak'
-    pub next_link: HashMap<&'static str, &'static str, S>,
+    next_link: HashMap<&'static str, &'static str, S>,
+}
+impl<T, S: ::std::hash::BuildHasher> Node<T, S> {
+    pub fn get_next(&self, name:&'static str) -> &'static str {
+        if self.next_link.contains_key(name) {
+            self.next_link[name]
+        } else {
+            panic!("{} next link is not found.", name);
+        }
+    }
+    pub fn contains_next_link(&self, name:&'static str) -> bool {
+        self.next_link.contains_key(name)
+    }
 }
 
 pub fn empty_controller<T>(

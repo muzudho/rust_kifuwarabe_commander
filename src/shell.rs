@@ -414,10 +414,9 @@ impl Shell {
                 // コントローラーに処理を移譲。
                 (&node.controller)(t, request, response);
 
-                // 行終了時コントローラーの更新
-                if node.next_link.contains_key("#linebreak") {
-                    current_linebreak_controller =
-                        graph.get_node(node.next_link["#linebreak"]).controller;
+                // 行終了時コントローラーの更新。指定がなければ無視。
+                if node.contains_next_link("#linebreak") {
+                    current_linebreak_controller = graph.get_node(node.get_next("#linebreak")).controller;
                 }
 
                 // フォワードを受け取り。
@@ -428,7 +427,7 @@ impl Shell {
                         if res.next_node_alies == "" {
                             next_node_list = "";
                         } else {
-                            next_node_list = &node.next_link[res.next_node_alies];
+                            next_node_list = &node.get_next(res.next_node_alies);
                         }
                     } else {
                         panic!("Downcast fail.");

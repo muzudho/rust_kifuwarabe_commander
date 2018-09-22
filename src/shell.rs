@@ -8,7 +8,6 @@
 /// cargo clippy
 /// ```
 use graph::*;
-use node::*;
 use regex::Regex;
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::io;
@@ -74,6 +73,14 @@ pub struct Response {
     pub quits: bool,
     pub next_node_alies: &'static str,
 }
+impl Response {
+    fn reset(&mut self) {
+        self.set_caret(0);
+        self.set_done_line(false);
+        self.set_quits(false);
+        self.forward("");
+    }
+}
 
 fn new_response() -> Box<Response> {
     Box::new(Response {
@@ -86,6 +93,10 @@ fn new_response() -> Box<Response> {
 
 impl ResponseAccessor for Response {
     fn as_any(&self) -> &dyn Any {
+        self
+    }
+    /// トレイトを実装している方を返すのに使う。
+    fn as_mut_any(&mut self) -> &mut dyn Any {
         self
     }
     fn forward(&mut self, next_node_alies2: &'static str) {
@@ -169,7 +180,7 @@ fn starts_with_reg<T, S: ::std::hash::BuildHasher>(
     }
 }
 
-fn forward<T: 'static, S: ::std::hash::BuildHasher>(
+fn forward_literal<T: 'static, S: ::std::hash::BuildHasher>(
     node: &Node<T, S>,
     request: &Box<RequestAccessor>,
     response: &mut Box<dyn ResponseAccessor>,
@@ -191,10 +202,11 @@ fn forward<T: 'static, S: ::std::hash::BuildHasher>(
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_re(
+fn forward_reg(
     request: &Box<RequestAccessor>,
     response: &mut Box<dyn ResponseAccessor>,
 ) {
+    // グループ[0]の文字数で取る。
     let pseud_token_len = request.get_groups()[0].chars().count();
     response.set_caret(request.get_caret() + pseud_token_len);
 
@@ -295,7 +307,9 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
 
     'line: while request.get_caret() < request.get_line_len() {
         // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
-        reset(&mut response);
+        if let Some(res) = response.as_mut_any().downcast_mut::<Response>() {
+            res.reset();
+        }
         if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
             req.groups.clear(); // クリアー
         } else {
@@ -359,7 +373,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
         if is_done || is_done_re {
             if is_done {
                 response.set_caret(request.get_caret());
-                forward(&graph.node_table[&best_node_name], request, &mut response);
+                forward_literal(&graph.node_table[&best_node_name], request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                     if let Some(res) = response.as_any().downcast_ref::<Response>() {
@@ -370,7 +384,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                 response.set_caret(0);
             } else {
                 response.set_caret(request.get_caret());
-                forward_re(request, &mut response);
+                forward_reg(request, &mut response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                     if let Some(res) = response.as_any().downcast_ref::<Response>() {

@@ -66,6 +66,11 @@ pub struct Graph<T, S: ::std::hash::BuildHasher> {
     pub node_table: HashMap<String, Node<T, S>>,
     pub entrance: &'static str,
 }
+impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
+    pub fn set_entrance(&mut self, entrance2: &'static str) {
+        self.entrance = entrance2;
+    }
+}
 
 pub fn contains_node<T, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, name: &str) -> bool {
     graph.node_table.contains_key(name)
@@ -79,9 +84,6 @@ pub fn new_graph<T, S: ::std::hash::BuildHasher>() -> Graph<T, S> {
     }
 }
 
-pub fn set_entrance<T, S: ::std::hash::BuildHasher>(graph: &mut Graph<T, S>, entrance2: &'static str) {
-    graph.entrance = entrance2;
-}
 
 /// # Arguments
 ///

@@ -251,38 +251,38 @@ impl Shell {
     pub fn pop_row(&mut self) -> Box<String> {
         Box::new(self.vec_row.pop().unwrap())
     }
-}
 
-/// コマンドラインの入力受付、および コールバック関数呼出を行います。
-/// スレッドはブロックします。
-/// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-pub fn run<T: 'static, S: ::std::hash::BuildHasher>(
-    graph: &Graph<T, S>,
-    shell: &mut Shell,
-    t: &mut T,
-) {
-    'lines: loop {
-        // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request: Box<dyn RequestAccessor> = if shell.is_empty() {
-            let mut line_string = String::new();
-            // コマンド プロンプトからの入力があるまで待機します。
-            io::stdin()
-                .read_line(&mut line_string)
-                .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
+    /// コマンドラインの入力受付、および コールバック関数呼出を行います。
+    /// スレッドはブロックします。
+    /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
+    pub fn run<T: 'static, S: ::std::hash::BuildHasher>(
+        &mut self,
+        graph: &Graph<T, S>,
+        t: &mut T,
+    ) {
+        'lines: loop {
+            // リクエストは、キャレットを更新するのでミュータブル。
+            let mut request: Box<dyn RequestAccessor> = if self.is_empty() {
+                let mut line_string = String::new();
+                // コマンド プロンプトからの入力があるまで待機します。
+                io::stdin()
+                    .read_line(&mut line_string)
+                    .expect("info Failed to read_line"); // OKでなかった場合のエラーメッセージ。
 
-            // 末尾の 改行 を除きます。前後の空白も消えます。
-            line_string = line_string.trim().parse().expect("info Failed to parse");
+                // 末尾の 改行 を除きます。前後の空白も消えます。
+                line_string = line_string.trim().parse().expect("info Failed to parse");
 
-            new_request(Box::new(line_string))
-        } else {
-            // バッファーの先頭行です。
-            new_request(shell.pop_row())
-        };
+                new_request(Box::new(line_string))
+            } else {
+                // バッファーの先頭行です。
+                new_request(self.pop_row())
+            };
 
-        if parse_line(graph, t, &mut request) {
-            break 'lines;
-        }
-    } // loop
+            if parse_line(graph, t, &mut request) {
+                break 'lines;
+            }
+        } // loop
+    }
 }
 
 /// # Returns.

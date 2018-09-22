@@ -120,7 +120,10 @@ impl ResponseAccessor for Response {
 ///
 /// * `request` - 読み取るコマンドラインと、読取位置。
 /// * returns - 一致したら真。
-fn starts_with_literal<T, S: ::std::hash::BuildHasher>(node: &Node<T, S>, request: &Box<RequestAccessor>) -> bool {
+fn starts_with_literal<T, S: ::std::hash::BuildHasher>(
+    node: &Node<T, S>,
+    request: &Box<RequestAccessor>,
+) -> bool {
     let caret_end = request.get_caret() + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
@@ -202,14 +205,10 @@ fn forward_literal<T: 'static, S: ::std::hash::BuildHasher>(
 }
 
 /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_reg(
-    request: &Box<RequestAccessor>,
-    response: &mut Box<dyn ResponseAccessor>,
-) {
+fn forward_reg(request: &Box<RequestAccessor>, response: &mut Box<dyn ResponseAccessor>) {
     // グループ[0]の文字数で取る。
     let pseud_token_len = request.get_groups()[0].chars().count();
     response.set_caret(request.get_caret() + pseud_token_len);
-
 
     // 続きにスペース「 」が１つあれば読み飛ばす
     let res_caret;
@@ -230,47 +229,41 @@ fn forward_reg(
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-/// * `node_table` - 複数件のトークンです。
-/// * `next` - カンマ区切りの登録ノード名です。
 pub struct Shell {
     vec_row: Vec<String>,
-    pub next: &'static str,
 }
-
-pub fn new_shell() -> Shell {
-    Shell {
-        vec_row: Vec::new(),
-        next: "",
+impl Shell {
+    pub fn new() -> Shell {
+        Shell {
+            vec_row: Vec::new(),
+        }
     }
-}
-
-pub fn set_next(shell: &mut Shell, next2: &'static str) {
-    shell.next = next2;
-}
-
-/// コマンドを1行も入力していなければ真を返します。
-pub fn is_empty(shell: &Shell) -> bool {
-    shell.vec_row.len() == 0
-}
-
-/// コンソール入力以外の方法で、コマンド1行を追加したいときに使います。
-/// 行の末尾に改行は付けないでください。
-pub fn push_row(shell: &mut Shell, row: &str) {
-    shell.vec_row.push(format!("{}\n", row));
-}
-
-/// 先頭のコマンド1行をキューから削除して返します。
-pub fn pop_row(shell: &mut Shell) -> Box<String> {
-    Box::new(shell.vec_row.pop().unwrap())
+    /// コマンドを1行も入力していなければ真を返します。
+    pub fn is_empty(&self) -> bool {
+        self.vec_row.len() == 0
+    }
+    /// コンソール入力以外の方法で、コマンド1行を追加したいときに使います。
+    /// 行の末尾に改行は付けないでください。
+    pub fn push_row(&mut self, row: &str) {
+        self.vec_row.push(format!("{}\n", row));
+    }
+    /// 先頭のコマンド1行をキューから削除して返します。
+    pub fn pop_row(&mut self) -> Box<String> {
+        Box::new(self.vec_row.pop().unwrap())
+    }
 }
 
 /// コマンドラインの入力受付、および コールバック関数呼出を行います。
 /// スレッドはブロックします。
 /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-pub fn run<T: 'static, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, shell: &mut Shell, t: &mut T) {
+pub fn run<T: 'static, S: ::std::hash::BuildHasher>(
+    graph: &Graph<T, S>,
+    shell: &mut Shell,
+    t: &mut T,
+) {
     'lines: loop {
         // リクエストは、キャレットを更新するのでミュータブル。
-        let mut request: Box<dyn RequestAccessor> = if is_empty(shell) {
+        let mut request: Box<dyn RequestAccessor> = if shell.is_empty() {
             let mut line_string = String::new();
             // コマンド プロンプトからの入力があるまで待機します。
             io::stdin()
@@ -283,10 +276,10 @@ pub fn run<T: 'static, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, shell: 
             new_request(Box::new(line_string))
         } else {
             // バッファーの先頭行です。
-            new_request(pop_row(shell))
+            new_request(shell.pop_row())
         };
 
-        if parse_line(graph, shell, t, &mut request) {
+        if parse_line(graph, t, &mut request) {
             break 'lines;
         }
     } // loop
@@ -297,12 +290,11 @@ pub fn run<T: 'static, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, shell: 
 /// 0. シェルを終了するなら真。
 fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
     graph: &Graph<T, S>,
-    shell: &mut Shell,
     t: &mut T,
     request: &mut Box<dyn RequestAccessor>,
 ) -> bool {
     let mut response: Box<dyn ResponseAccessor> = new_response();
-    let mut next_node_list = shell.next;
+    let mut next_node_list = graph.entrance;
     let mut current_linebreak_controller: Controller<T> = empty_controller;
 
     'line: while request.get_caret() < request.get_line_len() {
@@ -330,7 +322,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
 
         // 最初は全てのノードが対象。
         let mut max_token_len = 0;
-        
+
         let mut best_node_name = "".to_string();
         let mut best_node_re_name = "".to_string();
 
@@ -414,7 +406,8 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
 
             // 行終了時コントローラーの更新
             if node.next_link.contains_key("#linebreak") {
-                current_linebreak_controller = graph.node_table[node.next_link["#linebreak"]].controller;
+                current_linebreak_controller =
+                    graph.node_table[node.next_link["#linebreak"]].controller;
             }
 
             // フォワードを受け取り。
@@ -427,7 +420,6 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                     } else {
                         next_node_list = &node.next_link[res.next_node_alies];
                     }
-
                 } else {
                     panic!("Downcast fail.");
                 }
@@ -437,7 +429,6 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
 
             response.set_caret(0);
             response.forward("");
-
 
             if let Some(res) = response.as_any().downcast_ref::<Response>() {
                 if res.done_line {

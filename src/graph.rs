@@ -56,10 +56,15 @@ pub fn empty_controller<T>(
 ) {
 }
 
+/// # Parameters.
+/// 
+/// * `node_table` - 複数件のトークンです。
+/// * `entrance` - カンマ区切りの登録ノード名です。
 pub struct Graph<T, S: ::std::hash::BuildHasher> {
     /// 特殊なノード名
     /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     pub node_table: HashMap<String, Node<T, S>>,
+    pub entrance: &'static str,
 }
 
 pub fn contains_node<T, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, name: &str) -> bool {
@@ -70,7 +75,12 @@ pub fn contains_node<T, S: ::std::hash::BuildHasher>(graph: &Graph<T, S>, name: 
 pub fn new_graph<T, S: ::std::hash::BuildHasher>() -> Graph<T, S> {
     Graph {
         node_table: HashMap::new(),
+        entrance: "",
     }
+}
+
+pub fn set_entrance<T, S: ::std::hash::BuildHasher>(graph: &mut Graph<T, S>, entrance2: &'static str) {
+    graph.entrance = entrance2;
 }
 
 /// # Arguments

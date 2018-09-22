@@ -65,7 +65,7 @@ pub fn empty_controller<T>(
 pub struct Graph<T, S: ::std::hash::BuildHasher> {
     /// 特殊なノード名
     /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    pub node_table: HashMap<String, Node<T, S>>,
+    node_table: HashMap<String, Node<T, S>>,
     pub entrance: &'static str,
 }
 impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
@@ -78,6 +78,13 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     }
     pub fn set_entrance(&mut self, entrance2: &'static str) {
         self.entrance = entrance2;
+    }
+    pub fn get_node(&self, name: &str) -> &Node<T, S> {
+        if self.contains_node(name) {
+            &self.node_table[name]
+        } else {
+            panic!("{} node is not found.", name);
+        }
     }
     pub fn contains_node(&self, name: &str) -> bool {
         self.node_table.contains_key(name)

@@ -314,7 +314,7 @@ impl Shell {
                 //println!("contains.");
 
                 let node_name = next_node_name.to_string();
-                let node = &graph.node_table[&node_name];
+                let node = &graph.get_node(&node_name);
 
                 let matched;
                 if node.token_regex {
@@ -375,7 +375,7 @@ impl Shell {
             let mut is_done = false;
             if best_node_name != "" {
                 response.set_caret(request.get_caret());
-                self.forward_literal(&graph.node_table[&best_node_name], request, response);
+                self.forward_literal(&graph.get_node(&best_node_name), request, response);
 
                 if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                     if let Some(res) = response.as_any().downcast_ref::<Response>() {
@@ -409,7 +409,7 @@ impl Shell {
             if is_done {
                 response.set_caret(request.get_caret());
                 response.forward("");
-                let node = &graph.node_table[&best_node_name];
+                let node = &graph.get_node(&best_node_name);
 
                 // コントローラーに処理を移譲。
                 (&node.controller)(t, request, response);
@@ -417,7 +417,7 @@ impl Shell {
                 // 行終了時コントローラーの更新
                 if node.next_link.contains_key("#linebreak") {
                     current_linebreak_controller =
-                        graph.node_table[node.next_link["#linebreak"]].controller;
+                        graph.get_node(node.next_link["#linebreak"]).controller;
                 }
 
                 // フォワードを受け取り。
@@ -456,7 +456,7 @@ impl Shell {
                 }
             } else {
                 // 何とも一致しなかったら実行します。
-                (graph.node_table["#ND_complementary"].controller)(t, request, response);
+                (graph.get_node("#ND_complementary").controller)(t, request, response);
                 // responseは無視する。
 
                 // 次のラインへ。

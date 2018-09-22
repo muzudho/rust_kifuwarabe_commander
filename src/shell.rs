@@ -109,7 +109,7 @@ impl ResponseAccessor for Response {
 ///
 /// * `request` - 読み取るコマンドラインと、読取位置。
 /// * returns - 一致したら真。
-pub fn starts_with<T, S: ::std::hash::BuildHasher>(node: &Node<T, S>, request: &Box<RequestAccessor>) -> bool {
+fn starts_with_literal<T, S: ::std::hash::BuildHasher>(node: &Node<T, S>, request: &Box<RequestAccessor>) -> bool {
     let caret_end = request.get_caret() + node.token.len();
     //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
     //    &request.line[response.starts..caret_end], self.token);
@@ -123,7 +123,7 @@ pub fn starts_with<T, S: ::std::hash::BuildHasher>(node: &Node<T, S>, request: &
 ///
 /// * `request` - 読み取るコマンドライン。
 /// * returns - 一致したら真。
-fn starts_with_re<T, S: ::std::hash::BuildHasher>(
+fn starts_with_reg<T, S: ::std::hash::BuildHasher>(
     node: &Node<T, S>,
     request: &mut Box<RequestAccessor>,
 ) -> bool {
@@ -195,16 +195,17 @@ fn forward_re(
     request: &Box<RequestAccessor>,
     response: &mut Box<dyn ResponseAccessor>,
 ) {
+    let pseud_token_len = request.get_groups()[0].chars().count();
+    response.set_caret(request.get_caret() + pseud_token_len);
+
+
+    // 続きにスペース「 」が１つあれば読み飛ばす
     let res_caret;
     if let Some(res) = response.as_any().downcast_ref::<Response>() {
         res_caret = res.caret;
     } else {
         panic!("Downcast fail.");
     }
-
-    let pseud_token_len = request.get_groups()[0].chars().count();
-    response.set_caret(request.get_caret() + pseud_token_len);
-    // 続きにスペース「 」が１つあれば読み飛ばす
     if 0 < (request.get_line_len() - res_caret)
         && &request.get_line()[res_caret..(res_caret + 1)] == " "
     {
@@ -331,16 +332,16 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
 
                 let matched;
                 if node.token_regex {
-                    if starts_with_re(node, request) {
+                    if starts_with_reg(node, request) {
                         // 正規表現で一致したなら。
                         best_node_re_name = node_name;
                         is_done_re = true;
                     }
                 } else {
-                    matched = starts_with(node, request);
+                    matched = starts_with_literal(node, request);
                     if matched {
                         // 固定長トークンで一致したなら。
-                        //println!("starts_with.");
+                        //println!("starts_with_literal.");
                         let token_len = node.token.chars().count();
                         if max_token_len < token_len {
                             max_token_len = token_len;
@@ -348,7 +349,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                         };
                         is_done = true;
                         //} else {
-                        //    println!("not starts_with. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
+                        //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
                     }
                 }
             }
@@ -390,10 +391,11 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
         }
 
         if is_done {
-            // コントローラーに処理を移譲。
             response.set_caret(request.get_caret());
             response.forward("");
             let node = &graph.node_table[&best_node_name];
+
+            // コントローラーに処理を移譲。
             (&node.controller)(t, request, &mut response);
 
             // 行終了時コントローラーの更新
@@ -401,6 +403,7 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
                 current_linebreak_controller = graph.node_table[node.next_link["#linebreak"]].controller;
             }
 
+            // フォワードを受け取り。
             if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                 if let Some(res) = response.as_any().downcast_ref::<Response>() {
                     req.caret = res.caret;
@@ -453,6 +456,8 @@ fn parse_line<T: 'static, S: ::std::hash::BuildHasher>(
         } else {
             panic!("Downcast fail.");
         }
+
+        // 次のトークンへ。
     }
 
     // 1行読取終了。

@@ -28,17 +28,17 @@ pub struct Request {
     pub caret: usize,
     pub groups: Vec<String>, // Box<Vec<String>>,
 }
-
-fn new_request(line2: Box<String>) -> Request { // Box<Request>
-    let len = line2.chars().count();
-    Request { // Box::new(
-        line: line2,
-        line_len: len,
-        caret: 0,
-        groups: Vec::new(), // Box::new(Vec::new())
-    }//)
+impl Request {
+    fn new(line2: Box<String>) -> Request {
+        let len = line2.chars().count();
+        Request {
+            line: line2,
+            line_len: len,
+            caret: 0,
+            groups: Vec::new(),
+        }
+    }
 }
-
 impl RequestAccessor for Request {
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self
@@ -74,21 +74,20 @@ pub struct Response {
     pub next_node_alies: &'static str,
 }
 impl Response {
+    fn new() -> Response {
+        Response {
+            caret: 0,
+            done_line: false,
+            quits: false,
+            next_node_alies: "",
+        }
+    }
     fn reset(&mut self) {
         self.set_caret(0);
         self.set_done_line(false);
         self.set_quits(false);
         self.forward("");
     }
-}
-
-fn new_response() -> Response { // Box<Response>
-    Response { // Box::new(
-        caret: 0,
-        done_line: false,
-        quits: false,
-        next_node_alies: "",
-    } // )
 }
 
 impl ResponseAccessor for Response {
@@ -110,117 +109,6 @@ impl ResponseAccessor for Response {
     }
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
-    }
-}
-
-/// [token]文字列の長さだけ [starts]キャレットを進めます。
-/// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
-///
-/// # Arguments
-///
-/// * `request` - 読み取るコマンドラインと、読取位置。
-/// * returns - 一致したら真。
-fn starts_with_literal<T, S: ::std::hash::BuildHasher>(
-    node: &Node<T, S>,
-    request: &mut dyn RequestAccessor, // &Box<RequestAccessor>
-) -> bool {
-    let caret_end = request.get_caret() + node.token.len();
-    //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
-    //    &request.line[response.starts..caret_end], self.token);
-    caret_end <= request.get_line_len()
-        && &request.get_line()[request.get_caret()..caret_end] == node.token
-}
-
-/// 正規表現を使う。
-///
-/// # Arguments
-///
-/// * `request` - 読み取るコマンドライン。
-/// * returns - 一致したら真。
-fn starts_with_reg<T, S: ::std::hash::BuildHasher>(
-    node: &Node<T, S>,
-    request: &mut dyn RequestAccessor, // &mut Box<RequestAccessor>
-) -> bool {
-    if VERBOSE {
-        println!("Starts_with_re");
-    }
-
-    if request.get_caret() < request.get_line_len() {
-        if VERBOSE {
-            println!("node.token: {}", node.token);
-        }
-
-        let re = Regex::new(node.token).unwrap();
-
-        let text;
-        let mut group_num = 0;
-        if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-            text = &req.line[req.caret..];
-
-            if VERBOSE {
-                println!("text: [{}]", text);
-            }
-
-            for caps in re.captures_iter(text) {
-                // caps は サイズ 2 の配列 で同じものが入っている。
-                let cap = &caps[0];
-
-                req.groups.push(cap.to_string());
-
-                group_num += 1;
-            }
-
-            if VERBOSE {
-                println!("Group num: {}", group_num);
-            }
-        } else {
-            panic!("Downcast fail.");
-        }
-
-        0 < group_num
-    } else {
-        false
-    }
-}
-
-fn forward_literal<T: 'static, S: ::std::hash::BuildHasher>(
-    node: &Node<T, S>,
-    request: &dyn RequestAccessor, // &Box<RequestAccessor>
-    response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
-) {
-    response.set_caret(request.get_caret() + node.token.len());
-    let res_caret;
-    if let Some(res) = response.as_any().downcast_ref::<Response>() {
-        res_caret = res.caret;
-    } else {
-        panic!("Downcast fail.");
-    }
-
-    // 続きにスペース「 」が１つあれば読み飛ばす
-    if 0 < (request.get_line_len() - res_caret)
-        && &request.get_line()[res_caret..(res_caret + 1)] == " "
-    {
-        response.set_caret(res_caret + 1);
-    }
-}
-
-/// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-fn forward_reg(request: &dyn RequestAccessor, response: &mut dyn ResponseAccessor) { // &Box<RequestAccessor>, &mut Box<dyn ResponseAccessor>
-    // グループ[0]の文字数で取る。
-    let pseud_token_len = request.get_groups()[0].chars().count();
-    response.set_caret(request.get_caret() + pseud_token_len);
-
-    // 続きにスペース「 」が１つあれば読み飛ばす
-    let res_caret;
-    if let Some(res) = response.as_any().downcast_ref::<Response>() {
-        res_caret = res.caret;
-    } else {
-        panic!("Downcast fail.");
-    }
-    if 0 < (request.get_line_len() - res_caret)
-        && &request.get_line()[res_caret..(res_caret + 1)] == " "
-    {
-        response.set_caret(res_caret + 1);
     }
 }
 
@@ -252,6 +140,120 @@ impl Shell {
         Box::new(self.vec_row.pop().unwrap())
     }
 
+    /// [token]文字列の長さだけ [starts]キャレットを進めます。
+    /// [token]文字列の続きに半角スペース「 」が１つあれば、1つ分だけ読み進めます。
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - 読み取るコマンドラインと、読取位置。
+    /// * returns - 一致したら真。
+    fn starts_with_literal<T, S: ::std::hash::BuildHasher>(
+        &self,
+        node: &Node<T, S>,
+        request: &mut dyn RequestAccessor, // &Box<RequestAccessor>
+    ) -> bool {
+        let caret_end = request.get_caret() + node.token.len();
+        //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
+        //    &request.line[response.starts..caret_end], self.token);
+        caret_end <= request.get_line_len()
+            && &request.get_line()[request.get_caret()..caret_end] == node.token
+    }
+
+    /// 正規表現を使う。
+    ///
+    /// # Arguments
+    ///
+    /// * `request` - 読み取るコマンドライン。
+    /// * returns - 一致したら真。
+    fn starts_with_reg<T, S: ::std::hash::BuildHasher>(
+        &self,
+        node: &Node<T, S>,
+        request: &mut dyn RequestAccessor, // &mut Box<RequestAccessor>
+    ) -> bool {
+        if VERBOSE {
+            println!("Starts_with_re");
+        }
+
+        if request.get_caret() < request.get_line_len() {
+            if VERBOSE {
+                println!("node.token: {}", node.token);
+            }
+
+            let re = Regex::new(node.token).unwrap();
+
+            let text;
+            let mut group_num = 0;
+            if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                text = &req.line[req.caret..];
+
+                if VERBOSE {
+                    println!("text: [{}]", text);
+                }
+
+                for caps in re.captures_iter(text) {
+                    // caps は サイズ 2 の配列 で同じものが入っている。
+                    let cap = &caps[0];
+
+                    req.groups.push(cap.to_string());
+
+                    group_num += 1;
+                }
+
+                if VERBOSE {
+                    println!("Group num: {}", group_num);
+                }
+            } else {
+                panic!("Downcast fail.");
+            }
+
+            0 < group_num
+        } else {
+            false
+        }
+    }
+
+    fn forward_literal<T: 'static, S: ::std::hash::BuildHasher>(
+        &self,
+        node: &Node<T, S>,
+        request: &dyn RequestAccessor, // &Box<RequestAccessor>
+        response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
+    ) {
+        response.set_caret(request.get_caret() + node.token.len());
+        let res_caret;
+        if let Some(res) = response.as_any().downcast_ref::<Response>() {
+            res_caret = res.caret;
+        } else {
+            panic!("Downcast fail.");
+        }
+
+        // 続きにスペース「 」が１つあれば読み飛ばす
+        if 0 < (request.get_line_len() - res_caret)
+            && &request.get_line()[res_caret..(res_caret + 1)] == " "
+        {
+            response.set_caret(res_caret + 1);
+        }
+    }
+
+    /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
+    fn forward_reg(&self, request: &dyn RequestAccessor, response: &mut dyn ResponseAccessor) {
+        // グループ[0]の文字数で取る。
+        let pseud_token_len = request.get_groups()[0].chars().count();
+        response.set_caret(request.get_caret() + pseud_token_len);
+
+        // 続きにスペース「 」が１つあれば読み飛ばす
+        let res_caret;
+        if let Some(res) = response.as_any().downcast_ref::<Response>() {
+            res_caret = res.caret;
+        } else {
+            panic!("Downcast fail.");
+        }
+        if 0 < (request.get_line_len() - res_caret)
+            && &request.get_line()[res_caret..(res_caret + 1)] == " "
+        {
+            response.set_caret(res_caret + 1);
+        }
+    }
+
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
@@ -272,10 +274,10 @@ impl Shell {
                 // 末尾の 改行 を除きます。前後の空白も消えます。
                 line_string = line_string.trim().parse().expect("info Failed to parse");
 
-                new_request(Box::new(line_string))
+                Request::new(Box::new(line_string))
             } else {
                 // バッファーの先頭行です。
-                new_request(self.pop_row())
+                Request::new(self.pop_row())
             };
 
             if self.parse_line(graph, t, &mut request) {
@@ -291,10 +293,9 @@ impl Shell {
         &self,
         graph: &Graph<T, S>,
         t: &mut T,
-        request: &mut dyn RequestAccessor, // &mut Box<dyn RequestAccessor>
+        request: &mut dyn RequestAccessor,
     ) -> bool {
-        let response: &mut dyn ResponseAccessor = &mut new_response();
-        // let mut response: Box<dyn ResponseAccessor> = new_response();
+        let response: &mut dyn ResponseAccessor = &mut Response::new();
         let mut next_node_list = graph.entrance;
         let mut current_linebreak_controller: Controller<T> = empty_controller;
 
@@ -339,13 +340,13 @@ impl Shell {
 
                     let matched;
                     if node.token_regex {
-                        if starts_with_reg(node, request) {
+                        if self.starts_with_reg(node, request) {
                             // 正規表現で一致したなら。
                             best_node_re_name = node_name;
                             is_done_re = true;
                         }
                     } else {
-                        matched = starts_with_literal(node, request);
+                        matched = self.starts_with_literal(node, request);
                         if matched {
                             // 固定長トークンで一致したなら。
                             //println!("starts_with_literal.");
@@ -366,7 +367,7 @@ impl Shell {
             if is_done || is_done_re {
                 if is_done {
                     response.set_caret(request.get_caret());
-                    forward_literal(&graph.node_table[&best_node_name], request, response); // &mut response
+                    self.forward_literal(&graph.node_table[&best_node_name], request, response);
 
                     if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                         if let Some(res) = response.as_any().downcast_ref::<Response>() {
@@ -377,7 +378,7 @@ impl Shell {
                     response.set_caret(0);
                 } else {
                     response.set_caret(request.get_caret());
-                    forward_reg(request, response); // &mut response
+                    self.forward_reg(request, response);
 
                     if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
                         if let Some(res) = response.as_any().downcast_ref::<Response>() {
@@ -403,7 +404,7 @@ impl Shell {
                 let node = &graph.node_table[&best_node_name];
 
                 // コントローラーに処理を移譲。
-                (&node.controller)(t, request, response); // &mut response, &mut response
+                (&node.controller)(t, request, response);
 
                 // 行終了時コントローラーの更新
                 if node.next_link.contains_key("#linebreak") {
@@ -447,7 +448,7 @@ impl Shell {
                 }
             } else {
                 // 何とも一致しなかったら実行します。
-                (graph.node_table["#ND_complementary"].controller)(t, request, response); // &mut response
+                (graph.node_table["#ND_complementary"].controller)(t, request, response);
                 // responseは無視する。
 
                 // 次のラインへ。
@@ -467,7 +468,7 @@ impl Shell {
         }
 
         // 1行読取終了。
-        (current_linebreak_controller)(t, request, response); // &mut response
+        (current_linebreak_controller)(t, request, response);
         // responseは無視する。
         false
     }

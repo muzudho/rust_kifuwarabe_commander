@@ -4,19 +4,13 @@
 /// cargo run --example main
 /// ```
 
-// #[macro_use(hashmap)]
+// 参考:
+// https://github.com/serde-rs/json |serde_json
+extern crate serde_json;
 extern crate kifuwarabe_shell;
-
 use kifuwarabe_shell::graph::*;
 use kifuwarabe_shell::shell::*;
-// use std::collections::HashMap;
 
-// 参考:
-// https://github.com/serde-rs/json
-extern crate serde_json;
-// use serde_json::Value;
-// use std::fs::File;
-// use std::io::Read;
 
 // 任意のオブジェクト。
 pub struct ShellVar {

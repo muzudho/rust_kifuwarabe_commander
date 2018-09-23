@@ -1,0 +1,57 @@
+{
+	"nodes" : [
+		{
+			"name": "ND_a",
+			"token": "a",
+			"controller": "do_a",
+			"next": {}
+		},
+		{
+			"name": "ND_ab",
+			"token": "ab",
+			"controller": "do_ab",
+			"next": {
+				"next": "ND_cde",
+				"#linebreak": "ND_ab_linebreak"
+			}			
+		},
+		{
+			"name": "ND_abc",
+			"token": "abc",
+			"controller": "do_abc",
+			"next": {}
+		},
+		{
+			"name": "ND_cde",
+			"token": "cde",
+			"controller": "do_cde",
+			"next": {}
+		},
+		{
+			"name": "ND_numvar",
+			"regex": "(\\d+)",
+			"controller": "do_numvar",
+			"next": {}
+		},
+		{
+			"name": "ND_quit",
+			"token": "quit",
+			"controller": "do_quit",
+			"next": {}
+		},
+		{
+			"name": "ND_wordvar",
+			"regex": "(\\w+)",
+			"controller": "do_wordvar",
+			"next": {}
+		},
+		{
+			"name": "ND_ab_linebreak",
+			"controller": "do_ab_linebreak"
+		},
+		{
+			"name": "#ND_complementary",
+			"controller": "do_other"
+		}
+	]
+}

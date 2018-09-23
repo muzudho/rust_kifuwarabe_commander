@@ -8,6 +8,7 @@ extern crate kifuwarabe_shell;
 
 use kifuwarabe_shell::graph::*;
 use kifuwarabe_shell::shell::*;
+use std::collections::HashMap;
 
 // 参考:
 // https://github.com/serde-rs/json
@@ -45,30 +46,6 @@ impl ShellVar {
 ///     Quit.
 /// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
 fn main() {
-    {
-        println!("Test json.");
-        let mut file = File::open("text.json").unwrap();
-        let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
-        /*
-        // Some JSON input data as a &str. Maybe this comes from the user.
-        let data = r#"{
-                    "name": "John Doe",
-                    "age": 43,
-                    "phones": [
-                      "+44 1234567",
-                      "+44 2345678"
-                    ]
-                  }"#;
-        */
-
-        // Parse the string of data into serde_json::Value.
-        //let v: Value = serde_json::from_str(data)?;
-        let v: Value = serde_json::from_str(&data).unwrap();
-
-        // Access parts of the data by indexing with square brackets.
-        println!("Please call {} at the number {}", v["FirstName"], v["PhoneNumbers"][0]);
-    }
 
     println!("Please enter command.");
 
@@ -87,6 +64,51 @@ fn main() {
     graph.insert_controller("do_other", do_other);
 
     // グラフのノード構成。
+    {
+        println!("Test json.");
+        let mut file = File::open("graph.json").unwrap();
+        let mut data = String::new();
+        file.read_to_string(&mut data).unwrap();
+        let v: Value = serde_json::from_str(&data).unwrap();
+
+        // Access parts of the data by indexing with square brackets.
+        println!("Please call {} at the number {}", v["nodes"], v["nodes"][0]);
+
+        // https://docs.serde.rs/serde_json/value/enum.Value.html
+        for node in v["nodes"].as_array().unwrap().iter() {
+            println!("  name: {}", node["name"]);
+            println!("  token: {}", node["token"]);
+            println!("  regex: {}", node["regex"]);
+            println!("  controller: {}", node["controller"]);
+            if !node["next"].is_null() {
+                // println!("  next: {}", node["next"]);
+                for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
+                    println!("    next: {}, {}", next_key, next_value);
+                }
+            }
+/*
+            if !node["token"].is_null() {
+                let mut next_map : HashMap<&'static str, &'static str> = HashMap::new();
+                if !node["next"].is_null() {
+                    for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
+                        next_map.insert(next_key.as_str(), next_value.as_str().unwrap());
+                    }
+                }
+                graph.insert_node(node["name"].as_str().unwrap(), node["token"].as_str().unwrap(), node["controller"].as_str().unwrap(), next_map);
+            } else if !node["regex"].is_null() {
+                let mut next_map : HashMap<&'static str, &'static str> = HashMap::new();
+                if !node["next"].is_null() {
+                    for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
+                        next_map.insert(next_key.as_str(), next_value.as_str().unwrap());
+                    }
+                }
+                graph.insert_node_reg(node["name"].as_str().unwrap(), node["regex"].as_str().unwrap(), node["controller"].as_str().unwrap(), next_map);
+            } else {
+                graph.insert_node_single(node["name"].as_str().unwrap(), node["controller"].as_str().unwrap());
+            }
+ */
+        }
+    }
     graph.insert_node("ND_a", "a", "do_a", hashmap![]);
     graph.insert_node(
         "ND_ab",

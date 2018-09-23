@@ -27,7 +27,7 @@ impl ShellVar {
     }
 }
 
-const graph_json_file : &'static str = "graph.json";
+const GRAPH_JSON_FILE : &'static str = "graph.json";
 /// # テスト方法。
 ///
 /// graph.json ファイルに書かれているスクリプトをテストします。
@@ -69,7 +69,7 @@ fn main() {
     graph.insert_controller("do_reload", do_reload);
 
     // ファイルからグラフのノード構成を読取。
-    graph.read_graph_file(graph_json_file.to_string());
+    graph.read_graph_file(GRAPH_JSON_FILE.to_string());
     // - 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
     // - #linebreak コールバック関数は行終了時に実行される。
 
@@ -174,12 +174,12 @@ pub fn do_quit(
 }
 
 pub fn do_reload(
-    shell_var: &mut ShellVar,
+    _shell_var: &mut ShellVar,
     _request: &RequestAccessor,
     response: &mut dyn ResponseAccessor,
 ) {
     println!("Reload.");
-    response.set_reloads(graph_json_file);
+    response.set_reloads(GRAPH_JSON_FILE);
 }
 
 pub fn do_wordvar(

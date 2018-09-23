@@ -27,7 +27,6 @@ impl ShellVar {
     }
 }
 
-
 /// # テスト方法。
 ///
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
@@ -61,31 +60,9 @@ fn main() {
     graph.insert_controller("do_ab_linebreak", do_ab_linebreak);
     graph.insert_controller("do_other", do_other);
 
-    // グラフのノード構成。
+    // ファイルからグラフのノード構成を読取。
     graph.read_graph_file("graph.json".to_string());
-    /*
-    graph.insert_node("ND_a".to_string(), "a".to_string(), "do_a".to_string(), hashmap![]);
-    graph.insert_node(
-        "ND_ab".to_string(),
-        "ab".to_string(),
-        "do_ab".to_string(),
-        hashmap!["next".to_string() => "ND_cde".to_string(), "#linebreak".to_string() => "ND_ab_linebreak".to_string()],
-    ); // #linebreak コールバック関数は行終了時に実行される。
-    graph.insert_node("ND_abc".to_string(), "abc".to_string(), "do_abc".to_string(), hashmap![]);
-    graph.insert_node("ND_cde".to_string(), "cde".to_string(), "do_cde".to_string(), hashmap!["next".to_string() => "ND_wordvar".to_string()]);
-    graph.insert_node("ND_end".to_string(), "end".to_string(), "do_end".to_string(), hashmap![]);
-    graph.insert_node_reg("ND_numvar".to_string(), r"(\d+)".to_string(), "do_numvar".to_string(), hashmap![]);
-    graph.insert_node("ND_quit".to_string(), "quit".to_string(), "do_quit".to_string(), hashmap![]);
-    graph.insert_node_reg("ND_wordvar".to_string(), r"(\w+)".to_string(), "do_wordvar".to_string(), hashmap![]);
-    graph.insert_node_single("ND_ab_linebreak".to_string(), "do_ab_linebreak".to_string());
-    graph.insert_node_single("#ND_complementary".to_string(), "do_other".to_string()); // 該当なしの場合のコールバック関数を登録する。
-                                                             // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
-                                                             // 開始ノードを選択する。
-    graph.set_entrance(
-        "ND_a,ND_ab,ND_abc,ND_end,ND_numvar,
-        ND_quit,ND_wordvar".to_string(),
-    );
-    */
+    // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
 
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
@@ -95,8 +72,6 @@ fn main() {
     // 実行。
     println!("Please enter command.");
     shell.run(&mut graph, &mut shell_var);
-
-    println!("shell_var.count: {}", shell_var.count);
 }
 
 pub fn do_a(

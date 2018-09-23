@@ -26,7 +26,7 @@ pub struct Request {
     pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
     pub line_len: usize,
     pub caret: usize,
-    pub groups: Vec<String>, // Box<Vec<String>>,
+    pub groups: Vec<String>,
 }
 impl Request {
     fn new(line2: Box<String>) -> Request {
@@ -44,7 +44,6 @@ impl RequestAccessor for Request {
         self
     }
     fn get_line(&self) -> &String {
-        // &Box<String>
         &self.line
     }
     fn get_line_len(&self) -> usize {
@@ -54,8 +53,7 @@ impl RequestAccessor for Request {
         self.caret
     }
     fn get_groups(&self) -> &Vec<String> {
-        // &Box<Vec<String>>
-        &self.groups // &self.groups
+        &self.groups
     }
 }
 
@@ -116,9 +114,7 @@ impl ResponseAccessor for Response {
 
 pub type Reader<T> = fn(t: &mut T) -> String;
 
-pub fn standard_input_reader<T>(
-    _t: &mut T,
-) -> String {
+pub fn standard_input_reader<T>(_t: &mut T) -> String {
     let mut line_string = String::new();
     // コマンド プロンプトからの入力があるまで待機します。
     io::stdin()
@@ -134,7 +130,6 @@ pub fn standard_input_reader<T>(
 /// # Arguments
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
-// #[derive(Default)]
 pub struct Shell<T: 'static> {
     vec_row: Vec<String>,
     reader: Reader<T>,
@@ -170,16 +165,11 @@ impl<T: 'static> Shell<T> {
     ///
     /// * `request` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
-    fn starts_with_literal( // <S: ::std::hash::BuildHasher>
-        &self,
-        node: &Node, // <S>
-        request: &mut dyn RequestAccessor, // &Box<RequestAccessor>
-    ) -> bool {
+    fn starts_with_literal(&self, node: &Node, request: &mut dyn RequestAccessor) -> bool {
         let caret_end = request.get_caret() + node.token.len();
-        //println!("response.starts={} + self.token.len()={} <= request.line_len={} [{}]==[{}]", response.starts, self.token.len(), request.line_len,
-        //    &request.line[response.starts..caret_end], self.token);
         caret_end <= request.get_line_len()
-            && &request.get_line()[request.get_caret()..caret_end] == node.token
+            && request.get_line()[request.get_caret()..caret_end] == node.token
+            // && &request.get_line()[request.get_caret()..caret_end] == node.token
     }
 
     /// 正規表現を使う。
@@ -188,11 +178,7 @@ impl<T: 'static> Shell<T> {
     ///
     /// * `request` - 読み取るコマンドライン。
     /// * returns - 一致したら真。
-    fn starts_with_reg( // <S: ::std::hash::BuildHasher>
-        &self,
-        node: &Node, // <S>
-        request: &mut dyn RequestAccessor, // &mut Box<RequestAccessor>
-    ) -> bool {
+    fn starts_with_reg(&self, node: &Node, request: &mut dyn RequestAccessor) -> bool {
         if VERBOSE {
             println!("Starts_with_re");
         }
@@ -235,11 +221,11 @@ impl<T: 'static> Shell<T> {
         }
     }
 
-    fn forward_literal( // <S: ::std::hash::BuildHasher>
+    fn forward_literal(
         &self,
-        node: &Node, // <S>
-        request: &dyn RequestAccessor,       // &Box<RequestAccessor>
-        response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
+        node: &Node,
+        request: &dyn RequestAccessor,
+        response: &mut dyn ResponseAccessor,
     ) {
         response.set_caret(request.get_caret() + node.token.len());
         let res_caret;
@@ -280,7 +266,7 @@ impl<T: 'static> Shell<T> {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run(&mut self, graph: &Graph<T>, t: &mut T) { // <S: ::std::hash::BuildHasher> , S
+    pub fn run(&mut self, graph: &Graph<T>, t: &mut T) {
         'lines: loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut request = if self.is_empty() {
@@ -294,21 +280,16 @@ impl<T: 'static> Shell<T> {
             if self.parse_line(graph, t, &mut request) {
                 break 'lines;
             }
-        } // loop
+        }
     }
 
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn parse_line( // <S: ::std::hash::BuildHasher>
-        &self,
-        graph: &Graph<T>, // , S
-        t: &mut T,
-        request: &mut dyn RequestAccessor,
-    ) -> bool {
+    fn parse_line(&self, graph: &Graph<T>, t: &mut T, request: &mut dyn RequestAccessor) -> bool {
         let empty_exits = &Vec::new();
         let response: &mut dyn ResponseAccessor = &mut Response::new();
-        let mut current_exits : &Vec<String> = graph.get_entrance();
+        let mut current_exits: &Vec<String> = graph.get_entrance();
         let mut current_linebreak_controller: Controller<T> = empty_controller;
 
         'line: while request.get_caret() < request.get_line_len() {
@@ -373,12 +354,12 @@ impl<T: 'static> Shell<T> {
                     panic!("\"{}\" controller (in {} node) is not found. Please use contains_controller().", &node.controller_name, best_node_name);
                 }
 
-
                 // 行終了時コントローラーの更新。指定がなければ無視。
                 if node.contains_exits(&"#linebreak".to_string()) {
                     // 対応するノードは 1つだけとする。
-                    let next_node = &node.get_exits("#linebreak".to_string())[0];
-                    current_linebreak_controller = *graph.get_controller(&graph.get_node(&next_node).controller_name);
+                    let next_node = &node.get_exits(&"#linebreak".to_string())[0];
+                    current_linebreak_controller =
+                        *graph.get_controller(&graph.get_node(&next_node).controller_name);
                 }
 
                 // フォワードを受け取り。
@@ -386,12 +367,14 @@ impl<T: 'static> Shell<T> {
                     if let Some(res) = response.as_any().downcast_ref::<Response>() {
                         req.caret = res.caret;
 
-                        if res.next_node_alies == "" || !node.contains_exits(&res.next_node_alies.to_string()) {
+                        if res.next_node_alies == ""
+                            || !node.contains_exits(&res.next_node_alies.to_string())
+                        {
                             current_exits = empty_exits;
                         } else {
-                            current_exits = node.get_exits(res.next_node_alies.to_string());
+                            current_exits = node.get_exits(&res.next_node_alies.to_string());
                         }
-                        // current_exits は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_name)
+                    // current_exits は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_name)
                     } else {
                         panic!("Downcast fail.");
                     }
@@ -418,7 +401,11 @@ impl<T: 'static> Shell<T> {
                 }
             } else {
                 // 何とも一致しなかったら実行します。
-                (graph.get_controller(&graph.get_node(&"#ND_complementary".to_string()).controller_name))(t, request, response);
+                (graph.get_controller(
+                    &graph
+                        .get_node(&"#ND_complementary".to_string())
+                        .controller_name,
+                ))(t, request, response);
                 // responseは無視する。
 
                 // 次のラインへ。
@@ -444,25 +431,14 @@ impl<T: 'static> Shell<T> {
     }
 
     /// 一致するノード名。
-    fn next_node_name( // <S: ::std::hash::BuildHasher>
+    fn next_node_name(
         &self,
-        graph: &Graph<T>, // , S
+        graph: &Graph<T>,
         request: &mut dyn RequestAccessor,
-        current_exits: &Vec<String>,// &String, // &'static str,
+        current_exits: &[String],
     ) -> (String, String) {
         let mut best_node_name = "".to_string();
         let mut best_node_re_name = "".to_string();
-
-        /*
-        let vec_next: Vec<&str>;
-        {
-            let split = current_exits.split(',');
-            // for s in split {
-            //     println!("{}", s)
-            // }
-            vec_next = split.collect();
-        }
-        */
 
         // 次の候補。
         let mut max_token_len = 0;
@@ -480,7 +456,6 @@ impl<T: 'static> Shell<T> {
                     if self.starts_with_reg(node, request) {
                         // 正規表現で一致したなら。
                         best_node_re_name = node_name;
-                        // is_done_re = true;
                     }
                 } else {
                     matched = self.starts_with_literal(node, request);
@@ -492,7 +467,6 @@ impl<T: 'static> Shell<T> {
                             max_token_len = token_len;
                             best_node_name = node_name;
                         };
-                        // is_done = true;
                         //} else {
                         //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
                     }

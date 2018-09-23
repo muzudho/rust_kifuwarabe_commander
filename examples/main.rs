@@ -46,21 +46,15 @@ fn array_to_str_vec(v: &Value, str_vec: &mut Vec<String>) {
 /// * 'v' - Json object.
 /// * 'str_vec' - let str_vec = Vec::new();
 fn object_to_map(obj: &Value, map0: &mut HashMap<String, Vec<String>>) {
-    println!("Parse object: begin.");
     if !obj.is_null() {
         for (name1,array1) in obj.as_object().unwrap().iter() {
-            println!("  Array: begin.");
             let mut array2: Vec<String> = Vec::new();
             for item1 in array1.as_array().unwrap().iter() {
-                println!("    Item: begin.");
                 array2.push(item1.as_str().unwrap().to_string());
-                println!("    Item: end.");
             }
             map0.insert(name1.to_string(), array2);
-            println!("  Array: end.");
         }
     }
-    println!("Parse object: end.");
 }
 
 /// # テスト方法。
@@ -98,7 +92,7 @@ fn main() {
 
     // グラフのノード構成。
     {
-        println!("Test json: begin.");
+        // println!("Test json: begin.");
         let mut file = File::open("graph.json").unwrap();
         let mut data = String::new();
         file.read_to_string(&mut data).unwrap();
@@ -106,12 +100,9 @@ fn main() {
         let v: Value = serde_json::from_str(&data).unwrap();
 
         // 文字列に変換する。
-        println!("Parse entrance: begin.");
         let mut entrance_vec : Vec<String> = Vec::new();
         array_to_str_vec(&v["entrance"], &mut entrance_vec);
-        println!("Parse entrance: parsed.");
         graph.set_entrance(entrance_vec);
-        println!("Parse entrance: end.");
 
         for node in v["nodes"].as_array().unwrap().iter() {
             /* デバッグ出力。
@@ -129,9 +120,7 @@ fn main() {
 
             if !node["token"].is_null() {
                 let mut entrance_map : HashMap<String, Vec<String>> = HashMap::new();
-                if !node["exit"].is_null() {
-                    object_to_map(&v["exit"], &mut entrance_map);
-                }
+                object_to_map(&node["exit"], &mut entrance_map);
                 graph.insert_node(
                     node["name"].as_str().unwrap().to_string(),
                     node["token"].as_str().unwrap().to_string(),
@@ -140,13 +129,7 @@ fn main() {
                 );
             } else if !node["regex"].is_null() {
                 let mut entrance_map : HashMap<String, Vec<String>> = HashMap::new();
-                if !node["exit"].is_null() {
-                    object_to_map(&v["exit"], &mut entrance_map);
-                    // for (exits_key, exits_node_names) in node["exit"].as_object().unwrap().iter() {
-                    //     // 変換する。
-                    //     entrance_map = object_to_map(v["exit"], &HashMap::new());
-                    // }
-                }
+                object_to_map(&node["exit"], &mut entrance_map);
                 graph.insert_node_reg(
                     node["name"].as_str().unwrap().to_string(),
                     node["regex"].as_str().unwrap().to_string(),

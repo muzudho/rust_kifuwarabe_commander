@@ -1,3 +1,7 @@
+/// 参考:
+/// https://github.com/serde-rs/json
+extern crate serde_json;
+
 extern crate regex;
 
 /// https://stackoverflow.com/questions/28392008/more-concise-hashmap-initialization |More concise HashMap initialization

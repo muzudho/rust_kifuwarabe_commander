@@ -1,4 +1,5 @@
 /// アプリケーション１つにつき、１つのグラフを持ちます。
+
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::collections::HashMap;
 

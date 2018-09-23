@@ -86,7 +86,7 @@ impl Response {
         self.set_caret(0);
         self.set_done_line(false);
         self.set_quits(false);
-        self.forward("".to_string());
+        self.forward("");
     }
 }
 
@@ -98,8 +98,9 @@ impl ResponseAccessor for Response {
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self
     }
-    fn forward(&mut self, next_node_alies2: String) {
-        self.next_node_alies = next_node_alies2
+    // .rs にハードコーディングして使う。
+    fn forward(&mut self, next_node_alies2: &'static str) {
+        self.next_node_alies = next_node_alies2.to_string();
     }
     fn set_caret(&mut self, caret2: usize) {
         self.caret = caret2
@@ -344,7 +345,7 @@ impl<T: 'static> Shell<T> {
 
             if is_done {
                 response.set_caret(request.get_caret());
-                response.forward("".to_string());
+                response.forward("");
                 let node = &graph.get_node(&best_node_name);
 
                 // コントローラーに処理を移譲。
@@ -383,7 +384,7 @@ impl<T: 'static> Shell<T> {
                 }
 
                 response.set_caret(0);
-                response.forward("".to_string());
+                response.forward("");
 
                 if let Some(res) = response.as_any().downcast_ref::<Response>() {
                     if res.done_line {

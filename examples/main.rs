@@ -62,7 +62,8 @@ fn main() {
 
     // ファイルからグラフのノード構成を読取。
     graph.read_graph_file("graph.json".to_string());
-    // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
+    // - 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
+    // - #linebreak コールバック関数は行終了時に実行される。
 
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
@@ -90,7 +91,7 @@ pub fn do_ab(
 ) {
     shell_var.count += 1;
     println!("Ab.");
-    response.forward("next".to_string());
+    response.forward("next");
 }
 
 pub fn do_ab_linebreak(
@@ -118,7 +119,7 @@ pub fn do_cde(
 ) {
     shell_var.count += 1;
     println!("Cde.");
-    response.forward("next".to_string());
+    response.forward("next");
 }
 
 pub fn do_end(

@@ -37,7 +37,8 @@ pub trait ResponseAccessor {
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
-    fn forward(&mut self, String);
+    // .rs にハードコーディングして使う。
+    fn forward(&mut self, &'static str);
 }
 
 /// トークンと、コントローラーのペアです。

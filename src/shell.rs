@@ -297,63 +297,6 @@ impl<T: 'static> Shell<T> {
         } // loop
     }
 
-    /// 一致するノード名。
-    fn next_node_name<S: ::std::hash::BuildHasher>(
-        &self,
-        graph: &Graph<T, S>,
-        request: &mut dyn RequestAccessor,
-        next_node_list: &String, // &'static str,
-    ) -> (String, String) {
-        let mut best_node_name = "".to_string();
-        let mut best_node_re_name = "".to_string();
-
-        let vec_next: Vec<&str>;
-        {
-            let split = next_node_list.split(',');
-            // for s in split {
-            //     println!("{}", s)
-            // }
-            vec_next = split.collect();
-        }
-
-        // 次の候補。
-        let mut max_token_len = 0;
-        for i_next_node_name in vec_next {
-            let next_node_name = i_next_node_name.trim();
-            // println!("next_node_name: {}", next_node_name);
-            if graph.contains_node(&next_node_name.to_string()) {
-                //println!("contains.");
-
-                let node_name = next_node_name.to_string();
-                let node = &graph.get_node(&node_name);
-
-                let matched;
-                if node.token_regex {
-                    if self.starts_with_reg(node, request) {
-                        // 正規表現で一致したなら。
-                        best_node_re_name = node_name;
-                        // is_done_re = true;
-                    }
-                } else {
-                    matched = self.starts_with_literal(node, request);
-                    if matched {
-                        // 一番長い、固定長トークンの一致を探す。
-                        //println!("starts_with_literal.");
-                        let token_len = node.token.chars().count();
-                        if max_token_len < token_len {
-                            max_token_len = token_len;
-                            best_node_name = node_name;
-                        };
-                        // is_done = true;
-                        //} else {
-                        //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
-                    }
-                }
-            }
-        }
-        (best_node_name, best_node_re_name)
-    }
-
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
@@ -363,9 +306,9 @@ impl<T: 'static> Shell<T> {
         t: &mut T,
         request: &mut dyn RequestAccessor,
     ) -> bool {
-        let empty_str = "".to_string();
+        let empty_exits = &Vec::new();
         let response: &mut dyn ResponseAccessor = &mut Response::new();
-        let mut next_node_list = &graph.entrance;
+        let mut current_exits : &Vec<String> = graph.get_entrance();
         let mut current_linebreak_controller: Controller<T> = empty_controller;
 
         'line: while request.get_caret() < request.get_line_len() {
@@ -381,7 +324,7 @@ impl<T: 'static> Shell<T> {
 
             // 次のノード名
             let (mut best_node_name, best_node_re_name) =
-                self.next_node_name(graph, request, &next_node_list);
+                self.next_node_name(graph, request, current_exits);
 
             // キャレットを進める。
             let mut is_done = false;
@@ -427,8 +370,10 @@ impl<T: 'static> Shell<T> {
                 (graph.get_controller(&node.controller_name))(t, request, response);
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
-                if node.contains_next_link(&"#linebreak".to_string()) {
-                    current_linebreak_controller = *graph.get_controller(&graph.get_node(node.get_next_link("#linebreak".to_string())).controller_name);
+                if node.contains_exits(&"#linebreak".to_string()) {
+                    // 対応するノードは 1つだけとする。
+                    let next_node = &node.get_exits("#linebreak".to_string())[0];
+                    current_linebreak_controller = *graph.get_controller(&graph.get_node(&next_node).controller_name);
                 }
 
                 // フォワードを受け取り。
@@ -436,12 +381,12 @@ impl<T: 'static> Shell<T> {
                     if let Some(res) = response.as_any().downcast_ref::<Response>() {
                         req.caret = res.caret;
 
-                        if res.next_node_alies == "" || !node.contains_next_link(&res.next_node_alies.to_string()) {
-                            next_node_list = &empty_str;
+                        if res.next_node_alies == "" || !node.contains_exits(&res.next_node_alies.to_string()) {
+                            current_exits = empty_exits;
                         } else {
-                            next_node_list = node.get_next_link(res.next_node_alies.to_string());
+                            current_exits = node.get_exits(res.next_node_alies.to_string());
                         }
-                        // next_link は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_name)
+                        // current_exits は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_name)
                     } else {
                         panic!("Downcast fail.");
                     }
@@ -491,5 +436,64 @@ impl<T: 'static> Shell<T> {
         (current_linebreak_controller)(t, request, response);
         // responseは無視する。
         false
+    }
+
+    /// 一致するノード名。
+    fn next_node_name<S: ::std::hash::BuildHasher>(
+        &self,
+        graph: &Graph<T, S>,
+        request: &mut dyn RequestAccessor,
+        current_exits: &Vec<String>,// &String, // &'static str,
+    ) -> (String, String) {
+        let mut best_node_name = "".to_string();
+        let mut best_node_re_name = "".to_string();
+
+        /*
+        let vec_next: Vec<&str>;
+        {
+            let split = current_exits.split(',');
+            // for s in split {
+            //     println!("{}", s)
+            // }
+            vec_next = split.collect();
+        }
+        */
+
+        // 次の候補。
+        let mut max_token_len = 0;
+        for i_next_node_name in current_exits {
+            let next_node_name = i_next_node_name.trim();
+            // println!("next_node_name: {}", next_node_name);
+            if graph.contains_node(&next_node_name.to_string()) {
+                //println!("contains.");
+
+                let node_name = next_node_name.to_string();
+                let node = &graph.get_node(&node_name);
+
+                let matched;
+                if node.token_regex {
+                    if self.starts_with_reg(node, request) {
+                        // 正規表現で一致したなら。
+                        best_node_re_name = node_name;
+                        // is_done_re = true;
+                    }
+                } else {
+                    matched = self.starts_with_literal(node, request);
+                    if matched {
+                        // 一番長い、固定長トークンの一致を探す。
+                        //println!("starts_with_literal.");
+                        let token_len = node.token.chars().count();
+                        if max_token_len < token_len {
+                            max_token_len = token_len;
+                            best_node_name = node_name;
+                        };
+                        // is_done = true;
+                        //} else {
+                        //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
+                    }
+                }
+            }
+        }
+        (best_node_name, best_node_re_name)
     }
 }

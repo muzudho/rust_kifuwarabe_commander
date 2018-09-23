@@ -1,57 +1,72 @@
 {
+	"entrance": [
+		"ND_a",
+		"ND_ab",
+		"ND_abc",
+		"ND_end",
+		"ND_numvar",
+        "ND_quit",
+		"ND_wordvar"
+	],
 	"nodes" : [
 		{
 			"name": "ND_a",
 			"token": "a",
 			"controller": "do_a",
-			"next": {}
+			"exit": {}
 		},
 		{
 			"name": "ND_ab",
 			"token": "ab",
 			"controller": "do_ab",
-			"next": {
-				"next": "ND_cde",
-				"#linebreak": "ND_ab_linebreak"
+			"exit": {
+				"next": [
+					"ND_cde"
+				],
+				"#linebreak": [
+					"ND_ab_linebreak"
+				]
 			}			
 		},
 		{
 			"name": "ND_abc",
 			"token": "abc",
 			"controller": "do_abc",
-			"next": {}
+			"exit": {}
 		},
 		{
 			"name": "ND_cde",
 			"token": "cde",
 			"controller": "do_cde",
-			"next": {
-				"next": "ND_wordvar"
+			"exit": {
+				"next": [
+					"ND_wordvar"
+				]
 			}
 		},
 		{
 			"name": "ND_end",
 			"token": "end",
 			"controller": "do_end",
-			"next": {}
+			"exit": {}
 		},
 		{
 			"name": "ND_numvar",
 			"regex": "(\\d+)",
 			"controller": "do_numvar",
-			"next": {}
+			"exit": {}
 		},
 		{
 			"name": "ND_quit",
 			"token": "quit",
 			"controller": "do_quit",
-			"next": {}
+			"exit": {}
 		},
 		{
 			"name": "ND_wordvar",
 			"regex": "(\\w+)",
 			"controller": "do_wordvar",
-			"next": {}
+			"exit": {}
 		},
 		{
 			"name": "ND_ab_linebreak",

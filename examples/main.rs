@@ -3,7 +3,7 @@
 /// cd C:\MuzudhoDrive\projects_rust\rust_kifuwarabe_shell
 /// cargo run --example main
 /// ```
-#[macro_use(hashmap)]
+// #[macro_use(hashmap)]
 extern crate kifuwarabe_shell;
 
 use kifuwarabe_shell::graph::*;
@@ -27,6 +27,42 @@ impl ShellVar {
     }
 }
 
+/// JSON配列を、文字列の配列に変換。
+///
+/// # Arguments.
+///
+/// * 'v' - Json array.
+/// * 'str_vec' - let str_vec = Vec::new();
+fn array_to_str_vec(v: &Value, str_vec: &mut Vec<String>) {
+    let value_vec: Vec<Value> = v.as_array().unwrap().to_vec();
+    for node_name in value_vec {
+        str_vec.push(node_name.as_str().unwrap().to_string());
+    }
+}
+/// JSONオブジェクトを、文字列のハッシュマップに変換。
+///
+/// # Arguments.
+///
+/// * 'v' - Json object.
+/// * 'str_vec' - let str_vec = Vec::new();
+fn object_to_map(obj: &Value, map0: &mut HashMap<String, Vec<String>>) {
+    println!("Parse object: begin.");
+    if !obj.is_null() {
+        for (name1,array1) in obj.as_object().unwrap().iter() {
+            println!("  Array: begin.");
+            let mut array2: Vec<String> = Vec::new();
+            for item1 in array1.as_array().unwrap().iter() {
+                println!("    Item: begin.");
+                array2.push(item1.as_str().unwrap().to_string());
+                println!("    Item: end.");
+            }
+            map0.insert(name1.to_string(), array2);
+            println!("  Array: end.");
+        }
+    }
+    println!("Parse object: end.");
+}
+
 /// # テスト方法。
 ///
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
@@ -46,7 +82,6 @@ impl ShellVar {
 ///     Quit.
 /// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
 fn main() {
-
     // グラフの作成。
     let mut graph = Graph::new();
     // コントローラーを登録。
@@ -63,13 +98,21 @@ fn main() {
 
     // グラフのノード構成。
     {
-        // println!("Test json: begin.");
+        println!("Test json: begin.");
         let mut file = File::open("graph.json").unwrap();
         let mut data = String::new();
         file.read_to_string(&mut data).unwrap();
+        // https://docs.serde.rs/serde_json/value/enum.Value.html
         let v: Value = serde_json::from_str(&data).unwrap();
 
-        // https://docs.serde.rs/serde_json/value/enum.Value.html
+        // 文字列に変換する。
+        println!("Parse entrance: begin.");
+        let mut entrance_vec : Vec<String> = Vec::new();
+        array_to_str_vec(&v["entrance"], &mut entrance_vec);
+        println!("Parse entrance: parsed.");
+        graph.set_entrance(entrance_vec);
+        println!("Parse entrance: end.");
+
         for node in v["nodes"].as_array().unwrap().iter() {
             /* デバッグ出力。
             println!("  name: {}", node["name"]);
@@ -85,23 +128,36 @@ fn main() {
             */
 
             if !node["token"].is_null() {
-                let mut next_map : HashMap<String, String> = HashMap::new();
-                if !node["next"].is_null() {
-                    for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
-                        next_map.insert(next_key.as_str().to_string(), next_value.as_str().unwrap().to_string());
-                    }
+                let mut entrance_map : HashMap<String, Vec<String>> = HashMap::new();
+                if !node["exit"].is_null() {
+                    object_to_map(&v["exit"], &mut entrance_map);
                 }
-                graph.insert_node(node["name"].as_str().unwrap().to_string(), node["token"].as_str().unwrap().to_string(), node["controller"].as_str().unwrap().to_string(), next_map);
+                graph.insert_node(
+                    node["name"].as_str().unwrap().to_string(),
+                    node["token"].as_str().unwrap().to_string(),
+                    node["controller"].as_str().unwrap().to_string(),
+                    entrance_map,
+                );
             } else if !node["regex"].is_null() {
-                let mut next_map : HashMap<String, String> = HashMap::new();
-                if !node["next"].is_null() {
-                    for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
-                        next_map.insert(next_key.as_str().to_string(), next_value.as_str().unwrap().to_string());
-                    }
+                let mut entrance_map : HashMap<String, Vec<String>> = HashMap::new();
+                if !node["exit"].is_null() {
+                    object_to_map(&v["exit"], &mut entrance_map);
+                    // for (exits_key, exits_node_names) in node["exit"].as_object().unwrap().iter() {
+                    //     // 変換する。
+                    //     entrance_map = object_to_map(v["exit"], &HashMap::new());
+                    // }
                 }
-                graph.insert_node_reg(node["name"].as_str().unwrap().to_string(), node["regex"].as_str().unwrap().to_string(), node["controller"].as_str().unwrap().to_string(), next_map);
+                graph.insert_node_reg(
+                    node["name"].as_str().unwrap().to_string(),
+                    node["regex"].as_str().unwrap().to_string(),
+                    node["controller"].as_str().unwrap().to_string(),
+                    entrance_map,
+                );
             } else {
-                graph.insert_node_single(node["name"].as_str().unwrap().to_string(), node["controller"].as_str().unwrap().to_string());
+                graph.insert_node_single(
+                    node["name"].as_str().unwrap().to_string(),
+                    node["controller"].as_str().unwrap().to_string(),
+                );
             }
         }
         // println!("Test json: end.");
@@ -124,11 +180,11 @@ fn main() {
     graph.insert_node_single("#ND_complementary".to_string(), "do_other".to_string()); // 該当なしの場合のコールバック関数を登録する。
                                                              // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
                                                              // 開始ノードを選択する。
-    */
     graph.set_entrance(
         "ND_a,ND_ab,ND_abc,ND_end,ND_numvar,
         ND_quit,ND_wordvar".to_string(),
     );
+    */
 
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();

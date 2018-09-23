@@ -41,24 +41,24 @@ pub trait ResponseAccessor {
 /// * `token` - 全文一致させたい文字列です。
 /// * `controller` - コールバック関数の登録名です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
-/// * `next_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
+/// * `exit_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node<S: ::std::hash::BuildHasher> {
     pub token: String,
     pub controller_name: String,
     pub token_regex: bool,
     // 特殊な任意の名前 '#linebreak'
-    next_link: HashMap<String, String, S>,
+    exits: HashMap<String, Vec<String>, S>,
 }
 impl<S: ::std::hash::BuildHasher> Node<S> {
-    pub fn get_next_link(&self, name:String) -> &String {
-        if self.contains_next_link(&name) {
-            &self.next_link[&name]
+    pub fn get_exits(&self, name:String) -> &Vec<String> {
+        if self.contains_exits(&name) {
+            &self.exits[&name]
         } else {
-            panic!("\"{}\" next link is not found. Please use contains_next_link().", name);
+            panic!("\"{}\" exit is not found. Please use contains_exits().", name);
         }
     }
-    pub fn contains_next_link(&self, name: &String) -> bool {
-        self.next_link.contains_key(name)
+    pub fn contains_exits(&self, name: &String) -> bool {
+        self.exits.contains_key(name)
     }
 }
 
@@ -78,7 +78,7 @@ pub struct Graph<T, S: ::std::hash::BuildHasher> {
     /// 特殊なノード名
     /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     node_table: HashMap<String, Node<S>>,
-    pub entrance: String, // pub entrance: &'static str,
+    entrance: Vec<String>, // pub entrance: &'static str,
     /// 任意の名前と、コントローラー。
     controller_table: HashMap<String, Controller<T>>,
 }
@@ -87,11 +87,14 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     pub fn new() -> Graph<T, S> {
         Graph {
             node_table: HashMap::new(),
-            entrance: "".to_string(),
+            entrance: Vec::new(),// "".to_string(),
             controller_table: HashMap::new(),
         }
     }
-    pub fn set_entrance(&mut self, entrance2: String) { // pub fn set_entrance(&mut self, entrance2: &'static str) {
+    pub fn get_entrance(&self) -> &Vec<String> {
+        &self.entrance
+    }
+    pub fn set_entrance(&mut self, entrance2: Vec<String>) { // pub fn set_entrance(&mut self, entrance2: &'static str) {
         self.entrance = entrance2;
     }
     pub fn get_node(&self, name: &String) -> &Node<S> { // pub fn get_node(&self, name: &str) -> &Node<S> {
@@ -129,21 +132,21 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     ///
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    /// * `next_link2` - 次はどのノードにつながるか。<任意の名前, ノード名>
+    /// * `exits2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node(
         &mut self,
-        name: String, // name: &'static str
-        token2: String, // token2: &'static str,
-        controller_name2: String, // controller_name2: &'static str,
-        next_link2: HashMap<String, String, S>, // next_link2: HashMap<&'static str, &'static str, S>,
+        name: String,
+        token2: String,
+        controller_name2: String,
+        exits2: HashMap<String, Vec<String>, S>,
     ) {
         self.node_table.insert(
-            name, // name.to_string(),
+            name,
             Node {
                 token: token2,
                 controller_name: controller_name2,
                 token_regex: false,
-                next_link: next_link2,
+                exits: exits2,
             },
         );
     }
@@ -153,13 +156,13 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     ///
     /// * `name` - 登録用の名前です。
     /// * `node` - ノードです。
-    /// * `next_link2` - 次はどのノードにつながるか。<任意の名前, ノード名>
+    /// * `exits2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node_reg(
         &mut self,
-        name: String, // name: &'static str,
-        token2: String, // token2: &'static str,
-        controller_name2: String, // controller_name2: &'static str,
-        next_link2: HashMap<String, String, S>, // next_link2: HashMap<&'static str, &'static str, S>,
+        name: String,
+        token2: String,
+        controller_name2: String,
+        exits2: HashMap<String, Vec<String>, S>,
     ) {
         self.node_table.insert(
             name.to_string(),
@@ -167,7 +170,7 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
                 token: token2,
                 controller_name: controller_name2,
                 token_regex: true,
-                next_link: next_link2,
+                exits: exits2,
             },
         );
     }
@@ -176,18 +179,18 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     /// # Arguments
     ///
     /// * `name` - 登録用の名前です。
-    pub fn insert_node_single(&mut self, name: String, controller_name2: String) // pub fn insert_node_single(&mut self, name: &'static str, controller_name2: &'static str)
+    pub fn insert_node_single(&mut self, name: String, controller_name2: String)
     where
         S: ::std::default::Default,
     {
-        let next_link2: HashMap<String, String, S> = [].iter().cloned().collect(); // HashMap<&'static str, &'static str, S>
+        let exits2: HashMap<String, Vec<String>, S> = [].iter().cloned().collect();
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: "".to_string(),
                 controller_name: controller_name2,
                 token_regex: false,
-                next_link: next_link2,
+                exits: exits2,
             },
         );
     }

@@ -13,6 +13,8 @@ use kifuwarabe_shell::shell::*;
 // https://github.com/serde-rs/json
 extern crate serde_json;
 use serde_json::Value;
+use std::fs::File;
+use std::io::Read;
 
 // 任意のオブジェクト。
 pub struct ShellVar {
@@ -45,6 +47,10 @@ impl ShellVar {
 fn main() {
     {
         println!("Test json.");
+        let mut file = File::open("text.json").unwrap();
+        let mut data = String::new();
+        file.read_to_string(&mut data).unwrap();
+        /*
         // Some JSON input data as a &str. Maybe this comes from the user.
         let data = r#"{
                     "name": "John Doe",
@@ -54,19 +60,32 @@ fn main() {
                       "+44 2345678"
                     ]
                   }"#;
+        */
 
         // Parse the string of data into serde_json::Value.
         //let v: Value = serde_json::from_str(data)?;
-        let v: Value = serde_json::from_str(data).unwrap();
+        let v: Value = serde_json::from_str(&data).unwrap();
 
         // Access parts of the data by indexing with square brackets.
-        println!("Please call {} at the number {}", v["name"], v["phones"][0]);
+        println!("Please call {} at the number {}", v["FirstName"], v["PhoneNumbers"][0]);
     }
 
     println!("Please enter command.");
 
     // グラフの作成。
     let mut graph = Graph::new();
+    // コントローラーを登録。
+    graph.insert_controller("do_a", do_a);
+    graph.insert_controller("do_ab", do_ab);
+    graph.insert_controller("do_abc", do_abc);
+    graph.insert_controller("do_cde", do_cde);
+    graph.insert_controller("do_end", do_end);
+    graph.insert_controller("do_numvar", do_numvar);
+    graph.insert_controller("do_quit", do_quit);
+    graph.insert_controller("do_wordvar", do_wordvar);
+    graph.insert_controller("do_ab_linebreak", do_ab_linebreak);
+    graph.insert_controller("do_other", do_other);
+
     // グラフのノード構成。
     graph.insert_node("ND_a", "a", do_a, hashmap![]);
     graph.insert_node(

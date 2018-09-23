@@ -79,6 +79,8 @@ pub struct Graph<T, S: ::std::hash::BuildHasher> {
     /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     node_table: HashMap<String, Node<T, S>>,
     pub entrance: &'static str,
+    /// 任意の名前と、コントローラー。
+    controller_table: HashMap<String, Controller<T>>,
 }
 impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     /// アプリケーション１つにつき、１つのフローチャートを共有します。
@@ -86,6 +88,7 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
         Graph {
             node_table: HashMap::new(),
             entrance: "",
+            controller_table: HashMap::new(),
         }
     }
     pub fn set_entrance(&mut self, entrance2: &'static str) {
@@ -100,6 +103,16 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     }
     pub fn contains_node(&self, name: &str) -> bool {
         self.node_table.contains_key(name)
+    }
+    pub fn insert_controller(
+        &mut self,
+        name: &'static str,
+        controller2: Controller<T>,
+    ){
+        self.controller_table.insert(
+            name.to_string(),
+            controller2
+        );
     }
     /// # Arguments
     ///

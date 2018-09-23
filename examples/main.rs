@@ -47,8 +47,6 @@ impl ShellVar {
 /// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
 fn main() {
 
-    println!("Please enter command.");
-
     // グラフの作成。
     let mut graph = Graph::new();
     // コントローラーを登録。
@@ -65,17 +63,15 @@ fn main() {
 
     // グラフのノード構成。
     {
-        println!("Test json.");
+        // println!("Test json: begin.");
         let mut file = File::open("graph.json").unwrap();
         let mut data = String::new();
         file.read_to_string(&mut data).unwrap();
         let v: Value = serde_json::from_str(&data).unwrap();
 
-        // Access parts of the data by indexing with square brackets.
-        println!("Please call {} at the number {}", v["nodes"], v["nodes"][0]);
-
         // https://docs.serde.rs/serde_json/value/enum.Value.html
         for node in v["nodes"].as_array().unwrap().iter() {
+            /* デバッグ出力。
             println!("  name: {}", node["name"]);
             println!("  token: {}", node["token"]);
             println!("  regex: {}", node["regex"]);
@@ -86,33 +82,31 @@ fn main() {
                     println!("    next: {}, {}", next_key, next_value);
                 }
             }
-/*
+            */
+
             if !node["token"].is_null() {
-                let mut next_map : HashMap<&'static str, &'static str> = HashMap::new();
+                let mut next_map : HashMap<String, String> = HashMap::new();
                 if !node["next"].is_null() {
                     for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
-                        next_map.insert(next_key.as_str(), next_value.as_str().unwrap());
+                        next_map.insert(next_key.as_str().to_string(), next_value.as_str().unwrap().to_string());
                     }
                 }
-                graph.insert_node(node["name"].as_str().unwrap(), node["token"].as_str().unwrap(), node["controller"].as_str().unwrap(), next_map);
+                graph.insert_node(node["name"].as_str().unwrap().to_string(), node["token"].as_str().unwrap().to_string(), node["controller"].as_str().unwrap().to_string(), next_map);
             } else if !node["regex"].is_null() {
-                let mut next_map : HashMap<&'static str, &'static str> = HashMap::new();
+                let mut next_map : HashMap<String, String> = HashMap::new();
                 if !node["next"].is_null() {
                     for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
-                        next_map.insert(next_key.as_str(), next_value.as_str().unwrap());
+                        next_map.insert(next_key.as_str().to_string(), next_value.as_str().unwrap().to_string());
                     }
                 }
-                graph.insert_node_reg(node["name"].as_str().unwrap(), node["regex"].as_str().unwrap(), node["controller"].as_str().unwrap(), next_map);
+                graph.insert_node_reg(node["name"].as_str().unwrap().to_string(), node["regex"].as_str().unwrap().to_string(), node["controller"].as_str().unwrap().to_string(), next_map);
             } else {
-                graph.insert_node_single(node["name"].as_str().unwrap(), node["controller"].as_str().unwrap());
+                graph.insert_node_single(node["name"].as_str().unwrap().to_string(), node["controller"].as_str().unwrap().to_string());
             }
- */
-/*
-            let mut next_map : HashMap<&'static str, &'static str> = HashMap::new();
-            graph.insert_node(node["name"].as_str().unwrap().to_string(), "example", "example", next_map);
- */
         }
+        // println!("Test json: end.");
     }
+    /*
     graph.insert_node("ND_a".to_string(), "a".to_string(), "do_a".to_string(), hashmap![]);
     graph.insert_node(
         "ND_ab".to_string(),
@@ -130,6 +124,7 @@ fn main() {
     graph.insert_node_single("#ND_complementary".to_string(), "do_other".to_string()); // 該当なしの場合のコールバック関数を登録する。
                                                              // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
                                                              // 開始ノードを選択する。
+    */
     graph.set_entrance(
         "ND_a,ND_ab,ND_abc,ND_end,ND_numvar,
         ND_quit,ND_wordvar".to_string(),
@@ -141,6 +136,7 @@ fn main() {
     let mut shell = Shell::new();
 
     // 実行。
+    println!("Please enter command.");
     shell.run(&mut graph, &mut shell_var);
 
     println!("shell_var.count: {}", shell_var.count);
@@ -162,7 +158,7 @@ pub fn do_ab(
 ) {
     shell_var.count += 1;
     println!("Ab.");
-    response.forward("next");
+    response.forward("next".to_string());
 }
 
 pub fn do_ab_linebreak(
@@ -190,7 +186,7 @@ pub fn do_cde(
 ) {
     shell_var.count += 1;
     println!("Cde.");
-    response.forward("next");
+    response.forward("next".to_string());
 }
 
 pub fn do_end(

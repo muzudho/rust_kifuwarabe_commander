@@ -25,6 +25,14 @@
 			"name": "ND_cde",
 			"token": "cde",
 			"controller": "do_cde",
+			"next": {
+				"next": "ND_wordvar"
+			}
+		},
+		{
+			"name": "ND_end",
+			"token": "end",
+			"controller": "do_end",
 			"next": {}
 		},
 		{

@@ -73,7 +73,7 @@ pub struct Response {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
-    pub next_node_alies: &'static str,
+    pub next_node_alies: String,
 }
 impl Response {
     fn new() -> Response {
@@ -81,14 +81,14 @@ impl Response {
             caret: 0,
             done_line: false,
             quits: false,
-            next_node_alies: "",
+            next_node_alies: "".to_string(),
         }
     }
     fn reset(&mut self) {
         self.set_caret(0);
         self.set_done_line(false);
         self.set_quits(false);
-        self.forward("");
+        self.forward("".to_string());
     }
 }
 
@@ -100,7 +100,7 @@ impl ResponseAccessor for Response {
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self
     }
-    fn forward(&mut self, next_node_alies2: &'static str) {
+    fn forward(&mut self, next_node_alies2: String) {
         self.next_node_alies = next_node_alies2
     }
     fn set_caret(&mut self, caret2: usize) {
@@ -420,15 +420,15 @@ impl<T: 'static> Shell<T> {
 
             if is_done {
                 response.set_caret(request.get_caret());
-                response.forward("");
+                response.forward("".to_string());
                 let node = &graph.get_node(&best_node_name);
 
                 // コントローラーに処理を移譲。
                 (graph.get_controller(&node.controller_name))(t, request, response);
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
-                if node.contains_next_link("#linebreak".to_string()) {
-                    current_linebreak_controller = *graph.get_controller(&graph.get_node(&node.get_next("#linebreak".to_string()).to_string()).controller_name);
+                if node.contains_next_link(&"#linebreak".to_string()) {
+                    current_linebreak_controller = *graph.get_controller(&graph.get_node(node.get_next_link("#linebreak".to_string())).controller_name);
                 }
 
                 // フォワードを受け取り。
@@ -436,11 +436,12 @@ impl<T: 'static> Shell<T> {
                     if let Some(res) = response.as_any().downcast_ref::<Response>() {
                         req.caret = res.caret;
 
-                        if res.next_node_alies == "" {
+                        if res.next_node_alies == "" || !node.contains_next_link(&res.next_node_alies.to_string()) {
                             next_node_list = &empty_str;
                         } else {
-                            next_node_list = node.get_next(res.next_node_alies.to_string());
+                            next_node_list = node.get_next_link(res.next_node_alies.to_string());
                         }
+                        // next_link は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_name)
                     } else {
                         panic!("Downcast fail.");
                     }
@@ -449,7 +450,7 @@ impl<T: 'static> Shell<T> {
                 }
 
                 response.set_caret(0);
-                response.forward("");
+                response.forward("".to_string());
 
                 if let Some(res) = response.as_any().downcast_ref::<Response>() {
                     if res.done_line {

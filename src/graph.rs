@@ -31,7 +31,7 @@ pub trait ResponseAccessor {
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
-    fn forward(&mut self, &'static str);
+    fn forward(&mut self, String);
 }
 
 /// トークンと、コントローラーのペアです。
@@ -43,22 +43,22 @@ pub trait ResponseAccessor {
 /// * `token_regex` - トークンに正規表現を使うなら真です。
 /// * `next_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node<S: ::std::hash::BuildHasher> {
-    pub token: String, // &'static str,
-    pub controller_name: String, // &'static str,
+    pub token: String,
+    pub controller_name: String,
     pub token_regex: bool,
     // 特殊な任意の名前 '#linebreak'
-    next_link: HashMap<String, String, S>, // next_link: HashMap<&'static str, &'static str, S>,
+    next_link: HashMap<String, String, S>,
 }
 impl<S: ::std::hash::BuildHasher> Node<S> {
-    pub fn get_next(&self, name:String) -> &String { // pub fn get_next(&self, name:&'static str) -> &'static str {
-        if self.next_link.contains_key(&name) {
+    pub fn get_next_link(&self, name:String) -> &String {
+        if self.contains_next_link(&name) {
             &self.next_link[&name]
         } else {
-            panic!("{} next link is not found.", name);
+            panic!("\"{}\" next link is not found. Please use contains_next_link().", name);
         }
     }
-    pub fn contains_next_link(&self, name: String) -> bool { // pub fn contains_next_link(&self, name:&'static str) -> bool {
-        self.next_link.contains_key(&name)
+    pub fn contains_next_link(&self, name: &String) -> bool {
+        self.next_link.contains_key(name)
     }
 }
 

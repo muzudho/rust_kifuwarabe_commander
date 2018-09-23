@@ -237,11 +237,22 @@ impl<T> Graph<T> {
     pub fn read_graph_file(&mut self, file: String) {
         self.clear_graph();
 
-        let mut file = File::open(file).unwrap();
+        let mut file = match File::open(file) {
+            Ok(n) => n,
+            Err(err) => panic!("File open error. {:?}", err)
+        };
+
         let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
+        match file.read_to_string(&mut data) {
+            Ok(n) => n,
+            Err(err) => panic!("File open error. {:?}", err)
+        };
+
         // https://docs.serde.rs/serde_json/value/enum.Value.html
-        let v: Value = serde_json::from_str(&data).unwrap();
+        let v: Value = match serde_json::from_str(&data) {
+            Ok(n) => n,
+            Err(err) => panic!("File open error. {:?}", err)
+        };
 
         // 文字列に変換する。
         let mut entrance_vec: Vec<String> = Vec::new();
@@ -255,7 +266,11 @@ impl<T> Graph<T> {
                 self.insert_node(
                     node["name"].as_str().unwrap().to_string(),
                     node["token"].as_str().unwrap().to_string(),
-                    node["controller"].as_str().unwrap().to_string(),
+                    if node["controller"].is_null() {
+                        "".to_string()
+                    } else {
+                        node["controller"].as_str().unwrap().to_string()
+                    },
                     entrance_map,
                 );
             } else if !node["regex"].is_null() {
@@ -264,13 +279,21 @@ impl<T> Graph<T> {
                 self.insert_node_reg(
                     &node["name"].as_str().unwrap().to_string(),
                     node["regex"].as_str().unwrap().to_string(),
-                    node["controller"].as_str().unwrap().to_string(),
+                    if node["controller"].is_null() {
+                        "".to_string()
+                    } else {
+                        node["controller"].as_str().unwrap().to_string()
+                    },
                     entrance_map,
                 );
             } else {
                 self.insert_node_single(
                     &node["name"].as_str().unwrap().to_string(),
-                    node["controller"].as_str().unwrap().to_string(),
+                    if node["controller"].is_null() {
+                        "".to_string()
+                    } else {
+                        node["controller"].as_str().unwrap().to_string()
+                    },
                 );
             }
         }

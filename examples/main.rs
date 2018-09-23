@@ -3,6 +3,7 @@
 /// cd C:\MuzudhoDrive\projects_rust\rust_kifuwarabe_shell
 /// cargo run --example main
 /// ```
+
 // #[macro_use(hashmap)]
 extern crate kifuwarabe_shell;
 

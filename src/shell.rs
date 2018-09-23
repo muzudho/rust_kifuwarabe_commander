@@ -355,7 +355,8 @@ impl<T: 'static> Shell<T> {
 
                 // あれば、コントローラーに処理を移譲。
                 if &node.controller_name == "" {
-                    // 何もしない。
+                    // デフォルトで next を選ぶ。
+                    response.forward("next");
                 } else if graph.contains_controller(&node.controller_name) {
                     (graph.get_controller(&node.controller_name))(t, request, response);
                 } else {

@@ -87,21 +87,21 @@ fn main() {
     graph.insert_controller("do_other", do_other);
 
     // グラフのノード構成。
-    graph.insert_node("ND_a", "a", do_a, hashmap![]);
+    graph.insert_node("ND_a", "a", "do_a", hashmap![]);
     graph.insert_node(
         "ND_ab",
         "ab",
-        do_ab,
+        "do_ab",
         hashmap!["next" => "ND_cde", "#linebreak" => "ND_ab_linebreak"],
     ); // #linebreak コールバック関数は行終了時に実行される。
-    graph.insert_node("ND_abc", "abc", do_abc, hashmap![]);
-    graph.insert_node("ND_cde", "cde", do_cde, hashmap!["next" => "ND_wordvar"]);
-    graph.insert_node("ND_end", "end", do_end, hashmap![]);
-    graph.insert_node_reg("ND_numvar", r"(\d+)", do_numvar, hashmap![]);
-    graph.insert_node("ND_quit", "quit", do_quit, hashmap![]);
-    graph.insert_node_reg("ND_wordvar", r"(\w+)", do_wordvar, hashmap![]);
-    graph.insert_node_single("ND_ab_linebreak", do_ab_linebreak);
-    graph.insert_node_single("#ND_complementary", do_other); // 該当なしの場合のコールバック関数を登録する。
+    graph.insert_node("ND_abc", "abc", "do_abc", hashmap![]);
+    graph.insert_node("ND_cde", "cde", "do_cde", hashmap!["next" => "ND_wordvar"]);
+    graph.insert_node("ND_end", "end", "do_end", hashmap![]);
+    graph.insert_node_reg("ND_numvar", r"(\d+)", "do_numvar", hashmap![]);
+    graph.insert_node("ND_quit", "quit", "do_quit", hashmap![]);
+    graph.insert_node_reg("ND_wordvar", r"(\w+)", "do_wordvar", hashmap![]);
+    graph.insert_node_single("ND_ab_linebreak", "do_ab_linebreak");
+    graph.insert_node_single("#ND_complementary", "do_other"); // 該当なしの場合のコールバック関数を登録する。
                                                              // 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
                                                              // 開始ノードを選択する。
     graph.set_entrance(

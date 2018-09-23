@@ -172,7 +172,7 @@ impl<T: 'static> Shell<T> {
     /// * returns - 一致したら真。
     fn starts_with_literal<S: ::std::hash::BuildHasher>(
         &self,
-        node: &Node<T, S>,
+        node: &Node<S>,
         request: &mut dyn RequestAccessor, // &Box<RequestAccessor>
     ) -> bool {
         let caret_end = request.get_caret() + node.token.len();
@@ -190,7 +190,7 @@ impl<T: 'static> Shell<T> {
     /// * returns - 一致したら真。
     fn starts_with_reg<S: ::std::hash::BuildHasher>(
         &self,
-        node: &Node<T, S>,
+        node: &Node<S>,
         request: &mut dyn RequestAccessor, // &mut Box<RequestAccessor>
     ) -> bool {
         if VERBOSE {
@@ -237,7 +237,7 @@ impl<T: 'static> Shell<T> {
 
     fn forward_literal<S: ::std::hash::BuildHasher>(
         &self,
-        node: &Node<T, S>,
+        node: &Node<S>,
         request: &dyn RequestAccessor,       // &Box<RequestAccessor>
         response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
     ) {
@@ -423,11 +423,11 @@ impl<T: 'static> Shell<T> {
                 let node = &graph.get_node(&best_node_name);
 
                 // コントローラーに処理を移譲。
-                (&node.controller)(t, request, response);
+                (graph.get_controller(&node.controller_name))(t, request, response);
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
                 if node.contains_next_link("#linebreak") {
-                    current_linebreak_controller = graph.get_node(node.get_next("#linebreak")).controller;
+                    current_linebreak_controller = *graph.get_controller(graph.get_node(node.get_next("#linebreak")).controller_name);
                 }
 
                 // フォワードを受け取り。
@@ -466,7 +466,7 @@ impl<T: 'static> Shell<T> {
                 }
             } else {
                 // 何とも一致しなかったら実行します。
-                (graph.get_node("#ND_complementary").controller)(t, request, response);
+                (graph.get_controller(graph.get_node("#ND_complementary").controller_name))(t, request, response);
                 // responseは無視する。
 
                 // 次のラインへ。

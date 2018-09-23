@@ -39,17 +39,17 @@ pub trait ResponseAccessor {
 /// # Members
 ///
 /// * `token` - 全文一致させたい文字列です。
-/// * `controller` - コールバック関数です。
+/// * `controller` - コールバック関数の登録名です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
 /// * `next_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
-pub struct Node<T, S: ::std::hash::BuildHasher> {
+pub struct Node<S: ::std::hash::BuildHasher> {
     pub token: &'static str,
-    pub controller: Controller<T>,
+    pub controller_name: &'static str,
     pub token_regex: bool,
     // 特殊な任意の名前 '#linebreak'
     next_link: HashMap<&'static str, &'static str, S>,
 }
-impl<T, S: ::std::hash::BuildHasher> Node<T, S> {
+impl<S: ::std::hash::BuildHasher> Node<S> {
     pub fn get_next(&self, name:&'static str) -> &'static str {
         if self.next_link.contains_key(name) {
             self.next_link[name]
@@ -77,7 +77,7 @@ pub fn empty_controller<T>(
 pub struct Graph<T, S: ::std::hash::BuildHasher> {
     /// 特殊なノード名
     /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    node_table: HashMap<String, Node<T, S>>,
+    node_table: HashMap<String, Node<S>>,
     pub entrance: &'static str,
     /// 任意の名前と、コントローラー。
     controller_table: HashMap<String, Controller<T>>,
@@ -94,7 +94,7 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     pub fn set_entrance(&mut self, entrance2: &'static str) {
         self.entrance = entrance2;
     }
-    pub fn get_node(&self, name: &str) -> &Node<T, S> {
+    pub fn get_node(&self, name: &str) -> &Node<S> {
         if self.contains_node(name) {
             &self.node_table[name]
         } else {
@@ -103,6 +103,16 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     }
     pub fn contains_node(&self, name: &str) -> bool {
         self.node_table.contains_key(name)
+    }
+    pub fn get_controller(&self, name: &str) -> &Controller<T> {
+        if self.contains_controller(name) {
+            &self.controller_table[name]
+        } else {
+            panic!("{} controller is not found.", name);
+        }
+    }
+    pub fn contains_controller(&self, name: &str) -> bool {
+        self.controller_table.contains_key(name)
     }
     pub fn insert_controller(
         &mut self,
@@ -123,14 +133,14 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
         &mut self,
         name: &'static str,
         token2: &'static str,
-        controller2: Controller<T>,
+        controller_name2: &'static str,
         next_link2: HashMap<&'static str, &'static str, S>,
     ) {
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: token2,
-                controller: controller2,
+                controller_name: controller_name2,
                 token_regex: false,
                 next_link: next_link2,
             },
@@ -147,14 +157,14 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
         &mut self,
         name: &'static str,
         token2: &'static str,
-        controller2: Controller<T>,
+        controller_name2: &'static str,
         next_link2: HashMap<&'static str, &'static str, S>,
     ) {
         self.node_table.insert(
             name.to_string(),
             Node {
                 token: token2,
-                controller: controller2,
+                controller_name: controller_name2,
                 token_regex: true,
                 next_link: next_link2,
             },
@@ -165,7 +175,7 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
     /// # Arguments
     ///
     /// * `name` - 登録用の名前です。
-    pub fn insert_node_single(&mut self, name: &'static str, controller2: Controller<T>)
+    pub fn insert_node_single(&mut self, name: &'static str, controller_name2: &'static str)
     where
         S: ::std::default::Default,
     {
@@ -174,7 +184,7 @@ impl<T, S: ::std::hash::BuildHasher> Graph<T, S> {
             name.to_string(),
             Node {
                 token: "",
-                controller: controller2,
+                controller_name: controller_name2,
                 token_regex: false,
                 next_link: next_link2,
             },

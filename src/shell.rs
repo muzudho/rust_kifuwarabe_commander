@@ -170,9 +170,9 @@ impl<T: 'static> Shell<T> {
     ///
     /// * `request` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
-    fn starts_with_literal<S: ::std::hash::BuildHasher>(
+    fn starts_with_literal( // <S: ::std::hash::BuildHasher>
         &self,
-        node: &Node<S>,
+        node: &Node, // <S>
         request: &mut dyn RequestAccessor, // &Box<RequestAccessor>
     ) -> bool {
         let caret_end = request.get_caret() + node.token.len();
@@ -188,9 +188,9 @@ impl<T: 'static> Shell<T> {
     ///
     /// * `request` - 読み取るコマンドライン。
     /// * returns - 一致したら真。
-    fn starts_with_reg<S: ::std::hash::BuildHasher>(
+    fn starts_with_reg( // <S: ::std::hash::BuildHasher>
         &self,
-        node: &Node<S>,
+        node: &Node, // <S>
         request: &mut dyn RequestAccessor, // &mut Box<RequestAccessor>
     ) -> bool {
         if VERBOSE {
@@ -235,9 +235,9 @@ impl<T: 'static> Shell<T> {
         }
     }
 
-    fn forward_literal<S: ::std::hash::BuildHasher>(
+    fn forward_literal( // <S: ::std::hash::BuildHasher>
         &self,
-        node: &Node<S>,
+        node: &Node, // <S>
         request: &dyn RequestAccessor,       // &Box<RequestAccessor>
         response: &mut dyn ResponseAccessor, // &mut Box<dyn ResponseAccessor>
     ) {
@@ -280,7 +280,7 @@ impl<T: 'static> Shell<T> {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run<S: ::std::hash::BuildHasher>(&mut self, graph: &Graph<T, S>, t: &mut T) {
+    pub fn run(&mut self, graph: &Graph<T>, t: &mut T) { // <S: ::std::hash::BuildHasher> , S
         'lines: loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut request = if self.is_empty() {
@@ -300,9 +300,9 @@ impl<T: 'static> Shell<T> {
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn parse_line<S: ::std::hash::BuildHasher>(
+    fn parse_line( // <S: ::std::hash::BuildHasher>
         &self,
-        graph: &Graph<T, S>,
+        graph: &Graph<T>, // , S
         t: &mut T,
         request: &mut dyn RequestAccessor,
     ) -> bool {
@@ -367,7 +367,12 @@ impl<T: 'static> Shell<T> {
                 let node = &graph.get_node(&best_node_name);
 
                 // コントローラーに処理を移譲。
-                (graph.get_controller(&node.controller_name))(t, request, response);
+                if graph.contains_controller(&node.controller_name) {
+                    (graph.get_controller(&node.controller_name))(t, request, response);
+                } else {
+                    panic!("\"{}\" controller (in {} node) is not found. Please use contains_controller().", &node.controller_name, best_node_name);
+                }
+
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
                 if node.contains_exits(&"#linebreak".to_string()) {
@@ -439,9 +444,9 @@ impl<T: 'static> Shell<T> {
     }
 
     /// 一致するノード名。
-    fn next_node_name<S: ::std::hash::BuildHasher>(
+    fn next_node_name( // <S: ::std::hash::BuildHasher>
         &self,
-        graph: &Graph<T, S>,
+        graph: &Graph<T>, // , S
         request: &mut dyn RequestAccessor,
         current_exits: &Vec<String>,// &String, // &'static str,
     ) -> (String, String) {

@@ -8,14 +8,14 @@ extern crate kifuwarabe_shell;
 
 use kifuwarabe_shell::graph::*;
 use kifuwarabe_shell::shell::*;
-use std::collections::HashMap;
+// use std::collections::HashMap;
 
 // 参考:
 // https://github.com/serde-rs/json
 extern crate serde_json;
-use serde_json::Value;
-use std::fs::File;
-use std::io::Read;
+// use serde_json::Value;
+// use std::fs::File;
+// use std::io::Read;
 
 // 任意のオブジェクト。
 pub struct ShellVar {
@@ -27,35 +27,6 @@ impl ShellVar {
     }
 }
 
-/// JSON配列を、文字列の配列に変換。
-///
-/// # Arguments.
-///
-/// * 'v' - Json array.
-/// * 'str_vec' - let str_vec = Vec::new();
-fn array_to_str_vec(v: &Value, str_vec: &mut Vec<String>) {
-    let value_vec: Vec<Value> = v.as_array().unwrap().to_vec();
-    for node_name in value_vec {
-        str_vec.push(node_name.as_str().unwrap().to_string());
-    }
-}
-/// JSONオブジェクトを、文字列のハッシュマップに変換。
-///
-/// # Arguments.
-///
-/// * 'v' - Json object.
-/// * 'str_vec' - let str_vec = Vec::new();
-fn object_to_map(obj: &Value, map0: &mut HashMap<String, Vec<String>>) {
-    if !obj.is_null() {
-        for (name1,array1) in obj.as_object().unwrap().iter() {
-            let mut array2: Vec<String> = Vec::new();
-            for item1 in array1.as_array().unwrap().iter() {
-                array2.push(item1.as_str().unwrap().to_string());
-            }
-            map0.insert(name1.to_string(), array2);
-        }
-    }
-}
 
 /// # テスト方法。
 ///
@@ -91,60 +62,7 @@ fn main() {
     graph.insert_controller("do_other", do_other);
 
     // グラフのノード構成。
-    {
-        // println!("Test json: begin.");
-        let mut file = File::open("graph.json").unwrap();
-        let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
-        // https://docs.serde.rs/serde_json/value/enum.Value.html
-        let v: Value = serde_json::from_str(&data).unwrap();
-
-        // 文字列に変換する。
-        let mut entrance_vec : Vec<String> = Vec::new();
-        array_to_str_vec(&v["entrance"], &mut entrance_vec);
-        graph.set_entrance(entrance_vec);
-
-        for node in v["nodes"].as_array().unwrap().iter() {
-            /* デバッグ出力。
-            println!("  name: {}", node["name"]);
-            println!("  token: {}", node["token"]);
-            println!("  regex: {}", node["regex"]);
-            println!("  controller: {}", node["controller"]);
-            if !node["next"].is_null() {
-                // println!("  next: {}", node["next"]);
-                for (next_key, next_value) in node["next"].as_object().unwrap().iter() {
-                    println!("    next: {}, {}", next_key, next_value);
-                }
-            }
-            */
-
-            if !node["token"].is_null() {
-                let mut entrance_map : HashMap<String, Vec<String>> = HashMap::new();
-                object_to_map(&node["exit"], &mut entrance_map);
-                graph.insert_node(
-                    node["name"].as_str().unwrap().to_string(),
-                    node["token"].as_str().unwrap().to_string(),
-                    node["controller"].as_str().unwrap().to_string(),
-                    entrance_map,
-                );
-            } else if !node["regex"].is_null() {
-                let mut entrance_map : HashMap<String, Vec<String>> = HashMap::new();
-                object_to_map(&node["exit"], &mut entrance_map);
-                graph.insert_node_reg(
-                    node["name"].as_str().unwrap().to_string(),
-                    node["regex"].as_str().unwrap().to_string(),
-                    node["controller"].as_str().unwrap().to_string(),
-                    entrance_map,
-                );
-            } else {
-                graph.insert_node_single(
-                    node["name"].as_str().unwrap().to_string(),
-                    node["controller"].as_str().unwrap().to_string(),
-                );
-            }
-        }
-        // println!("Test json: end.");
-    }
+    graph.read_graph_file("graph.json".to_string());
     /*
     graph.insert_node("ND_a".to_string(), "a".to_string(), "do_a".to_string(), hashmap![]);
     graph.insert_node(

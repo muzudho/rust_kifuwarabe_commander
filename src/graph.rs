@@ -37,6 +37,7 @@ pub trait ResponseAccessor {
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
     fn set_quits(&mut self, bool);
+    fn set_reloads(&mut self, &'static str);
     // .rs にハードコーディングして使う。
     fn forward(&mut self, &'static str);
 }

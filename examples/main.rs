@@ -27,8 +27,11 @@ impl ShellVar {
     }
 }
 
+const graph_json_file : &'static str = "graph.json";
 /// # テスト方法。
 ///
+/// graph.json ファイルに書かれているスクリプトをテストします。
+/// 
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
 ///     Ab.
 ///     Cde.
@@ -45,6 +48,10 @@ impl ShellVar {
 /// - 「quit」と打鍵して [Enter]キーを押す。
 ///     Quit.
 /// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
+/// 
+/// - また、「reload」と打鍵して [Enter]キーを押す。
+///     Reload.
+///     graph.json ファイルを再読み込みするはず。
 fn main() {
     // グラフの作成。
     let mut graph = Graph::new();
@@ -59,9 +66,10 @@ fn main() {
     graph.insert_controller("do_wordvar", do_wordvar);
     graph.insert_controller("do_ab_linebreak", do_ab_linebreak);
     graph.insert_controller("do_other", do_other);
+    graph.insert_controller("do_reload", do_reload);
 
     // ファイルからグラフのノード構成を読取。
-    graph.read_graph_file("graph.json".to_string());
+    graph.read_graph_file(graph_json_file.to_string());
     // - 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
     // - #linebreak コールバック関数は行終了時に実行される。
 
@@ -163,6 +171,15 @@ pub fn do_quit(
     shell_var.count += 1;
     println!("Quit.");
     response.set_quits(true);
+}
+
+pub fn do_reload(
+    shell_var: &mut ShellVar,
+    _request: &RequestAccessor,
+    response: &mut dyn ResponseAccessor,
+) {
+    println!("Reload.");
+    response.set_reloads(graph_json_file);
 }
 
 pub fn do_wordvar(

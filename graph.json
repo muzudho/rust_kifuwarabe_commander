@@ -6,6 +6,7 @@
 		"ND_end",
 		"ND_numvar",
         "ND_quit",
+		"ND_reload",
 		"ND_wordvar"
 	],
 	"nodes" : [
@@ -61,6 +62,11 @@
 			"token": "quit",
 			"controller": "do_quit",
 			"exit": {}
+		},
+		{
+			"name": "ND_reload",
+			"token": "reload",
+			"controller": "do_reload"
 		},
 		{
 			"name": "ND_wordvar",

@@ -71,6 +71,7 @@ pub struct Response {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
+    pub reloads: &'static str,
     pub next_node_alies: String,
 }
 impl Response {
@@ -79,6 +80,7 @@ impl Response {
             caret: 0,
             done_line: false,
             quits: false,
+            reloads: "",
             next_node_alies: "".to_string(),
         }
     }
@@ -86,6 +88,7 @@ impl Response {
         self.set_caret(0);
         self.set_done_line(false);
         self.set_quits(false);
+        self.set_reloads("");
         self.forward("");
     }
 }
@@ -110,6 +113,9 @@ impl ResponseAccessor for Response {
     }
     fn set_quits(&mut self, quits2: bool) {
         self.quits = quits2
+    }
+    fn set_reloads(&mut self, value: &'static str) {
+        self.reloads = value
     }
 }
 
@@ -417,6 +423,9 @@ impl<T: 'static> Shell<T> {
                 if res.quits {
                     // ループを抜けて、アプリケーションを終了します。
                     return true;
+                }
+                if res.reloads != "" {
+
                 }
             } else {
                 panic!("Downcast fail.");

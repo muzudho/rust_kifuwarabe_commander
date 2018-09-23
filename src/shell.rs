@@ -202,7 +202,7 @@ impl<T: 'static> Shell<T> {
                 println!("node.token: {}", node.token);
             }
 
-            let re = Regex::new(node.token).unwrap();
+            let re = Regex::new(&node.token).unwrap();
 
             let text;
             let mut group_num = 0;
@@ -302,7 +302,7 @@ impl<T: 'static> Shell<T> {
         &self,
         graph: &Graph<T, S>,
         request: &mut dyn RequestAccessor,
-        next_node_list: &'static str,
+        next_node_list: &String, // &'static str,
     ) -> (String, String) {
         let mut best_node_name = "".to_string();
         let mut best_node_re_name = "".to_string();
@@ -363,8 +363,9 @@ impl<T: 'static> Shell<T> {
         t: &mut T,
         request: &mut dyn RequestAccessor,
     ) -> bool {
+        let empty_str = "".to_string();
         let response: &mut dyn ResponseAccessor = &mut Response::new();
-        let mut next_node_list = graph.entrance;
+        let mut next_node_list = &graph.entrance;
         let mut current_linebreak_controller: Controller<T> = empty_controller;
 
         'line: while request.get_caret() < request.get_line_len() {
@@ -380,7 +381,7 @@ impl<T: 'static> Shell<T> {
 
             // 次のノード名
             let (mut best_node_name, best_node_re_name) =
-                self.next_node_name(graph, request, next_node_list);
+                self.next_node_name(graph, request, &next_node_list);
 
             // キャレットを進める。
             let mut is_done = false;
@@ -426,8 +427,8 @@ impl<T: 'static> Shell<T> {
                 (graph.get_controller(&node.controller_name))(t, request, response);
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
-                if node.contains_next_link("#linebreak") {
-                    current_linebreak_controller = *graph.get_controller(graph.get_node(node.get_next("#linebreak")).controller_name);
+                if node.contains_next_link("#linebreak".to_string()) {
+                    current_linebreak_controller = *graph.get_controller(&graph.get_node(&node.get_next("#linebreak".to_string()).to_string()).controller_name);
                 }
 
                 // フォワードを受け取り。
@@ -436,9 +437,9 @@ impl<T: 'static> Shell<T> {
                         req.caret = res.caret;
 
                         if res.next_node_alies == "" {
-                            next_node_list = "";
+                            next_node_list = &empty_str;
                         } else {
-                            next_node_list = &node.get_next(res.next_node_alies);
+                            next_node_list = node.get_next(res.next_node_alies.to_string());
                         }
                     } else {
                         panic!("Downcast fail.");
@@ -466,7 +467,7 @@ impl<T: 'static> Shell<T> {
                 }
             } else {
                 // 何とも一致しなかったら実行します。
-                (graph.get_controller(graph.get_node("#ND_complementary").controller_name))(t, request, response);
+                (graph.get_controller(&graph.get_node(&"#ND_complementary".to_string()).controller_name))(t, request, response);
                 // responseは無視する。
 
                 // 次のラインへ。

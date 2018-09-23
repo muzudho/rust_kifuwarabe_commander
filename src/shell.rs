@@ -176,7 +176,6 @@ impl<T: 'static> Shell<T> {
         let caret_end = request.get_caret() + node.token.len();
         caret_end <= request.get_line_len()
             && request.get_line()[request.get_caret()..caret_end] == node.token
-            // && &request.get_line()[request.get_caret()..caret_end] == node.token
     }
 
     /// 正規表現を使う。
@@ -354,8 +353,10 @@ impl<T: 'static> Shell<T> {
                 response.forward("");
                 let node = &graph.get_node(&best_node_name);
 
-                // コントローラーに処理を移譲。
-                if graph.contains_controller(&node.controller_name) {
+                // あれば、コントローラーに処理を移譲。
+                if &node.controller_name == "" {
+                    // 何もしない。
+                } else if graph.contains_controller(&node.controller_name) {
                     (graph.get_controller(&node.controller_name))(t, request, response);
                 } else {
                     panic!("\"{}\" controller (in {} node) is not found. Please use contains_controller().", &node.controller_name, best_node_name);

@@ -290,7 +290,7 @@ impl<T: 'static> Shell<T> {
                     Quits => break, // response.quits したとき run ループを抜ける。
                     Reloads(ref file) => {
                         // ファイルからグラフのノード構成を読取。
-                        graph.read_graph_file(file.to_string());
+                        graph.read_graph_file(&file);
                     }
                     Saves(ref file) => {
                         // ファイルを上書き。
@@ -331,14 +331,15 @@ impl<T: 'static> Shell<T> {
             }
 
             // 次のノード名
-            let (mut best_node_name, best_node_re_name) =
-                self.next_node_name(graph, req, current_exits);
+            let (mut best_node_label, best_node_re_label) =
+                self.next_node_label(graph, req, current_exits);
 
             // キャレットを進める。
             let mut is_done = false;
-            if best_node_name != "" {
+            if best_node_label != "" {
+                // 固定長での一致を優先。
                 res.set_caret(req.get_caret());
-                self.forward_literal(&graph.get_node(&best_node_name), req, res);
+                self.forward_literal(&graph.get_node(&best_node_label), req, res);
 
                 if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                     if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
@@ -348,7 +349,7 @@ impl<T: 'static> Shell<T> {
 
                 is_done = true;
                 res.set_caret(0);
-            } else if best_node_re_name != "" {
+            } else if best_node_re_label != "" {
                 res.set_caret(req.get_caret());
                 self.forward_reg(req, res);
 
@@ -366,13 +367,13 @@ impl<T: 'static> Shell<T> {
 
                 // 一方に、まとめる。
                 is_done = true;
-                best_node_name = best_node_re_name;
+                best_node_label = best_node_re_label;
             }
 
             if is_done {
                 res.set_caret(req.get_caret());
                 res.forward("");
-                let node = &graph.get_node(&best_node_name);
+                let node = &graph.get_node(&best_node_label);
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
@@ -385,7 +386,7 @@ impl<T: 'static> Shell<T> {
                     println!(
                         "IGNORE: \"{}\" fn (in {} node) is not found.",
                         &node.get_fn_label(),
-                        best_node_name
+                        best_node_label
                     );
                 }
 
@@ -417,7 +418,7 @@ impl<T: 'static> Shell<T> {
                         } else {
                             current_exits = node.get_exits(&res.next_node_alies.to_string());
                         }
-                    // current_exits は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_name)
+                    // current_exits は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
                     } else {
                         panic!("Downcast fail.");
                     }
@@ -497,42 +498,44 @@ impl<T: 'static> Shell<T> {
         }
     }
 
-    /// 一致するノード名。
-    fn next_node_name(
+    /// 次に一致するノード名。
+    fn next_node_label(
         &self,
         graph: &Graph<T>,
         req: &mut dyn Request,
         current_exits: &[String],
     ) -> (String, String) {
-        let mut best_node_name = "".to_string();
-        let mut best_node_re_name = "".to_string();
+        // 一番優先されるものを探す。
+        let mut best_node_label = "".to_string();
+        let mut best_node_re_label = "".to_string();
 
         // 次の候補。
         let mut max_token_len = 0;
-        for i_next_node_name in current_exits {
-            let next_node_name = i_next_node_name.trim();
-            // println!("next_node_name: {}", next_node_name);
-            if graph.contains_node(&next_node_name.to_string()) {
+        for i_next_node_label in current_exits {
+            let next_node_label = i_next_node_label.trim();
+            // println!("next_node_label: {}", next_node_label);
+            if graph.contains_node(&next_node_label.to_string()) {
                 //println!("contains.");
 
-                let node_name = next_node_name.to_string();
+                let node_name = next_node_label.to_string();
                 let node = &graph.get_node(&node_name);
 
                 let matched;
                 if node.is_regex() {
                     if self.starts_with_reg(node, req) {
                         // 正規表現で一致したなら。
-                        best_node_re_name = node_name;
+                        best_node_re_label = node_name;
+                        // 固定長で一致するものも探したい。
                     }
                 } else {
                     matched = self.starts_with_literal(node, req);
                     if matched {
-                        // 一番長い、固定長トークンの一致を探す。
                         //println!("starts_with_literal.");
                         let token_len = node.get_token().chars().count();
                         if max_token_len < token_len {
                             max_token_len = token_len;
-                            best_node_name = node_name;
+                            best_node_label = node_name;
+                            // まだ、一番長い、固定長トークンを探したい。
                         };
                         //} else {
                         //    println!("not starts_with_literal. req.line={}, req.line_len={}, res.starts={}", req.line, req.line_len, res.starts);
@@ -540,6 +543,6 @@ impl<T: 'static> Shell<T> {
                 }
             }
         }
-        (best_node_name, best_node_re_name)
+        (best_node_label, best_node_re_label)
     }
 }

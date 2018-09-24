@@ -3,7 +3,6 @@
 		"ND.a",
 		"ND.ab",
 		"ND.abc",
-		"ND.edit.save",
 		"ND.end",
 		"ND.numvar",
         "ND.quit",
@@ -43,11 +42,6 @@
 					"ND.wordvar"
 				]
 			}
-		},
-		{
-			"label": "ND.edit.save",
-			"token": "!save",
-			"fn": "do_edit_save"
 		},
 		{
 			"label": "ND.end",

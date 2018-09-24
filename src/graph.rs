@@ -250,7 +250,7 @@ impl<T> Graph<T> {
         }
     }
     /// ファイル読み込み
-    pub fn read_graph_file(&mut self, file: String) {
+    pub fn read_graph_file(&mut self, file: &str) {
         self.clear_graph();
 
         let mut file = match File::open(file) {
@@ -315,41 +315,86 @@ impl<T> Graph<T> {
         }
     }
     /// TODO ファイル上書き書込。
+    /// TODO バッファーせず、ストリームで保存したい。
+    /// FIXME デシリアライズが分からないので自作している☆（＾～＾）
+    /// TODO https://qiita.com/garkimasera/items/0442ee896403c6b78fb2 |JSON文字列と構造体の相互変換
     pub fn save_graph_file(&mut self, file: &str) {
         println!("セーブは開発中");
 
         // 上書き書込。
-        let file_str = &format!("{}{}",file,".TEST.txt");
+        let file_str = &format!("{}{}", file, ".TEST.json");
 
         // JSON ではなく、 Graph 構造体が持っている。
         let mut contents = String::new();
 
         contents.push_str(
-r#"{
+            r#"{
     "entrance": [
-"#
+"#,
         );
         // エントランス
+        let mut i = 0;
         for node_label in &self.entrance_vec {
-            contents.push_str(&format!(r#"        "{}","#, node_label));
+            if 0 < i {
+                // カンマ
+                contents.push_str(
+                    r#",
+"#,
+                );
+            }
+            contents.push_str(&format!(r#"        "{}""#, node_label));
+            i += 1;
         }
 
         contents.push_str(
-r#"
+            r#"
     ],
     "nodes": [
-"#
+"#,
         );
         // ノード
+        let mut j = 0;
         for (_node_label, _node) in &self.node_map {
+            if 0 < j {
+                // カンマ 改行
+                contents.push_str(
+                    r#",
+"#,
+                );
+            }
+            contents.push_str(
+                r#"        {
+"#,
+            );
 
+            contents.push_str(
+                r#"            "label": "AAAA"
+"#,
+            );
+            contents.push_str(
+                r#"            "token": "AAAA"
+"#,
+            );
+            contents.push_str(
+                r#"            "regex": "AAAA"
+"#,
+            );
+            contents.push_str(
+                r#"            "fn": "AAAA"
+"#,
+            );
+            contents.push_str(
+                r#"            "exit": "AAAA"
+"#,
+            );
+
+            contents.push_str(r#"        }"#);
+            j += 1;
         }
 
         contents.push_str(
-r#"
-
-    ]
-}"#
+            r#"    ]
+}"#,
         );
 
         // 全部書込み。

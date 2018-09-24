@@ -49,6 +49,7 @@ rev は Git hub を見て新しいのを入れろだぜ☆（＾～＾）
 extern crate serde_json;
 extern crate kifuwarabe_shell;
 use kifuwarabe_shell::graph::*;
+use kifuwarabe_shell::graph::ResponseOption;
 use kifuwarabe_shell::shell::*;
 ```
 
@@ -269,6 +270,25 @@ jikan 500 byoyomi 100 black
 ```
 
 コントローラーを１個対応させることができる。
+
+## グラフとシェルの関係は、音楽データと音楽プレイヤーの関係。
+
+response.set_option を使って、シェルに指示を出すことができる。１度に１つだけ。
+
+```
+### シェル終われ。
+res.set_option(ResponseOption::Quits);
+
+### graph.json ファイルを読み込み直せ。
+res.set_option(ResponseOption::Reloads(GRAPH_JSON_FILE.to_string()));
+
+### graph.json ファイルを保存しろ。
+res.set_option(ResponseOption::Saves(GRAPH_JSON_FILE.to_string()));
+```
+
+graph.json ファイルを編集するツールは、 rust_kifuwarabe_shell_visualizer として作成中だぜ☆（＾ｑ＾）
+
+# その他
 
 ## Examples.
 

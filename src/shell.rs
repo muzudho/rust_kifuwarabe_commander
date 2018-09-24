@@ -22,16 +22,16 @@ const VERBOSE: bool = false;
 /// * `line` - コマンドライン文字列の1行全体です。
 /// * `line_len` - コマンドライン文字列の1行全体の文字数です。
 /// * `groups` - あれば、正規表現の結果を入れておく。
-pub struct Request {
+pub struct RequestStruct {
     pub line: Box<String>, // String型は長さが可変なので、固定長のBoxでラップする。
     pub line_len: usize,
     pub caret: usize,
     pub groups: Vec<String>,
 }
-impl Request {
-    fn new(line2: Box<String>) -> Request {
+impl RequestStruct {
+    fn new(line2: Box<String>) -> RequestStruct {
         let len = line2.chars().count();
-        Request {
+        RequestStruct {
             line: line2,
             line_len: len,
             caret: 0,
@@ -39,7 +39,7 @@ impl Request {
         }
     }
 }
-impl RequestAccessor for Request {
+impl Request for RequestStruct {
     fn as_mut_any(&mut self) -> &mut dyn Any {
         self
     }
@@ -67,16 +67,16 @@ impl RequestAccessor for Request {
 /// * `done_line` - 行の解析を中断するなら真にします。
 /// * `quits` - アプリケーションを終了するなら真にします。
 /// * `next_node_alies` - 次のノードの登録名です。カンマ区切り。
-pub struct Response {
+pub struct ResponseStruct {
     pub caret: usize,
     pub done_line: bool,
     pub quits: bool,
     pub reloads: &'static str,
     pub next_node_alies: String,
 }
-impl Response {
-    fn new() -> Response {
-        Response {
+impl ResponseStruct {
+    fn new() -> ResponseStruct {
+        ResponseStruct {
             caret: 0,
             done_line: false,
             quits: false,
@@ -93,7 +93,7 @@ impl Response {
     }
 }
 
-impl ResponseAccessor for Response {
+impl Response for ResponseStruct {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -170,26 +170,26 @@ impl<T: 'static> Shell<T> {
     ///
     /// # Arguments
     ///
-    /// * `request` - 読み取るコマンドラインと、読取位置。
+    /// * `req` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
-    fn starts_with_literal(&self, node: &Node, request: &mut dyn RequestAccessor) -> bool {
-        let caret_end = request.get_caret() + node.token.len();
-        caret_end <= request.get_line_len()
-            && request.get_line()[request.get_caret()..caret_end] == node.token
+    fn starts_with_literal(&self, node: &Node, req: &mut dyn Request) -> bool {
+        let caret_end = req.get_caret() + node.token.len();
+        caret_end <= req.get_line_len()
+            && req.get_line()[req.get_caret()..caret_end] == node.token
     }
 
     /// 正規表現を使う。
     ///
     /// # Arguments
     ///
-    /// * `request` - 読み取るコマンドライン。
+    /// * `req` - 読み取るコマンドライン。
     /// * returns - 一致したら真。
-    fn starts_with_reg(&self, node: &Node, request: &mut dyn RequestAccessor) -> bool {
+    fn starts_with_reg(&self, node: &Node, req: &mut dyn Request) -> bool {
         if VERBOSE {
             println!("Starts_with_re");
         }
 
-        if request.get_caret() < request.get_line_len() {
+        if req.get_caret() < req.get_line_len() {
             if VERBOSE {
                 println!("node.token: {}", node.token);
             }
@@ -198,7 +198,7 @@ impl<T: 'static> Shell<T> {
 
             let text;
             let mut group_num = 0;
-            if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+            if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                 text = &req.line[req.caret..];
 
                 if VERBOSE {
@@ -230,42 +230,42 @@ impl<T: 'static> Shell<T> {
     fn forward_literal(
         &self,
         node: &Node,
-        request: &dyn RequestAccessor,
-        response: &mut dyn ResponseAccessor,
+        req: &dyn Request,
+        res: &mut dyn Response,
     ) {
-        response.set_caret(request.get_caret() + node.token.len());
+        res.set_caret(req.get_caret() + node.token.len());
         let res_caret;
-        if let Some(res) = response.as_any().downcast_ref::<Response>() {
+        if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
             res_caret = res.caret;
         } else {
             panic!("Downcast fail.");
         }
 
         // 続きにスペース「 」が１つあれば読み飛ばす
-        if 0 < (request.get_line_len() - res_caret)
-            && &request.get_line()[res_caret..(res_caret + 1)] == " "
+        if 0 < (req.get_line_len() - res_caret)
+            && &req.get_line()[res_caret..(res_caret + 1)] == " "
         {
-            response.set_caret(res_caret + 1);
+            res.set_caret(res_caret + 1);
         }
     }
 
     /// TODO キャレットを進める。正規表現はどこまで一致したのか分かりにくい。
-    fn forward_reg(&self, request: &dyn RequestAccessor, response: &mut dyn ResponseAccessor) {
+    fn forward_reg(&self, req: &dyn Request, res: &mut dyn Response) {
         // グループ[0]の文字数で取る。
-        let pseud_token_len = request.get_groups()[0].chars().count();
-        response.set_caret(request.get_caret() + pseud_token_len);
+        let pseud_token_len = req.get_groups()[0].chars().count();
+        res.set_caret(req.get_caret() + pseud_token_len);
 
         // 続きにスペース「 」が１つあれば読み飛ばす
         let res_caret;
-        if let Some(res) = response.as_any().downcast_ref::<Response>() {
+        if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
             res_caret = res.caret;
         } else {
             panic!("Downcast fail.");
         }
-        if 0 < (request.get_line_len() - res_caret)
-            && &request.get_line()[res_caret..(res_caret + 1)] == " "
+        if 0 < (req.get_line_len() - res_caret)
+            && &req.get_line()[res_caret..(res_caret + 1)] == " "
         {
-            response.set_caret(res_caret + 1);
+            res.set_caret(res_caret + 1);
         }
     }
 
@@ -275,15 +275,15 @@ impl<T: 'static> Shell<T> {
     pub fn run(&mut self, graph: &Graph<T>, t: &mut T) {
         'lines: loop {
             // リクエストは、キャレットを更新するのでミュータブル。
-            let mut request = if self.is_empty() {
+            let mut req = if self.is_empty() {
                 let line_string = (self.reader)(t);
-                Request::new(Box::new(line_string))
+                RequestStruct::new(Box::new(line_string))
             } else {
                 // バッファーの先頭行です。
-                Request::new(self.pop_row())
+                RequestStruct::new(self.pop_row())
             };
 
-            if self.parse_line(graph, t, &mut request) {
+            if self.parse_line(graph, t, &mut req) {
                 break 'lines;
             }
         }
@@ -292,18 +292,18 @@ impl<T: 'static> Shell<T> {
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn parse_line(&self, graph: &Graph<T>, t: &mut T, request: &mut dyn RequestAccessor) -> bool {
+    fn parse_line(&self, graph: &Graph<T>, t: &mut T, req: &mut dyn Request) -> bool {
         let empty_exits = &Vec::new();
-        let response: &mut dyn ResponseAccessor = &mut Response::new();
+        let res: &mut dyn Response = &mut ResponseStruct::new();
         let mut current_exits: &Vec<String> = graph.get_entrance();
         let mut current_newline_fn: Controller<T> = empty_controller;
 
-        'line: while request.get_caret() < request.get_line_len() {
+        'line: while req.get_caret() < req.get_line_len() {
             // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
-            if let Some(res) = response.as_mut_any().downcast_mut::<Response>() {
+            if let Some(res) = res.as_mut_any().downcast_mut::<ResponseStruct>() {
                 res.reset();
             }
-            if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+            if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                 req.groups.clear(); // クリアー
             } else {
                 panic!("Downcast fail.");
@@ -311,28 +311,28 @@ impl<T: 'static> Shell<T> {
 
             // 次のノード名
             let (mut best_node_name, best_node_re_name) =
-                self.next_node_name(graph, request, current_exits);
+                self.next_node_name(graph, req, current_exits);
 
             // キャレットを進める。
             let mut is_done = false;
             if best_node_name != "" {
-                response.set_caret(request.get_caret());
-                self.forward_literal(&graph.get_node(&best_node_name), request, response);
+                res.set_caret(req.get_caret());
+                self.forward_literal(&graph.get_node(&best_node_name), req, res);
 
-                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
+                if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
+                    if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                         req.caret = res.caret;
                     };
                 };
 
                 is_done = true;
-                response.set_caret(0);
+                res.set_caret(0);
             } else if best_node_re_name != "" {
-                response.set_caret(request.get_caret());
-                self.forward_reg(request, response);
+                res.set_caret(req.get_caret());
+                self.forward_reg(req, res);
 
-                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
+                if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
+                    if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                         req.caret = res.caret;
                     } else {
                         panic!("Downcast fail.");
@@ -341,7 +341,7 @@ impl<T: 'static> Shell<T> {
                     panic!("Downcast fail.");
                 }
 
-                response.set_caret(0);
+                res.set_caret(0);
 
                 // 一方に、まとめる。
                 is_done = true;
@@ -349,16 +349,16 @@ impl<T: 'static> Shell<T> {
             }
 
             if is_done {
-                response.set_caret(request.get_caret());
-                response.forward("");
+                res.set_caret(req.get_caret());
+                res.forward("");
                 let node = &graph.get_node(&best_node_name);
 
                 // あれば、コントローラーに処理を移譲。
                 if &node.fn_label == "" {
                     // デフォルトで next を選ぶ。
-                    response.forward("next");
+                    res.forward("next");
                 } else if graph.contains_controller(&node.fn_label) {
-                    (graph.get_controller(&node.fn_label))(t, request, response);
+                    (graph.get_controller(&node.fn_label))(t, req, res);
                 } else {
                     panic!(
                         "\"{}\" fn (in {} node) is not found. Please use contains_controller().",
@@ -375,8 +375,8 @@ impl<T: 'static> Shell<T> {
                 }
 
                 // フォワードを受け取り。
-                if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
-                    if let Some(res) = response.as_any().downcast_ref::<Response>() {
+                if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
+                    if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                         req.caret = res.caret;
 
                         if res.next_node_alies == ""
@@ -394,15 +394,15 @@ impl<T: 'static> Shell<T> {
                     panic!("Downcast fail.");
                 }
 
-                response.set_caret(0);
-                response.forward("");
+                res.set_caret(0);
+                res.forward("");
 
-                if let Some(res) = response.as_any().downcast_ref::<Response>() {
+                if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                     if res.done_line {
                         // 行解析の終了。
-                        let len = request.get_line_len();
+                        let len = req.get_line_len();
 
-                        if let Some(req) = request.as_mut_any().downcast_mut::<Request>() {
+                        if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                             req.caret = len;
                         } else {
                             panic!("Downcast fail.");
@@ -416,7 +416,7 @@ impl<T: 'static> Shell<T> {
                 if graph.contains_node(&"#else".to_string()) {
                     (graph.get_controller(
                         &graph.get_node(&"#else".to_string()).fn_label,
-                    ))(t, request, response);
+                    ))(t, req, res);
                     // responseは無視する。
                 }
 
@@ -424,7 +424,7 @@ impl<T: 'static> Shell<T> {
                 break 'line;
             }
 
-            if let Some(res) = response.as_any().downcast_ref::<Response>() {
+            if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                 if res.quits {
                     // ループを抜けて、アプリケーションを終了します。
                     return true;
@@ -438,7 +438,7 @@ impl<T: 'static> Shell<T> {
         }
 
         // 1行読取終了。
-        (current_newline_fn)(t, request, response);
+        (current_newline_fn)(t, req, res);
         // responseは無視する。
         false
     }
@@ -447,7 +447,7 @@ impl<T: 'static> Shell<T> {
     fn next_node_name(
         &self,
         graph: &Graph<T>,
-        request: &mut dyn RequestAccessor,
+        req: &mut dyn Request,
         current_exits: &[String],
     ) -> (String, String) {
         let mut best_node_name = "".to_string();
@@ -466,12 +466,12 @@ impl<T: 'static> Shell<T> {
 
                 let matched;
                 if node.token_regex {
-                    if self.starts_with_reg(node, request) {
+                    if self.starts_with_reg(node, req) {
                         // 正規表現で一致したなら。
                         best_node_re_name = node_name;
                     }
                 } else {
-                    matched = self.starts_with_literal(node, request);
+                    matched = self.starts_with_literal(node, req);
                     if matched {
                         // 一番長い、固定長トークンの一致を探す。
                         //println!("starts_with_literal.");
@@ -481,7 +481,7 @@ impl<T: 'static> Shell<T> {
                             best_node_name = node_name;
                         };
                         //} else {
-                        //    println!("not starts_with_literal. request.line={}, request.line_len={}, response.starts={}", request.line, request.line_len, response.starts);
+                        //    println!("not starts_with_literal. req.line={}, req.line_len={}, res.starts={}", req.line, req.line_len, res.starts);
                     }
                 }
             }

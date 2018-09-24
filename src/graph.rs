@@ -9,7 +9,7 @@ use std::io::Read;
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::collections::HashMap;
 
-pub trait RequestAccessor {
+pub trait Request {
     fn as_mut_any(&mut self) -> &mut dyn Any;
     fn get_line(&self) -> &String;
     fn get_line_len(&self) -> usize;
@@ -22,16 +22,16 @@ pub trait RequestAccessor {
 /// # Arguments
 ///
 /// * `t` - 任意のオブジェクト。
-/// * `request` - 入力されたコマンドライン文字列など。
-/// * `response` - 読取位置や、次のトークンの指定など。
+/// * `req` - 入力されたコマンドライン文字列など。
+/// * `res` - 読取位置や、次のトークンの指定など。
 ///
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 pub type Controller<T> =
-    fn(t: &mut T, request: &RequestAccessor, response: &mut dyn ResponseAccessor);
+    fn(t: &mut T, req: &Request, res: &mut dyn Response);
 
-pub trait ResponseAccessor {
+pub trait Response {
     fn as_any(&self) -> &dyn Any; // トレイトを実装している方を返すのに使う。
     fn as_mut_any(&mut self) -> &mut dyn Any; // トレイトを実装している方を返すのに使う。
     fn set_caret(&mut self, usize);
@@ -75,8 +75,8 @@ impl Node {
 
 pub fn empty_controller<T>(
     _t: &mut T,
-    _request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    _req: &Request,
+    _res: &mut dyn Response,
 ) {
 }
 

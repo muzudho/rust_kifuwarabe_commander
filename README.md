@@ -38,7 +38,7 @@ abc def ghi
 ```
 [dependencies.kifuwarabe_shell]
 git = "https://github.com/muzudho/rust_kifuwarabe_shell.git"
-rev = "7462977c21420eb207daf4c4db8ab0dabe94cfd6"
+rev = "7462977... Please get new rev from git hub."
 ```
 
 rev は Git hub を見て新しいのを入れろだぜ☆（＾～＾）
@@ -105,32 +105,32 @@ main 関数はこんなもん。 run の中で標準入力を勝手に拾う。
 ```
 pub fn fn_abc(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _req: &Request,
+    res: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("I am abc!");
-    response.forward("next");
+    res.forward("next");
 }
 
 pub fn fn_def(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _req: &Request,
+    res: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("I am def!");
-    response.forward("next");
+    res.forward("next");
 }
 
 pub fn fn_ghi(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _req: &Request,
+    res: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("I am ghi!");
-    response.forward("next");
+    res.forward("next");
 }
 ```
 
@@ -213,11 +213,11 @@ request とか、 response とか、 forward というのは Webサーバーの�
 
 ```
     if a == 1 {
-        response.forward("jump");
+        res.forward("jump");
     } else if a == 2 {
-        response.forward("kick");
+        res.forward("kick");
     } else {
-        response.forward("next");
+        res.forward("next");
     }
 ```
 

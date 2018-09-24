@@ -79,8 +79,8 @@ fn main() {
 
 pub fn do_a(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    _response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("A.");
@@ -88,8 +88,8 @@ pub fn do_a(
 
 pub fn do_ab(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("Ab.");
@@ -98,8 +98,8 @@ pub fn do_ab(
 
 pub fn do_ab_newline(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    _response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("Ab-NewLine.");
@@ -107,8 +107,8 @@ pub fn do_ab_newline(
 
 pub fn do_abc(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    _response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("Abc.");
@@ -116,8 +116,8 @@ pub fn do_abc(
 
 pub fn do_cde(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("Cde.");
@@ -126,8 +126,8 @@ pub fn do_cde(
 
 pub fn do_end(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     response.set_done_line(true);
@@ -136,8 +136,8 @@ pub fn do_end(
 
 pub fn do_numvar(
     shell_var: &mut ShellVar,
-    request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    request: &dyn Request,
+    _response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     let cap = &request.get_groups()[0];
@@ -146,8 +146,8 @@ pub fn do_numvar(
 
 pub fn do_other(
     shell_var: &mut ShellVar,
-    request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    request: &dyn Request,
+    _response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!(
@@ -159,8 +159,8 @@ pub fn do_other(
 
 pub fn do_quit(
     shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     println!("Quit.");
@@ -169,8 +169,8 @@ pub fn do_quit(
 
 pub fn do_reload(
     _shell_var: &mut ShellVar,
-    _request: &RequestAccessor,
-    response: &mut dyn ResponseAccessor,
+    _request: &dyn Request,
+    response: &mut dyn Response,
 ) {
     println!("Reload.");
     response.set_reloads(GRAPH_JSON_FILE);
@@ -178,8 +178,8 @@ pub fn do_reload(
 
 pub fn do_wordvar(
     shell_var: &mut ShellVar,
-    request: &RequestAccessor,
-    _response: &mut dyn ResponseAccessor,
+    request: &dyn Request,
+    _response: &mut dyn Response,
 ) {
     shell_var.count += 1;
     let cap = &request.get_groups()[0];

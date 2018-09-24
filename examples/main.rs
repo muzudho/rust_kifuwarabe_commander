@@ -51,17 +51,17 @@ fn main() {
     // グラフの作成。
     let mut graph = Graph::new();
     // コントローラーを登録。
-    graph.insert_controller("do_a", do_a);
-    graph.insert_controller("do_ab", do_ab);
-    graph.insert_controller("do_abc", do_abc);
-    graph.insert_controller("do_cde", do_cde);
-    graph.insert_controller("do_end", do_end);
-    graph.insert_controller("do_numvar", do_numvar);
-    graph.insert_controller("do_quit", do_quit);
-    graph.insert_controller("do_wordvar", do_wordvar);
-    graph.insert_controller("do_ab_newline", do_ab_newline);
-    graph.insert_controller("do_other", do_other);
-    graph.insert_controller("do_reload", do_reload);
+    graph.insert_fn("do_a", do_a);
+    graph.insert_fn("do_ab", do_ab);
+    graph.insert_fn("do_abc", do_abc);
+    graph.insert_fn("do_cde", do_cde);
+    graph.insert_fn("do_end", do_end);
+    graph.insert_fn("do_numvar", do_numvar);
+    graph.insert_fn("do_quit", do_quit);
+    graph.insert_fn("do_wordvar", do_wordvar);
+    graph.insert_fn("do_ab_newline", do_ab_newline);
+    graph.insert_fn("do_other", do_other);
+    graph.insert_fn("do_reload", do_reload);
 
     // ファイルからグラフのノード構成を読取。
     graph.read_graph_file(GRAPH_JSON_FILE.to_string());

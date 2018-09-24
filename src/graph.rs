@@ -137,7 +137,7 @@ impl<T> Graph<T> {
         self.controller_table.contains_key(&name.to_string())
     }
     /// name は ハードコーディングするので、 &'static str にする。
-    pub fn insert_controller(&mut self, name: &'static str, controller2: Controller<T>) {
+    pub fn insert_fn(&mut self, name: &'static str, controller2: Controller<T>) {
         self.controller_table.insert(name.to_string(), controller2);
     }
     /// # Arguments

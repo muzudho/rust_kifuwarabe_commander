@@ -16,19 +16,19 @@ abc def ghi
 ### 省略した書き方
 {
     "token": "abc",
-    "controller": "fn_abc"
+    "fn": "do_abc"
 },
 {
     "token": "def",
-    "controller": "fn_def"
+    "fn": "do_def"
 },
 {
     "token": "ghi",
-    "controller": "fn_ghi"
+    "fn": "do_ghi"
 },
 ```
 
-といった風に書いておけば、コールバック関数 fn_abc(), fn_def(), fn_ghi() とかが呼ばれる仕組み。  
+といった風に書いておけば、コールバック関数 do_abc(), do_def(), do_ghi() とかが呼ばれる仕組み。  
 実際は JSONファイルの中身は ごつく なる。  
 コールバック関数は あらかじめ登録しておく☆（＾～＾）  
 詳しくは graph.json、 examples/main.rs を読めだぜ☆（＾～＾）  
@@ -80,9 +80,9 @@ impl ShellVar {
 fn main() {
     // グラフ作成し、コントローラー登録。
     let mut graph = Graph::new();
-    graph.insert_controller("fn_abc", fn_abc);
-    graph.insert_controller("fn_def", fn_def);
-    graph.insert_controller("fn_ghi", fn_ghi);
+    graph.insert_fn("do_abc", do_abc);
+    graph.insert_fn("do_def", do_def);
+    graph.insert_fn("do_ghi", do_ghi);
 
     // ファイル読取。
     graph.read_graph_file(GRAPH_JSON_FILE.to_string());
@@ -142,39 +142,39 @@ request とか、 response とか、 forward というのは Webサーバーの�
 ```
 {
 	"entrance": [
-		"ND/a"
+		"ND.a"
 	],
 	"nodes" : [
 		{
-			"name": "ND/a",
+			"label": "ND.a",
 			"token": "abc",
-			"controller": "fn_abc",
+			"fn": "do_abc",
 			"exit": {
 				"next": [
-					"ND/b"
+					"ND.b"
 				]
 			}
 		},
 		{
-			"name": "ND/b",
+			"label": "ND.b",
 			"token": "def",
-			"controller": "fn_def",
+			"fn": "do_def",
 			"exit": {
 				"next": [
-					"ND/c"
+					"ND.c"
 				]
 			}
 		},
 		{
-			"name": "ND/c",
+			"label": "ND.c",
 			"token": "ghi",
-			"controller": "fn_ghi"
+			"fn": "do_ghi"
 		}
     ]
 }
 ```
 
-ここで ```ND/a``` みたいなやつは ノードの名前 ぐらいの意味でなんでもいい。ただの Go to 用のラベルだぜ。
+ここで ```ND.a``` みたいなやつは ノードの名前 ぐらいの意味でなんでもいい。ただの Go to 用のラベルだぜ。
 ```entrance``` というのは コマンドラインの行頭 ぐらいの意味だぜ。複数書けばマッチしたやつが選ばれる。
 
 ```token```, ```regex```, 無記入が選べ、例えば
@@ -189,22 +189,22 @@ request とか、 response とか、 forward というのは Webサーバーの�
 ### token と regex のどちらも無記入の場合は特殊な使い方をする。
 ```
 
-```controller``` というのは ```graph.insert_controller("名前", 関数名);``` で登録したやつだ。
+```fn``` というのは ```graph.insert_fn("名前", 関数名);``` で登録したやつだ。
 
 ```exit``` は少し複雑だ。
 
 ```
 "exit": {
     "next": [
-        "ND/b"
+        "ND.b"
     ],
     "jump": [
-        "ND/x",
-        "ND/y",
-        "ND/z"
+        "ND.x",
+        "ND.y",
+        "ND.z"
     ],
     "kick": [
-        "ND/w"
+        "ND.w"
     ]
 }
 ```
@@ -237,17 +237,17 @@ jikan 500 byoyomi 100
 jikan 500 byoyomi 100 black
 ```
 
-のような３つのコマンドがあって、いずれも改行で ```ND/newline``` ノードに飛んで欲しいとする。
+のような３つのコマンドがあって、いずれも改行で ```ND.newline``` ノードに飛んで欲しいとする。
 そんなときは
 
 ```
     "token": "jikan",
     "exit": {
         "next": [
-            "ND/byoyomi"
+            "ND.byoyomi"
         ],
         "#newline": [
-            "ND/newline"
+            "ND.newline"
         ]
     }
 ```
@@ -264,7 +264,7 @@ jikan 500 byoyomi 100 black
 ```
 		{
 			"name": "#else",
-			"controller": "do_other"
+			"fn": "do_other"
 		},
 ```
 

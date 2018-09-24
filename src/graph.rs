@@ -28,8 +28,7 @@ pub trait Request {
 /// # 参考
 /// - Rustのコールバック関数について。  
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
-pub type Controller<T> =
-    fn(t: &mut T, req: &Request, res: &mut dyn Response);
+pub type Controller<T> = fn(t: &mut T, req: &Request, res: &mut dyn Response);
 
 pub trait Response {
     fn as_any(&self) -> &dyn Any; // トレイトを実装している方を返すのに使う。
@@ -86,12 +85,7 @@ impl Node {
     }
 }
 
-pub fn empty_controller<T>(
-    _t: &mut T,
-    _req: &Request,
-    _res: &mut dyn Response,
-) {
-}
+pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) {}
 
 /// # Parameters.
 ///
@@ -116,8 +110,7 @@ impl<T> Graph<T> {
         }
     }
     /// 確認用。
-    pub fn get_node_map(&self) -> &HashMap<String, Node>
-    {
+    pub fn get_node_map(&self) -> &HashMap<String, Node> {
         &self.node_map
     }
     /// クリアー。（登録したコントローラーを除く）
@@ -142,13 +135,9 @@ impl<T> Graph<T> {
         self.node_map.contains_key(&label.to_string())
     }
     pub fn get_fn(&self, name: &str) -> &Controller<T> {
-        if self.contains_fn(&name.to_string()) {
-            &self.fn_map[&name.to_string()]
-        } else {
-            panic!(
-                "\"{}\" fn is not found. Please use contains_fn().",
-                name
-            );
+        match self.fn_map.get(&name.to_string()) {
+            Some(f) => &f,
+            None => panic!("\"{}\" fn is not found. Please use contains_fn().", name),
         }
     }
     pub fn contains_fn(&self, name: &str) -> bool {
@@ -257,19 +246,19 @@ impl<T> Graph<T> {
 
         let mut file = match File::open(file) {
             Ok(n) => n,
-            Err(err) => panic!("File open error. {:?}", err)
+            Err(err) => panic!("File open error. {:?}", err),
         };
 
         let mut data = String::new();
         match file.read_to_string(&mut data) {
             Ok(n) => n,
-            Err(err) => panic!("File open error. {:?}", err)
+            Err(err) => panic!("File open error. {:?}", err),
         };
 
         // https://docs.serde.rs/serde_json/value/enum.Value.html
         let v: Value = match serde_json::from_str(&data) {
             Ok(n) => n,
-            Err(err) => panic!("File open error. {:?}", err)
+            Err(err) => panic!("File open error. {:?}", err),
         };
 
         // 文字列に変換する。

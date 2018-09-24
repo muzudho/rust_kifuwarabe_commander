@@ -22,7 +22,7 @@ impl ShellVar {
     }
 }
 
-const GRAPH_JSON_FILE : &'static str = "graph.json";
+const GRAPH_JSON_FILE : &str = "graph.json";
 /// # テスト方法。
 ///
 /// graph.json ファイルに書かれているスクリプトをテストします。

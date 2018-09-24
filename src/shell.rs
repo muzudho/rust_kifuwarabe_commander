@@ -179,7 +179,8 @@ impl<T: 'static> Shell<T> {
     /// * returns - 一致したら真。
     fn starts_with_literal(&self, node: &Node, req: &mut dyn Request) -> bool {
         let caret_end = req.get_caret() + node.get_token().len();
-        caret_end <= req.get_line_len() && &req.get_line()[req.get_caret()..caret_end] == node.get_token()
+        caret_end <= req.get_line_len()
+            && &req.get_line()[req.get_caret()..caret_end] == node.get_token()
     }
 
     /// 正規表現を使う。
@@ -359,9 +360,11 @@ impl<T: 'static> Shell<T> {
                 } else if graph.contains_fn(&node.get_fn_label()) {
                     (graph.get_fn(&node.get_fn_label()))(t, req, res);
                 } else {
-                    panic!(
-                        "\"{}\" fn (in {} node) is not found. Please use contains_fn().",
-                        &node.get_fn_label(), best_node_name
+                    // 無い関数が設定されていた場合は、コンソール表示だけする。
+                    println!(
+                        "IGNORE: \"{}\" fn (in {} node) is not found.",
+                        &node.get_fn_label(),
+                        best_node_name
                     );
                 }
 
@@ -412,7 +415,9 @@ impl<T: 'static> Shell<T> {
             } else {
                 // 何とも一致しなかったら実行します。
                 if graph.contains_node(&"#else".to_string()) {
-                    (graph.get_fn(&graph.get_node(&"#else".to_string()).get_fn_label()))(t, req, res);
+                    (graph.get_fn(&graph.get_node(&"#else".to_string()).get_fn_label()))(
+                        t, req, res,
+                    );
                     // responseは無視する。
                 }
 

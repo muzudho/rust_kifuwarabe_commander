@@ -15,6 +15,9 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
+const NEWLINE_EXITS_LABEL: &str = "#newline";
+const ELSE_NODE_LABEL: &str = "#else";
+
 /// コマンドライン文字列。
 ///
 /// # Members
@@ -369,10 +372,19 @@ impl<T: 'static> Shell<T> {
                 }
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
-                if node.contains_exits(&"#newline".to_string()) {
+                if node.contains_exits(&NEWLINE_EXITS_LABEL.to_string()) {
                     // 対応するノードは 1つだけとする。
-                    let next_node = &node.get_exits(&"#newline".to_string())[0];
-                    current_newline_fn = *graph.get_fn(&graph.get_node(&next_node).get_fn_label());
+                    let next_node = &node.get_exits(&NEWLINE_EXITS_LABEL.to_string())[0];
+                    let fn_label = graph.get_node(&next_node).get_fn_label();
+                    if graph.contains_fn(&fn_label) {
+                        current_newline_fn = *graph.get_fn(&fn_label);
+                    } else {
+                        // 無い関数が設定されていた場合は、コンソール表示だけする。
+                        println!(
+                            "IGNORE: \"{}\" fn (in {} node) is not found.",
+                            &fn_label, NEWLINE_EXITS_LABEL
+                        );
+                    }
                 }
 
                 // フォワードを受け取り。
@@ -413,14 +425,8 @@ impl<T: 'static> Shell<T> {
                     panic!("Downcast fail.");
                 }
             } else {
-                // 何とも一致しなかったら実行します。
-                if graph.contains_node(&"#else".to_string()) {
-                    (graph.get_fn(&graph.get_node(&"#else".to_string()).get_fn_label()))(
-                        t, req, res,
-                    );
-                    // responseは無視する。
-                }
-
+                // 何とも一致しなかったら実行します
+                self.parse_line_else(&graph, t, req, res);
                 // 次のラインへ。
                 break 'line;
             }
@@ -442,6 +448,22 @@ impl<T: 'static> Shell<T> {
         (current_newline_fn)(t, req, res);
         // responseは無視する。
         false
+    }
+    // cyclomatic complexity を避けたいだけ。
+    fn parse_line_else(&self, graph: &Graph<T>, t: &mut T, req: &mut dyn Request, res: &mut dyn Response) {
+        if graph.contains_node(&ELSE_NODE_LABEL.to_string()) {
+            let fn_label = graph.get_node(&ELSE_NODE_LABEL.to_string()).get_fn_label();
+            if graph.contains_fn(&fn_label) {
+                (graph.get_fn(&fn_label))(t, req, res);
+            // responseは無視する。
+            } else {
+                // 無い関数が設定されていた場合は、コンソール表示だけする。
+                println!(
+                    "IGNORE: \"{}\" fn (in {} node) is not found.",
+                    &fn_label, ELSE_NODE_LABEL
+                );
+            }
+        }
     }
 
     /// 一致するノード名。

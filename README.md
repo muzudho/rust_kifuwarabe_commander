@@ -1,13 +1,5 @@
 # kifuwarabe_shell
 
-## Examples.
-
-```
-### 以下のコマンドでサンプルを実行。 
-cargo run --example main
-```
-
-
 ## Overview.
 
 コマンドラインのパーサーのフレームワークだぜ☆（＾～＾）  
@@ -235,43 +227,55 @@ request とか、 response とか、 forward というのは Webサーバーの�
 
 ## 特殊なケース: 改行
 
-改行 をうまく拾えなかったので ```#linebreak``` という組込みラベル を用意した。
+改行 をうまく拾えなかったので ```#newline``` という組込みラベル を用意した。
 
 例えば、
 
 ```
 jikan 500
 jikan 500 byoyomi 100
+jikan 500 byoyomi 100 black
 ```
 
-のような２つのコマンドがあって、どちらも改行で ```ND/newline``` ノードに飛んで欲しいとする。
+のような３つのコマンドがあって、いずれも改行で ```ND/newline``` ノードに飛んで欲しいとする。
 そんなときは
 
 ```
+    "token": "jikan",
     "exit": {
         "next": [
             "ND/byoyomi"
         ],
-        "#linebreak": [
+        "#newline": [
             "ND/newline"
         ]
     }
 ```
 
-いちいち ```#linebreak``` を書けだぜ。
+8文字で長いが ```#newline``` を書けだぜ。
+で、いちいち 改行していい トークン全部に ```#newline``` 付けるの嫌なんで、
+改行するか ```#newline``` を再設定するまで 以降のトークンにこの設定は有効。
+どこで改行したか分からないが、分からなくていい作りにしろだぜ。
 
 ## 特殊なケース: なにとも一致しなかったとき。
 
-とりあえず ```#ND_complementary``` という組込みノード名 を用意した。
+とりあえず ```#else``` という組込みノード名 を用意した。
 
 ```
 		{
-			"name": "#ND_complementary",
+			"name": "#else",
 			"controller": "do_other"
 		},
 ```
 
 コントローラーを１個対応させることができる。
+
+## Examples.
+
+```
+### 以下のコマンドでサンプルを実行。 
+cargo run --example main
+```
 
 ## Reference implementation.
 

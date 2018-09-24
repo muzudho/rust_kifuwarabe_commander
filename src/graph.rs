@@ -47,14 +47,14 @@ pub trait ResponseAccessor {
 /// # Members
 ///
 /// * `token` - 全文一致させたい文字列です。
-/// * `controller` - コールバック関数の登録名です。
+/// * `fn_label` - コールバック関数の登録名です。
 /// * `token_regex` - トークンに正規表現を使うなら真です。
 /// * `exit_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node {
     pub token: String,
-    pub controller_name: String,
+    pub fn_label: String,
     pub token_regex: bool,
-    // 特殊な任意の名前 '#linebreak'
+    // 特殊な任意の名前 '#newline'
     exits: HashMap<String, Vec<String>>,
 }
 impl Node {
@@ -87,7 +87,7 @@ pub fn empty_controller<T>(
 #[derive(Default)]
 pub struct Graph<T> {
     /// 特殊なノード名
-    /// '#ND_complementary' 一致するトークンが無かったときに呼び出されるコールバック関数です。
+    /// '#else' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     node_table: HashMap<String, Node>,
     entrance: Vec<String>,
     /// 任意の名前と、コントローラー。
@@ -113,22 +113,22 @@ impl<T> Graph<T> {
     pub fn set_entrance(&mut self, entrance2: Vec<String>) {
         self.entrance = entrance2;
     }
-    pub fn get_node(&self, name: &str) -> &Node {
-        if self.contains_node(&name.to_string()) {
-            &self.node_table[name]
+    pub fn get_node(&self, label: &str) -> &Node {
+        if self.contains_node(&label.to_string()) {
+            &self.node_table[label]
         } else {
-            panic!("{} node is not found.", name);
+            panic!("\"{}\" node is not found.", label);
         }
     }
-    pub fn contains_node(&self, name: &str) -> bool {
-        self.node_table.contains_key(&name.to_string())
+    pub fn contains_node(&self, label: &str) -> bool {
+        self.node_table.contains_key(&label.to_string())
     }
     pub fn get_controller(&self, name: &str) -> &Controller<T> {
         if self.contains_controller(&name.to_string()) {
             &self.controller_table[&name.to_string()]
         } else {
             panic!(
-                "\"{}\" controller is not found. Please use contains_controller().",
+                "\"{}\" fn is not found. Please use contains_controller().",
                 name
             );
         }
@@ -142,21 +142,21 @@ impl<T> Graph<T> {
     }
     /// # Arguments
     ///
-    /// * `name` - 登録用の名前です。
+    /// * `label` - 登録用のノード名です。
     /// * `node` - ノードです。
     /// * `exits2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node(
         &mut self,
-        name: String,
+        label: String,
         token2: String,
-        controller_name2: String,
-        exits2: HashMap<String, Vec<String>>, // , S
+        fn_label2: String,
+        exits2: HashMap<String, Vec<String>>,
     ) {
         self.node_table.insert(
-            name,
+            label,
             Node {
                 token: token2,
-                controller_name: controller_name2,
+                fn_label: fn_label2,
                 token_regex: false,
                 exits: exits2,
             },
@@ -166,21 +166,21 @@ impl<T> Graph<T> {
     ///
     /// # Arguments
     ///
-    /// * `name` - 登録用の名前です。
+    /// * `label` - 登録用のノード名です。
     /// * `node` - ノードです。
     /// * `exits2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node_reg(
         &mut self,
-        name: &str,
+        label: &str,
         token2: String,
-        controller_name2: String,
+        fn_label2: String,
         exits2: HashMap<String, Vec<String>>,
     ) {
         self.node_table.insert(
-            name.to_string(),
+            label.to_string(),
             Node {
                 token: token2,
-                controller_name: controller_name2,
+                fn_label: fn_label2,
                 token_regex: true,
                 exits: exits2,
             },
@@ -190,14 +190,14 @@ impl<T> Graph<T> {
     ///
     /// # Arguments
     ///
-    /// * `name` - 登録用の名前です。
-    pub fn insert_node_single(&mut self, name: &str, controller_name2: String) {
+    /// * `label` - 登録用のノード名です。
+    pub fn insert_node_single(&mut self, label: &str, fn_label2: String) {
         let exits2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
         self.node_table.insert(
-            name.to_string(),
+            label.to_string(),
             Node {
                 token: "".to_string(),
-                controller_name: controller_name2,
+                fn_label: fn_label2,
                 token_regex: false,
                 exits: exits2,
             },
@@ -212,8 +212,8 @@ impl<T> Graph<T> {
     /// * 'str_vec' - let str_vec = Vec::new();
     fn array_to_str_vec(&self, v: &Value, str_vec: &mut Vec<String>) {
         let value_vec: Vec<Value> = v.as_array().unwrap().to_vec();
-        for node_name in value_vec {
-            str_vec.push(node_name.as_str().unwrap().to_string());
+        for node_label in value_vec {
+            str_vec.push(node_label.as_str().unwrap().to_string());
         }
     }
     /// JSONオブジェクトを、文字列のハッシュマップに変換。
@@ -264,12 +264,12 @@ impl<T> Graph<T> {
                 let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
                 self.object_to_map(&node["exit"], &mut entrance_map);
                 self.insert_node(
-                    node["name"].as_str().unwrap().to_string(),
+                    node["label"].as_str().unwrap().to_string(),
                     node["token"].as_str().unwrap().to_string(),
-                    if node["controller"].is_null() {
+                    if node["fn"].is_null() {
                         "".to_string()
                     } else {
-                        node["controller"].as_str().unwrap().to_string()
+                        node["fn"].as_str().unwrap().to_string()
                     },
                     entrance_map,
                 );
@@ -277,22 +277,22 @@ impl<T> Graph<T> {
                 let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
                 self.object_to_map(&node["exit"], &mut entrance_map);
                 self.insert_node_reg(
-                    &node["name"].as_str().unwrap().to_string(),
+                    &node["label"].as_str().unwrap().to_string(),
                     node["regex"].as_str().unwrap().to_string(),
-                    if node["controller"].is_null() {
+                    if node["fn"].is_null() {
                         "".to_string()
                     } else {
-                        node["controller"].as_str().unwrap().to_string()
+                        node["fn"].as_str().unwrap().to_string()
                     },
                     entrance_map,
                 );
             } else {
                 self.insert_node_single(
-                    &node["name"].as_str().unwrap().to_string(),
-                    if node["controller"].is_null() {
+                    &node["label"].as_str().unwrap().to_string(),
+                    if node["fn"].is_null() {
                         "".to_string()
                     } else {
-                        node["controller"].as_str().unwrap().to_string()
+                        node["fn"].as_str().unwrap().to_string()
                     },
                 );
             }

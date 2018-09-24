@@ -30,7 +30,7 @@ const GRAPH_JSON_FILE : &'static str = "graph.json";
 /// - 「ab cde」と打鍵して [Enter]キーを押す。
 ///     Ab.
 ///     Cde.
-///     Ab-LineBreak.
+///     Ab-NewLine.
 /// - 「end xyz」と打鍵して [Enter]キーを押す。
 ///     End.
 /// - 「xyz」と打鍵して [Enter]キーを押す。
@@ -39,7 +39,7 @@ const GRAPH_JSON_FILE : &'static str = "graph.json";
 ///     Ab.
 ///     Cde.
 ///     Word(xyz).
-///     Ab-LineBreak.
+///     Ab-NewLine.
 /// - 「quit」と打鍵して [Enter]キーを押す。
 ///     Quit.
 /// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
@@ -59,14 +59,12 @@ fn main() {
     graph.insert_controller("do_numvar", do_numvar);
     graph.insert_controller("do_quit", do_quit);
     graph.insert_controller("do_wordvar", do_wordvar);
-    graph.insert_controller("do_ab_linebreak", do_ab_linebreak);
+    graph.insert_controller("do_ab_newline", do_ab_newline);
     graph.insert_controller("do_other", do_other);
     graph.insert_controller("do_reload", do_reload);
 
     // ファイルからグラフのノード構成を読取。
     graph.read_graph_file(GRAPH_JSON_FILE.to_string());
-    // - 正規表現は、うまく作れていない。全体を丸括弧で囲む。1個だけ。
-    // - #linebreak コールバック関数は行終了時に実行される。
 
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
@@ -76,6 +74,7 @@ fn main() {
     // 実行。
     println!("Please enter command.");
     shell.run(&mut graph, &mut shell_var);
+    println!("Finished. shell_var.count: {}.", shell_var.count);
 }
 
 pub fn do_a(
@@ -97,13 +96,13 @@ pub fn do_ab(
     response.forward("next");
 }
 
-pub fn do_ab_linebreak(
+pub fn do_ab_newline(
     shell_var: &mut ShellVar,
     _request: &RequestAccessor,
     _response: &mut dyn ResponseAccessor,
 ) {
     shell_var.count += 1;
-    println!("Ab-LineBreak.");
+    println!("Ab-NewLine.");
 }
 
 pub fn do_abc(

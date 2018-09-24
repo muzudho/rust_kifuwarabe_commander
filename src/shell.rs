@@ -296,7 +296,7 @@ impl<T: 'static> Shell<T> {
         let empty_exits = &Vec::new();
         let response: &mut dyn ResponseAccessor = &mut Response::new();
         let mut current_exits: &Vec<String> = graph.get_entrance();
-        let mut current_linebreak_controller: Controller<T> = empty_controller;
+        let mut current_newline_fn: Controller<T> = empty_controller;
 
         'line: while request.get_caret() < request.get_line_len() {
             // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
@@ -354,21 +354,24 @@ impl<T: 'static> Shell<T> {
                 let node = &graph.get_node(&best_node_name);
 
                 // あれば、コントローラーに処理を移譲。
-                if &node.controller_name == "" {
+                if &node.fn_label == "" {
                     // デフォルトで next を選ぶ。
                     response.forward("next");
-                } else if graph.contains_controller(&node.controller_name) {
-                    (graph.get_controller(&node.controller_name))(t, request, response);
+                } else if graph.contains_controller(&node.fn_label) {
+                    (graph.get_controller(&node.fn_label))(t, request, response);
                 } else {
-                    panic!("\"{}\" controller (in {} node) is not found. Please use contains_controller().", &node.controller_name, best_node_name);
+                    panic!(
+                        "\"{}\" fn (in {} node) is not found. Please use contains_controller().",
+                        &node.fn_label, best_node_name
+                    );
                 }
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
-                if node.contains_exits(&"#linebreak".to_string()) {
+                if node.contains_exits(&"#newline".to_string()) {
                     // 対応するノードは 1つだけとする。
-                    let next_node = &node.get_exits(&"#linebreak".to_string())[0];
-                    current_linebreak_controller =
-                        *graph.get_controller(&graph.get_node(&next_node).controller_name);
+                    let next_node = &node.get_exits(&"#newline".to_string())[0];
+                    current_newline_fn =
+                        *graph.get_controller(&graph.get_node(&next_node).fn_label);
                 }
 
                 // フォワードを受け取り。
@@ -410,12 +413,12 @@ impl<T: 'static> Shell<T> {
                 }
             } else {
                 // 何とも一致しなかったら実行します。
-                (graph.get_controller(
-                    &graph
-                        .get_node(&"#ND_complementary".to_string())
-                        .controller_name,
-                ))(t, request, response);
-                // responseは無視する。
+                if graph.contains_node(&"#else".to_string()) {
+                    (graph.get_controller(
+                        &graph.get_node(&"#else".to_string()).fn_label,
+                    ))(t, request, response);
+                    // responseは無視する。
+                }
 
                 // 次のラインへ。
                 break 'line;
@@ -426,9 +429,7 @@ impl<T: 'static> Shell<T> {
                     // ループを抜けて、アプリケーションを終了します。
                     return true;
                 }
-                if res.reloads != "" {
-
-                }
+                if res.reloads != "" {}
             } else {
                 panic!("Downcast fail.");
             }
@@ -437,7 +438,7 @@ impl<T: 'static> Shell<T> {
         }
 
         // 1行読取終了。
-        (current_linebreak_controller)(t, request, response);
+        (current_newline_fn)(t, request, response);
         // responseは無視する。
         false
     }

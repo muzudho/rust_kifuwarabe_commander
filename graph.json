@@ -1,86 +1,80 @@
 {
 	"entrance": [
-		"ND_a",
-		"ND_ab",
-		"ND_abc",
-		"ND_end",
-		"ND_numvar",
-        "ND_quit",
-		"ND_reload",
-		"ND_wordvar"
+		"ND.a",
+		"ND.ab",
+		"ND.abc",
+		"ND.end",
+		"ND.numvar",
+        "ND.quit",
+		"ND.reload",
+		"ND.wordvar"
 	],
 	"nodes" : [
 		{
-			"name": "ND_a",
+			"label": "ND.a",
 			"token": "a",
-			"controller": "do_a",
-			"exit": {}
+			"fn": "do_a"
 		},
 		{
-			"name": "ND_ab",
+			"label": "ND.ab",
 			"token": "ab",
-			"controller": "do_ab",
+			"fn": "do_ab",
 			"exit": {
 				"next": [
-					"ND_cde"
+					"ND.cde"
 				],
-				"#linebreak": [
-					"ND_ab_linebreak"
+				"#newline": [
+					"ND.ab_newline"
 				]
 			}			
 		},
 		{
-			"name": "ND_abc",
+			"label": "ND.abc",
 			"token": "abc",
-			"controller": "do_abc",
-			"exit": {}
+			"fn": "do_abc"
 		},
 		{
-			"name": "ND_cde",
+			"label": "ND.cde",
 			"token": "cde",
-			"controller": "do_cde",
+			"fn": "do_cde",
 			"exit": {
 				"next": [
-					"ND_wordvar"
+					"ND.wordvar"
 				]
 			}
 		},
 		{
-			"name": "ND_end",
+			"label": "ND.end",
 			"token": "end",
-			"controller": "do_end",
-			"exit": {}
+			"fn": "do_end"
 		},
 		{
-			"name": "ND_numvar",
+			"label": "ND.numvar",
 			"regex": "(\\d+)",
-			"controller": "do_numvar",
-			"exit": {}
+			"fn": "do_numvar"
 		},
 		{
-			"name": "ND_quit",
+			"label": "ND.quit",
 			"token": "quit",
-			"controller": "do_quit",
-			"exit": {}
+			"fn": "do_quit"
 		},
 		{
-			"name": "ND_reload",
+			"label": "ND.reload",
 			"token": "reload",
-			"controller": "do_reload"
+			"fn": "do_reload"
 		},
 		{
-			"name": "ND_wordvar",
+			"label": "ND.wordvar",
 			"regex": "(\\w+)",
-			"controller": "do_wordvar",
-			"exit": {}
+			"fn": "do_wordvar"
 		},
 		{
-			"name": "ND_ab_linebreak",
-			"controller": "do_ab_linebreak"
+			"label": "ND.ab_newline",
+			"fn": "do_ab_newline"
 		},
 		{
-			"name": "#ND_complementary",
-			"controller": "do_other"
+			"label": "#else",
+			"fn": "do_other"
 		}
 	]
 }

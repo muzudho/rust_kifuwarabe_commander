@@ -178,8 +178,8 @@ impl<T: 'static> Shell<T> {
     /// * `req` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
     fn starts_with_literal(&self, node: &Node, req: &mut dyn Request) -> bool {
-        let caret_end = req.get_caret() + node.token.len();
-        caret_end <= req.get_line_len() && req.get_line()[req.get_caret()..caret_end] == node.token
+        let caret_end = req.get_caret() + node.get_token().len();
+        caret_end <= req.get_line_len() && &req.get_line()[req.get_caret()..caret_end] == node.get_token()
     }
 
     /// 正規表現を使う。
@@ -195,10 +195,10 @@ impl<T: 'static> Shell<T> {
 
         if req.get_caret() < req.get_line_len() {
             if VERBOSE {
-                println!("node.token: {}", node.token);
+                println!("node.token: {}", node.get_token());
             }
 
-            let re = Regex::new(&node.token).unwrap();
+            let re = Regex::new(&node.get_token()).unwrap();
 
             let text;
             let mut group_num = 0;
@@ -232,7 +232,7 @@ impl<T: 'static> Shell<T> {
     }
 
     fn forward_literal(&self, node: &Node, req: &dyn Request, res: &mut dyn Response) {
-        res.set_caret(req.get_caret() + node.token.len());
+        res.set_caret(req.get_caret() + node.get_token().len());
         let res_caret;
         if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
             res_caret = res.caret;
@@ -353,15 +353,15 @@ impl<T: 'static> Shell<T> {
                 let node = &graph.get_node(&best_node_name);
 
                 // あれば、コントローラーに処理を移譲。
-                if &node.fn_label == "" {
+                if node.get_fn_label() == "" {
                     // デフォルトで next を選ぶ。
                     res.forward("next");
-                } else if graph.contains_fn(&node.fn_label) {
-                    (graph.get_fn(&node.fn_label))(t, req, res);
+                } else if graph.contains_fn(&node.get_fn_label()) {
+                    (graph.get_fn(&node.get_fn_label()))(t, req, res);
                 } else {
                     panic!(
                         "\"{}\" fn (in {} node) is not found. Please use contains_fn().",
-                        &node.fn_label, best_node_name
+                        &node.get_fn_label(), best_node_name
                     );
                 }
 
@@ -369,7 +369,7 @@ impl<T: 'static> Shell<T> {
                 if node.contains_exits(&"#newline".to_string()) {
                     // 対応するノードは 1つだけとする。
                     let next_node = &node.get_exits(&"#newline".to_string())[0];
-                    current_newline_fn = *graph.get_fn(&graph.get_node(&next_node).fn_label);
+                    current_newline_fn = *graph.get_fn(&graph.get_node(&next_node).get_fn_label());
                 }
 
                 // フォワードを受け取り。
@@ -412,7 +412,7 @@ impl<T: 'static> Shell<T> {
             } else {
                 // 何とも一致しなかったら実行します。
                 if graph.contains_node(&"#else".to_string()) {
-                    (graph.get_fn(&graph.get_node(&"#else".to_string()).fn_label))(t, req, res);
+                    (graph.get_fn(&graph.get_node(&"#else".to_string()).get_fn_label()))(t, req, res);
                     // responseは無視する。
                 }
 
@@ -461,7 +461,7 @@ impl<T: 'static> Shell<T> {
                 let node = &graph.get_node(&node_name);
 
                 let matched;
-                if node.token_regex {
+                if node.is_regex() {
                     if self.starts_with_reg(node, req) {
                         // 正規表現で一致したなら。
                         best_node_re_name = node_name;
@@ -471,7 +471,7 @@ impl<T: 'static> Shell<T> {
                     if matched {
                         // 一番長い、固定長トークンの一致を探す。
                         //println!("starts_with_literal.");
-                        let token_len = node.token.chars().count();
+                        let token_len = node.get_token().chars().count();
                         if max_token_len < token_len {
                             max_token_len = token_len;
                             best_node_name = node_name;

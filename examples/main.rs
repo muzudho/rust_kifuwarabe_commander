@@ -66,6 +66,25 @@ fn main() {
     // ファイルからグラフのノード構成を読取。
     graph.read_graph_file(GRAPH_JSON_FILE.to_string());
 
+    // 内容確認出力。
+    {
+        println!("entrance");
+        for node in graph.get_entrance_vec().iter() {
+            println!("  - {}", node);
+        }
+
+        println!("nodes");
+        for (node_label, node) in graph.get_node_map().iter() {
+            println!("  - {} {}", node_label, node.get_token());
+            for (exits_label, exits_vec) in node.get_exits_map().iter() {
+                println!("    - {}", exits_label);
+                for exits_item in exits_vec.iter() {
+                    println!("      - {}", exits_item);
+                }
+            }
+        }
+    }
+
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
     // シェルの作成。

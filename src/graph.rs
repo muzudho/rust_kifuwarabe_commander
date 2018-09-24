@@ -48,16 +48,29 @@ pub trait Response {
 ///
 /// * `token` - 全文一致させたい文字列です。
 /// * `fn_label` - コールバック関数の登録名です。
-/// * `token_regex` - トークンに正規表現を使うなら真です。
+/// * `regex_flag` - トークンに正規表現を使うなら真です。
 /// * `exit_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node {
-    pub token: String,
-    pub fn_label: String,
-    pub token_regex: bool,
+    token: String,
+    fn_label: String,
+    regex_flag: bool,
     // 特殊な任意の名前 '#newline'
     exits: HashMap<String, Vec<String>>,
 }
 impl Node {
+    pub fn get_token(&self) -> &str {
+        &self.token
+    }
+    pub fn get_fn_label(&self) -> &str {
+        &self.fn_label
+    }
+    pub fn is_regex(&self) -> bool {
+        self.regex_flag
+    }
+    /// 確認用。
+    pub fn get_exits_map(&self) -> &HashMap<String, Vec<String>> {
+        &self.exits
+    }
     pub fn get_exits(&self, name: &str) -> &Vec<String> {
         if self.contains_exits(&name.to_string()) {
             &self.exits[name]
@@ -162,7 +175,7 @@ impl<T> Graph<T> {
             Node {
                 token: token2,
                 fn_label: fn_label2,
-                token_regex: false,
+                regex_flag: false,
                 exits: exits2,
             },
         );
@@ -186,7 +199,7 @@ impl<T> Graph<T> {
             Node {
                 token: token2,
                 fn_label: fn_label2,
-                token_regex: true,
+                regex_flag: true,
                 exits: exits2,
             },
         );
@@ -203,7 +216,7 @@ impl<T> Graph<T> {
             Node {
                 token: "".to_string(),
                 fn_label: fn_label2,
-                token_regex: false,
+                regex_flag: false,
                 exits: exits2,
             },
         );

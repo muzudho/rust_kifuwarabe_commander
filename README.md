@@ -7,10 +7,27 @@
 理屈でいうと、  
 
 ```
-abc def ghi
+abc 123 def
 ```
 
-というコマンドがあるとき、 graph.json という設定ファイルに  
+というコマンドがあるとき、
+
+```
+pub fn do_abc() {
+
+}
+
+pub fn do_num() {
+
+}
+
+pub fn do_def() {
+
+}
+```
+
+という関数を呼んでくれたら楽だろ。このライブラリは それをやってくれる。  
+graph.json という設定ファイルに  
 
 ```
 ### 省略した書き方
@@ -19,17 +36,17 @@ abc def ghi
     "fn": "do_abc"
 },
 {
+    "regex": "(\\d+)",
+    "fn": "do_num"
+},
+{
     "token": "def",
     "fn": "do_def"
 },
-{
-    "token": "ghi",
-    "fn": "do_ghi"
-},
 ```
 
-といった風に書いておけば、コールバック関数 do_abc(), do_def(), do_ghi() とかが呼ばれる仕組み。  
-実際は JSONファイルの中身は ごつく なる。  
+といった風に書いておけば、コールバック関数 do_abc(), do_num(), do_def() とかが呼ばれる仕組み。  
+実際は コールバック関数の引数や、 JSONファイルの中身は もっと ごつく なる。  
 コールバック関数は あらかじめ登録しておく☆（＾～＾）  
 詳しくは graph.json、 examples/main.rs を読めだぜ☆（＾～＾）  
 
@@ -82,8 +99,8 @@ fn main() {
     // グラフ作成し、コントローラー登録。
     let mut graph = Graph::new();
     graph.insert_fn("do_abc", do_abc);
+    graph.insert_fn("do_num", do_num);
     graph.insert_fn("do_def", do_def);
-    graph.insert_fn("do_ghi", do_ghi);
 
     // ファイル読取。
     graph.read_graph_file(GRAPH_JSON_FILE.to_string());
@@ -104,7 +121,7 @@ main 関数はこんなもん。 run の中で標準入力を勝手に拾う。
 コールバック関数は こんなふうに書くぜ☆（＾～＾）
 
 ```
-pub fn fn_abc(
+pub fn do_abc(
     shell_var: &mut ShellVar,
     _req: &Request,
     res: &mut dyn Response,
@@ -114,23 +131,23 @@ pub fn fn_abc(
     res.forward("next");
 }
 
-pub fn fn_def(
+pub fn do_num(
     shell_var: &mut ShellVar,
-    _req: &Request,
+    req: &Request,
     res: &mut dyn Response,
 ) {
-    shell_var.count += 1;
-    println!("I am def!");
+    // 正規表現は () 1個で全体を囲んだグループ1個 のものにだけ対応。
+    let num = req.get_groups()[0];
+    println!("I am {}!", num);
     res.forward("next");
 }
 
-pub fn fn_ghi(
-    shell_var: &mut ShellVar,
+pub fn do_def(
+    _shell_var: &mut ShellVar,
     _req: &Request,
     res: &mut dyn Response,
 ) {
-    shell_var.count += 1;
-    println!("I am ghi!");
+    println!("I am def!");
     res.forward("next");
 }
 ```
@@ -143,7 +160,8 @@ request とか、 response とか、 forward というのは Webサーバーの�
 ```
 {
 	"entrance": [
-		"ND.a"
+		"ND.a",
+		"ND.c"
 	],
 	"nodes" : [
 		{
@@ -158,18 +176,18 @@ request とか、 response とか、 forward というのは Webサーバーの�
 		},
 		{
 			"label": "ND.b",
-			"token": "def",
-			"fn": "do_def",
+			"regex": "(\\d+)",
+			"fn": "do_num",
 			"exit": {
 				"next": [
 					"ND.c"
 				]
 			}
-		},
+		}
 		{
 			"label": "ND.c",
-			"token": "ghi",
-			"fn": "do_ghi"
+			"token": "def",
+			"fn": "do_def"
 		}
     ]
 }

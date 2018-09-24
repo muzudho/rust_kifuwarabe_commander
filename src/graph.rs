@@ -82,63 +82,68 @@ pub fn empty_controller<T>(
 
 /// # Parameters.
 ///
-/// * `node_table` - 複数件のトークンです。
-/// * `entrance` - カンマ区切りの登録ノード名です。
+/// * `node_map` - 複数件のトークンです。
+/// * `entrance_vec` - カンマ区切りの登録ノード名です。
 #[derive(Default)]
 pub struct Graph<T> {
+    /// 任意の名前と、コントローラー。
+    fn_map: HashMap<String, Controller<T>>,
+    entrance_vec: Vec<String>,
     /// 特殊なノード名
     /// '#else' 一致するトークンが無かったときに呼び出されるコールバック関数です。
-    node_table: HashMap<String, Node>,
-    entrance: Vec<String>,
-    /// 任意の名前と、コントローラー。
-    controller_table: HashMap<String, Controller<T>>,
+    node_map: HashMap<String, Node>,
 }
 impl<T> Graph<T> {
     /// アプリケーション１つにつき、１つのフローチャートを共有します。
     pub fn new() -> Graph<T> {
         Graph {
-            node_table: HashMap::new(),
-            entrance: Vec::new(),
-            controller_table: HashMap::new(),
+            node_map: HashMap::new(),
+            entrance_vec: Vec::new(),
+            fn_map: HashMap::new(),
         }
+    }
+    /// 確認用。
+    pub fn get_node_map(&self) -> &HashMap<String, Node>
+    {
+        &self.node_map
     }
     /// クリアー。（登録したコントローラーを除く）
     pub fn clear_graph(&mut self) {
-        self.node_table.clear();
-        self.entrance.clear();
+        self.node_map.clear();
+        self.entrance_vec.clear();
     }
-    pub fn get_entrance(&self) -> &Vec<String> {
-        &self.entrance
+    pub fn get_entrance_vec(&self) -> &Vec<String> {
+        &self.entrance_vec
     }
-    pub fn set_entrance(&mut self, entrance2: Vec<String>) {
-        self.entrance = entrance2;
+    pub fn set_entrance_vec(&mut self, entrance_vec2: Vec<String>) {
+        self.entrance_vec = entrance_vec2;
     }
     pub fn get_node(&self, label: &str) -> &Node {
         if self.contains_node(&label.to_string()) {
-            &self.node_table[label]
+            &self.node_map[label]
         } else {
             panic!("\"{}\" node is not found.", label);
         }
     }
     pub fn contains_node(&self, label: &str) -> bool {
-        self.node_table.contains_key(&label.to_string())
+        self.node_map.contains_key(&label.to_string())
     }
-    pub fn get_controller(&self, name: &str) -> &Controller<T> {
-        if self.contains_controller(&name.to_string()) {
-            &self.controller_table[&name.to_string()]
+    pub fn get_fn(&self, name: &str) -> &Controller<T> {
+        if self.contains_fn(&name.to_string()) {
+            &self.fn_map[&name.to_string()]
         } else {
             panic!(
-                "\"{}\" fn is not found. Please use contains_controller().",
+                "\"{}\" fn is not found. Please use contains_fn().",
                 name
             );
         }
     }
-    pub fn contains_controller(&self, name: &str) -> bool {
-        self.controller_table.contains_key(&name.to_string())
+    pub fn contains_fn(&self, name: &str) -> bool {
+        self.fn_map.contains_key(&name.to_string())
     }
     /// name は ハードコーディングするので、 &'static str にする。
-    pub fn insert_fn(&mut self, name: &'static str, controller2: Controller<T>) {
-        self.controller_table.insert(name.to_string(), controller2);
+    pub fn insert_fn(&mut self, name: &'static str, fn2: Controller<T>) {
+        self.fn_map.insert(name.to_string(), fn2);
     }
     /// # Arguments
     ///
@@ -152,7 +157,7 @@ impl<T> Graph<T> {
         fn_label2: String,
         exits2: HashMap<String, Vec<String>>,
     ) {
-        self.node_table.insert(
+        self.node_map.insert(
             label,
             Node {
                 token: token2,
@@ -176,7 +181,7 @@ impl<T> Graph<T> {
         fn_label2: String,
         exits2: HashMap<String, Vec<String>>,
     ) {
-        self.node_table.insert(
+        self.node_map.insert(
             label.to_string(),
             Node {
                 token: token2,
@@ -193,7 +198,7 @@ impl<T> Graph<T> {
     /// * `label` - 登録用のノード名です。
     pub fn insert_node_single(&mut self, label: &str, fn_label2: String) {
         let exits2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
-        self.node_table.insert(
+        self.node_map.insert(
             label.to_string(),
             Node {
                 token: "".to_string(),
@@ -257,7 +262,7 @@ impl<T> Graph<T> {
         // 文字列に変換する。
         let mut entrance_vec: Vec<String> = Vec::new();
         self.array_to_str_vec(&v["entrance"], &mut entrance_vec);
-        self.set_entrance(entrance_vec);
+        self.set_entrance_vec(entrance_vec);
 
         for node in v["nodes"].as_array().unwrap().iter() {
             if !node["token"].is_null() {

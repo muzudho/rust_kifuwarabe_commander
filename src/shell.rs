@@ -141,6 +141,11 @@ pub struct Shell<T: 'static> {
     vec_row: Vec<String>,
     reader: Reader<T>,
 }
+impl<T> Default for Shell<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl<T: 'static> Shell<T> {
     pub fn new() -> Shell<T> {
         Shell {
@@ -174,8 +179,7 @@ impl<T: 'static> Shell<T> {
     /// * returns - 一致したら真。
     fn starts_with_literal(&self, node: &Node, req: &mut dyn Request) -> bool {
         let caret_end = req.get_caret() + node.token.len();
-        caret_end <= req.get_line_len()
-            && req.get_line()[req.get_caret()..caret_end] == node.token
+        caret_end <= req.get_line_len() && req.get_line()[req.get_caret()..caret_end] == node.token
     }
 
     /// 正規表現を使う。
@@ -227,12 +231,7 @@ impl<T: 'static> Shell<T> {
         }
     }
 
-    fn forward_literal(
-        &self,
-        node: &Node,
-        req: &dyn Request,
-        res: &mut dyn Response,
-    ) {
+    fn forward_literal(&self, node: &Node, req: &dyn Request, res: &mut dyn Response) {
         res.set_caret(req.get_caret() + node.token.len());
         let res_caret;
         if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
@@ -295,7 +294,7 @@ impl<T: 'static> Shell<T> {
     fn parse_line(&self, graph: &Graph<T>, t: &mut T, req: &mut dyn Request) -> bool {
         let empty_exits = &Vec::new();
         let res: &mut dyn Response = &mut ResponseStruct::new();
-        let mut current_exits: &Vec<String> = graph.get_entrance();
+        let mut current_exits: &Vec<String> = graph.get_entrance_vec();
         let mut current_newline_fn: Controller<T> = empty_controller;
 
         'line: while req.get_caret() < req.get_line_len() {
@@ -357,11 +356,11 @@ impl<T: 'static> Shell<T> {
                 if &node.fn_label == "" {
                     // デフォルトで next を選ぶ。
                     res.forward("next");
-                } else if graph.contains_controller(&node.fn_label) {
-                    (graph.get_controller(&node.fn_label))(t, req, res);
+                } else if graph.contains_fn(&node.fn_label) {
+                    (graph.get_fn(&node.fn_label))(t, req, res);
                 } else {
                     panic!(
-                        "\"{}\" fn (in {} node) is not found. Please use contains_controller().",
+                        "\"{}\" fn (in {} node) is not found. Please use contains_fn().",
                         &node.fn_label, best_node_name
                     );
                 }
@@ -370,8 +369,7 @@ impl<T: 'static> Shell<T> {
                 if node.contains_exits(&"#newline".to_string()) {
                     // 対応するノードは 1つだけとする。
                     let next_node = &node.get_exits(&"#newline".to_string())[0];
-                    current_newline_fn =
-                        *graph.get_controller(&graph.get_node(&next_node).fn_label);
+                    current_newline_fn = *graph.get_fn(&graph.get_node(&next_node).fn_label);
                 }
 
                 // フォワードを受け取り。
@@ -414,9 +412,7 @@ impl<T: 'static> Shell<T> {
             } else {
                 // 何とも一致しなかったら実行します。
                 if graph.contains_node(&"#else".to_string()) {
-                    (graph.get_controller(
-                        &graph.get_node(&"#else".to_string()).fn_label,
-                    ))(t, req, res);
+                    (graph.get_fn(&graph.get_node(&"#else".to_string()).fn_label))(t, req, res);
                     // responseは無視する。
                 }
 

@@ -282,3 +282,10 @@ cargo run --example main
 実際使っている例は きふわらべ のソースを読めだぜ☆（＾～＾）
 
 [Kifuwarabe_Shogi2018](https://github.com/muzudho/Kifuwarabe_Shogi2018)
+
+
+## Visualizer
+
+CUI だが、グラフを可視化するツールも作成中だぜ☆（*＾～＾*）
+
+https://github.com/muzudho/rust_kifuwarabe_shell_visualizer

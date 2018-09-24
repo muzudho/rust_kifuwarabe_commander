@@ -5,9 +5,11 @@ extern crate serde_json;
 use serde_json::Value;
 use std::fs::File;
 use std::io::Read;
+use std::io::Write;
 
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::collections::HashMap;
+use std::fs::OpenOptions;
 
 pub trait Request {
     fn as_mut_any(&mut self) -> &mut dyn Any;
@@ -30,13 +32,20 @@ pub trait Request {
 /// [2016-12-10 Idiomatic callbacks in Rust](https://stackoverflow.com/questions/41081240/idiomatic-callbacks-in-rust)
 pub type Controller<T> = fn(t: &mut T, req: &Request, res: &mut dyn Response);
 
+/// シェルに指示を出す。
+pub enum ResponseOption {
+    None,
+    Quits,
+    Reloads(String),
+    Saves(String),
+}
+
 pub trait Response {
     fn as_any(&self) -> &dyn Any; // トレイトを実装している方を返すのに使う。
     fn as_mut_any(&mut self) -> &mut dyn Any; // トレイトを実装している方を返すのに使う。
     fn set_caret(&mut self, usize);
     fn set_done_line(&mut self, bool);
-    fn set_quits(&mut self, bool);
-    fn set_reloads(&mut self, &'static str);
+    fn set_option(&mut self, ResponseOption);
     // .rs にハードコーディングして使う。
     fn forward(&mut self, &'static str);
 }
@@ -304,5 +313,49 @@ impl<T> Graph<T> {
                 );
             }
         }
+    }
+    /// TODO ファイル上書き書込。
+    pub fn save_graph_file(&mut self, file: &str) {
+        println!("セーブは開発中");
+
+        // 上書き書込。
+        let file_str = &format!("{}{}",file,".TEST.txt");
+
+        // JSON ではなく、 Graph 構造体が持っている。
+        let mut contents = String::new();
+
+        contents.push_str(
+r#"{
+    "entrance": [
+"#
+        );
+        // エントランス
+        for node_label in &self.entrance_vec {
+            contents.push_str(&format!(r#"        "{}","#, node_label));
+        }
+
+        contents.push_str(
+r#"
+    ],
+    "nodes": [
+"#
+        );
+        // ノード
+        for (_node_label, _node) in &self.node_map {
+
+        }
+
+        contents.push_str(
+r#"
+
+    ]
+}"#
+        );
+
+        // 全部書込み。
+        match &mut OpenOptions::new().create(true).write(true).open(file_str) {
+            Ok(contents_file) => contents_file.write_all(contents.as_bytes()),
+            Err(err) => panic!("Log file open (write mode) error. {}", err),
+        };
     }
 }

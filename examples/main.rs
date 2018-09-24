@@ -9,6 +9,7 @@
 extern crate serde_json;
 extern crate kifuwarabe_shell;
 use kifuwarabe_shell::graph::*;
+use kifuwarabe_shell::graph::ResponseOption;
 use kifuwarabe_shell::shell::*;
 
 
@@ -48,6 +49,11 @@ const GRAPH_JSON_FILE : &str = "graph.json";
 ///     Reload.
 ///     graph.json ファイルを再読み込みするはず。
 fn main() {
+    // 任意のオブジェクト。
+    let mut shell_var = ShellVar::new();
+    // シェルの作成。
+    let mut shell = Shell::new();
+
     // グラフの作成。
     let mut graph = Graph::new();
     // コントローラーを登録。
@@ -85,10 +91,6 @@ fn main() {
         }
     }
 
-    // 任意のオブジェクト。
-    let mut shell_var = ShellVar::new();
-    // シェルの作成。
-    let mut shell = Shell::new();
 
     // 実行。
     println!("Please enter command.");
@@ -183,7 +185,7 @@ pub fn do_quit(
 ) {
     shell_var.count += 1;
     println!("Quit.");
-    response.set_quits(true);
+    response.set_option(ResponseOption::Quits);
 }
 
 pub fn do_reload(
@@ -191,8 +193,8 @@ pub fn do_reload(
     _request: &dyn Request,
     response: &mut dyn Response,
 ) {
-    println!("Reload.");
-    response.set_reloads(GRAPH_JSON_FILE);
+    println!("Reload. {}", GRAPH_JSON_FILE);
+    response.set_option(ResponseOption::Reloads(GRAPH_JSON_FILE.to_string()));
 }
 
 pub fn do_wordvar(

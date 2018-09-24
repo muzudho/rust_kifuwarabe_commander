@@ -1,3 +1,4 @@
+use graph::ResponseOption;
 /// クライアント１つにつき、１つのシェルを与えます。
 /// 行単位です。
 ///
@@ -68,13 +69,12 @@ impl Request for RequestStruct {
 ///
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置です。
 /// * `done_line` - 行の解析を中断するなら真にします。
-/// * `quits` - アプリケーションを終了するなら真にします。
+/// * `option` - シェルに指示を出す。アプリケーション終了、ファイル再読込など。
 /// * `next_node_alies` - 次のノードの登録名です。カンマ区切り。
 pub struct ResponseStruct {
     pub caret: usize,
     pub done_line: bool,
-    pub quits: bool,
-    pub reloads: &'static str,
+    pub option: ResponseOption,
     pub next_node_alies: String,
 }
 impl ResponseStruct {
@@ -82,16 +82,14 @@ impl ResponseStruct {
         ResponseStruct {
             caret: 0,
             done_line: false,
-            quits: false,
-            reloads: "",
+            option: ResponseOption::None,
             next_node_alies: "".to_string(),
         }
     }
     fn reset(&mut self) {
         self.set_caret(0);
         self.set_done_line(false);
-        self.set_quits(false);
-        self.set_reloads("");
+        self.set_option(ResponseOption::None);
         self.forward("");
     }
 }
@@ -114,11 +112,8 @@ impl Response for ResponseStruct {
     fn set_done_line(&mut self, done_line2: bool) {
         self.done_line = done_line2
     }
-    fn set_quits(&mut self, quits2: bool) {
-        self.quits = quits2
-    }
-    fn set_reloads(&mut self, value: &'static str) {
-        self.reloads = value
+    fn set_option(&mut self, value: ResponseOption) {
+        self.option = value;
     }
 }
 
@@ -275,8 +270,8 @@ impl<T: 'static> Shell<T> {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run(&mut self, graph: &Graph<T>, t: &mut T) {
-        'lines: loop {
+    pub fn run(&mut self, graph: &mut Graph<T>, t: &mut T) {
+        loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut req = if self.is_empty() {
                 let line_string = (self.reader)(t);
@@ -286,18 +281,41 @@ impl<T: 'static> Shell<T> {
                 RequestStruct::new(self.pop_row())
             };
 
-            if self.parse_line(graph, t, &mut req) {
-                break 'lines;
+            use graph::ResponseOption::*;
+            let res: &mut dyn Response = &mut ResponseStruct::new();
+            self.run_on_graph(graph, t, &mut req, res);
+            if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
+                match res_struct.option {
+                    None => {}
+                    Quits => break, // response.quits したとき run ループを抜ける。
+                    Reloads(ref file) => {
+                        // ファイルからグラフのノード構成を読取。
+                        graph.read_graph_file(file.to_string());
+                    }
+                    Saves(ref file) => {
+                        // ファイルを上書き。
+                        graph.save_graph_file(&file);
+                    }
+                }
+            } else {
+                panic!("Downcast fail.");
             }
         }
     }
 
+    /// この関数の中では、 Graph をイミュータブルに保つ。 Graph の編集は この関数の外で行う。
+    ///
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn parse_line(&self, graph: &Graph<T>, t: &mut T, req: &mut dyn Request) -> bool {
+    fn run_on_graph(
+        &self,
+        graph: &Graph<T>,
+        t: &mut T,
+        req: &mut dyn Request,
+        res: &mut dyn Response,
+    ) {
         let empty_exits = &Vec::new();
-        let res: &mut dyn Response = &mut ResponseStruct::new();
         let mut current_exits: &Vec<String> = graph.get_entrance_vec();
         let mut current_newline_fn: Controller<T> = empty_controller;
 
@@ -432,11 +450,19 @@ impl<T: 'static> Shell<T> {
             }
 
             if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
-                if res.quits {
-                    // ループを抜けて、アプリケーションを終了します。
-                    return true;
+                use graph::ResponseOption::*;
+                match res.option {
+                    None => {}
+                    Quits => {
+                        return;
+                    }
+                    Reloads(ref _file) => {
+                        return;
+                    }
+                    Saves(ref _file) => {
+                        return;
+                    }
                 }
-                if res.reloads != "" {}
             } else {
                 panic!("Downcast fail.");
             }
@@ -447,10 +473,15 @@ impl<T: 'static> Shell<T> {
         // 1行読取終了。
         (current_newline_fn)(t, req, res);
         // responseは無視する。
-        false
     }
     // cyclomatic complexity を避けたいだけ。
-    fn parse_line_else(&self, graph: &Graph<T>, t: &mut T, req: &mut dyn Request, res: &mut dyn Response) {
+    fn parse_line_else(
+        &self,
+        graph: &Graph<T>,
+        t: &mut T,
+        req: &mut dyn Request,
+        res: &mut dyn Response,
+    ) {
         if graph.contains_node(&ELSE_NODE_LABEL.to_string()) {
             let fn_label = graph.get_node(&ELSE_NODE_LABEL.to_string()).get_fn_label();
             if graph.contains_fn(&fn_label) {

@@ -3,6 +3,7 @@
 // https://github.com/serde-rs/json
 extern crate serde_json;
 use serde_json::Value;
+
 use std::fs::File;
 use std::io::Read;
 use std::io::Write;
@@ -95,6 +96,42 @@ impl Node {
 }
 
 pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) {}
+
+/// JSONを出力するときにだけ使う入れ物。
+#[derive(Serialize, Deserialize, Debug)]
+struct GraphJson {
+    entrance: Vec<String>,
+    nodes: Vec<NodeJson>,
+}
+impl GraphJson {
+    pub fn new()->GraphJson{
+        GraphJson{
+            entrance: Vec::new(),
+            nodes: Vec::new(),
+        }
+    }
+}
+#[derive(Serialize, Deserialize, Debug)]
+struct NodeJson {
+    label: String,
+    token: String,
+    regex: String,
+    #[serde(rename = "fn")]
+    fnc: String, // fn がキーワードで使えない。
+    exit: HashMap<String,Vec<String>>,
+}
+impl NodeJson {
+    pub fn new() -> NodeJson {
+        NodeJson {
+            label: "".to_string(),
+            token: "".to_string(),
+            regex: "".to_string(),
+            fnc: "".to_string(),
+            exit: HashMap::new(),
+        }
+    }
+}
+
 
 /// # Parameters.
 ///
@@ -320,86 +357,42 @@ impl<T> Graph<T> {
     /// TODO https://qiita.com/garkimasera/items/0442ee896403c6b78fb2 |JSON文字列と構造体の相互変換
     pub fn save_graph_file(&mut self, file: &str) {
         println!("セーブは開発中");
+        
+        // 移し替え。
+        let mut graph_json = GraphJson::new();
+        // エントランス
+        for node_label in &self.entrance_vec {
+            graph_json.entrance.push(node_label.to_string());
+        }
+        // ノード
+        for (node_label, node) in &self.node_map {
+            let mut node_json = NodeJson::new();            
+            node_json.label = node_label.to_string();
+            if node.is_regex() {
+                node_json.regex = node.get_token().to_string();
+            } else {
+                node_json.token = node.get_token().to_string();
+            }
+            node_json.fnc = node.get_fn_label().to_string();
+
+            for (exits_label,node_vec) in node.get_exits_map().iter() {
+                let mut vec = Vec::new();
+                for exits_node in node_vec.iter() {
+                    vec.push(exits_node.to_string());
+                }
+                node_json.exit.insert(exits_label.to_string(), vec);
+            }
+
+            graph_json.nodes.push(node_json);
+        }
+        let json_str = serde_json::to_string(&graph_json).unwrap();
 
         // 上書き書込。
         let file_str = &format!("{}{}", file, ".TEST.json");
 
-        // JSON ではなく、 Graph 構造体が持っている。
-        let mut contents = String::new();
-
-        contents.push_str(
-            r#"{
-    "entrance": [
-"#,
-        );
-        // エントランス
-        let mut i = 0;
-        for node_label in &self.entrance_vec {
-            if 0 < i {
-                // カンマ
-                contents.push_str(
-                    r#",
-"#,
-                );
-            }
-            contents.push_str(&format!(r#"        "{}""#, node_label));
-            i += 1;
-        }
-
-        contents.push_str(
-            r#"
-    ],
-    "nodes": [
-"#,
-        );
-        // ノード
-        let mut j = 0;
-        for (_node_label, _node) in &self.node_map {
-            if 0 < j {
-                // カンマ 改行
-                contents.push_str(
-                    r#",
-"#,
-                );
-            }
-            contents.push_str(
-                r#"        {
-"#,
-            );
-
-            contents.push_str(
-                r#"            "label": "AAAA"
-"#,
-            );
-            contents.push_str(
-                r#"            "token": "AAAA"
-"#,
-            );
-            contents.push_str(
-                r#"            "regex": "AAAA"
-"#,
-            );
-            contents.push_str(
-                r#"            "fn": "AAAA"
-"#,
-            );
-            contents.push_str(
-                r#"            "exit": "AAAA"
-"#,
-            );
-
-            contents.push_str(r#"        }"#);
-            j += 1;
-        }
-
-        contents.push_str(
-            r#"    ]
-}"#,
-        );
-
         // 全部書込み。
         match &mut OpenOptions::new().create(true).write(true).open(file_str) {
-            Ok(contents_file) => contents_file.write_all(contents.as_bytes()),
+            Ok(contents_file) => contents_file.write_all(json_str.as_bytes()),
             Err(err) => panic!("Log file open (write mode) error. {}", err),
         };
     }

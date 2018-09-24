@@ -5,4 +5,6 @@ authors = ["muzudho <muzudho1@gmail.com>"]
 
 [dependencies]
 regex = "1"
+serde = "1.0"
+serde_derive = "1.0"
 serde_json = "1.0"

@@ -114,19 +114,23 @@ impl GraphJson {
 #[derive(Serialize, Deserialize, Debug)]
 struct NodeJson {
     label: String,
-    token: String,
-    regex: String,
+    #[serde(skip_serializing_if="Option::is_none")]
+    token: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    regex: Option<String>,
+    #[serde(skip_serializing_if="Option::is_none")]
     #[serde(rename = "fn")]
-    fnc: String, // fn がキーワードで使えない。
+    fnc: Option<String>, // fn がキーワードで使えない。
+    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
     exit: HashMap<String,Vec<String>>,
 }
 impl NodeJson {
     pub fn new() -> NodeJson {
         NodeJson {
             label: "".to_string(),
-            token: "".to_string(),
-            regex: "".to_string(),
-            fnc: "".to_string(),
+            token: None,
+            regex: None,
+            fnc: None,
             exit: HashMap::new(),
         }
     }
@@ -351,13 +355,9 @@ impl<T> Graph<T> {
             }
         }
     }
-    /// TODO ファイル上書き書込。
-    /// TODO バッファーせず、ストリームで保存したい。
-    /// FIXME デシリアライズが分からないので自作している☆（＾～＾）
-    /// TODO https://qiita.com/garkimasera/items/0442ee896403c6b78fb2 |JSON文字列と構造体の相互変換
+    /// ファイル上書き書込。
+    /// https://qiita.com/garkimasera/items/0442ee896403c6b78fb2 |JSON文字列と構造体の相互変換
     pub fn save_graph_file(&mut self, file: &str) {
-        println!("セーブは開発中");
-        
         // 移し替え。
         let mut graph_json = GraphJson::new();
         // エントランス
@@ -369,11 +369,13 @@ impl<T> Graph<T> {
             let mut node_json = NodeJson::new();            
             node_json.label = node_label.to_string();
             if node.is_regex() {
-                node_json.regex = node.get_token().to_string();
-            } else {
-                node_json.token = node.get_token().to_string();
+                node_json.regex = Some(node.get_token().to_string());
+            } else if node.get_token() != "" {
+                node_json.token = Some(node.get_token().to_string());
             }
-            node_json.fnc = node.get_fn_label().to_string();
+            if node.get_fn_label() != "" {
+                node_json.fnc = Some(node.get_fn_label().to_string());
+            }
 
             for (exits_label,node_vec) in node.get_exits_map().iter() {
                 let mut vec = Vec::new();
@@ -388,10 +390,7 @@ impl<T> Graph<T> {
         let json_str = serde_json::to_string(&graph_json).unwrap();
 
         // 上書き書込。
-        let file_str = &format!("{}{}", file, ".TEST.json");
-
-        // 全部書込み。
-        match &mut OpenOptions::new().create(true).write(true).open(file_str) {
+        match &mut OpenOptions::new().create(true).write(true).truncate(true).open(file) {
             Ok(contents_file) => contents_file.write_all(json_str.as_bytes()),
             Err(err) => panic!("Log file open (write mode) error. {}", err),
         };

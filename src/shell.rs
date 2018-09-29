@@ -303,6 +303,40 @@ impl<T: 'static> Shell<T> {
         }
     }
 
+    /// 1行 処理するだけでいいとき。
+    /// 
+    /// - Quits は無効になる。
+    /// 
+    /// # Arguments.
+    /// 
+    /// * 'graph' - 
+    /// * 't' - 
+    /// * 'line' - 
+    pub fn execute_line(&mut self, graph: &mut Graph<T>, t: &mut T, line: &str) {
+        // リクエストは、キャレットを更新するのでミュータブル。
+        let mut req = RequestStruct::new(Box::new(line.to_string()));
+
+        use graph::ResponseOption::*;
+        let res: &mut dyn Response = &mut ResponseStruct::new();
+        self.run_on_graph(graph, t, &mut req, res);
+        if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
+            match res_struct.option {
+                None => {},
+                Quits => {}, // ループの中ではないので無効。
+                Reloads(ref file) => {
+                    // ファイルからグラフのノード構成を読取。
+                    graph.read_graph_file(&file);
+                }
+                Saves(ref file) => {
+                    // ファイルを上書き。
+                    graph.save_graph_file(&file);
+                }
+            }
+        } else {
+            panic!("Downcast fail.");
+        }
+    }
+
     /// この関数の中では、 Graph をイミュータブルに保つ。 Graph の編集は この関数の外で行う。
     ///
     /// # Returns.
@@ -471,7 +505,9 @@ impl<T: 'static> Shell<T> {
             // 次のトークンへ。
         }
 
-        // 1行読取終了。
+        // ****************************************************************************************************
+        //  改行（1行読取）に対応したコールバック関数を実行。
+        // ****************************************************************************************************
         (current_newline_fn)(t, req, res);
         // responseは無視する。
     }
@@ -486,8 +522,13 @@ impl<T: 'static> Shell<T> {
         if graph.contains_node(&ELSE_NODE_LABEL.to_string()) {
             let fn_label = graph.get_node(&ELSE_NODE_LABEL.to_string()).get_fn_label();
             if graph.contains_fn(&fn_label) {
+
+                // ****************************************************************************************************
+                //  コールバック関数を実行。
+                // ****************************************************************************************************
                 (graph.get_fn(&fn_label))(t, req, res);
-            // responseは無視する。
+                // responseは無視する。
+
             } else {
                 // 無い関数が設定されていた場合は、コンソール表示だけする。
                 println!(

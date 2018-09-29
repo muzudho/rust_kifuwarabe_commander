@@ -190,7 +190,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 					"ND.c"
 				]
 			}
-		}
+		},
 		{
 			"label": "ND.c",
 			"token": "def",

@@ -1,4 +1,4 @@
-# kifuwarabe_shell
+# What is kifuwarabe shell?
 
 ## Overview.
 
@@ -50,15 +50,22 @@ graph.json という設定ファイルに
 コールバック関数は あらかじめ登録しておく☆（＾～＾）  
 詳しくは graph.json、 examples/main.rs を読めだぜ☆（＾～＾）  
 
+# Instalation.
+
 ## Cargo.toml の例。
 
 ```
+[dependencies]
+serde_json = "1.0"
+
 [dependencies.kifuwarabe_shell]
 git = "https://github.com/muzudho/rust_kifuwarabe_shell.git"
 rev = "7462977... Please get new rev from git hub."
 ```
 
 rev は Git hub を見て新しいのを入れろだぜ☆（＾～＾）
+
+# How to use kifuwarabe shell?
 
 ## ファイルの冒頭の例。
 

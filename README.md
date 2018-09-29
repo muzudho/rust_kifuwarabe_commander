@@ -115,10 +115,14 @@ fn main() {
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
 
-    // 実行。グラフと 任意のオブジェクトを渡す。
     let mut shell = Shell::new();
     println!("Please enter command.");
+
+    // 実行。グラフと 任意のオブジェクトを渡す。
     shell.run(&mut graph, &mut shell_var);
+
+    // 一行だけ実行するだけでいいなら、こっち
+    // shell.execute_line(&mut graph, &mut shell_var, "abc 123 def");
 }
 ```
 

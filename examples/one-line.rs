@@ -46,7 +46,7 @@ fn main() {
 
     // グラフの作成。
     let mut graph : Graph<ShellVar> = Graph::new();
-    setup_graph(&mut graph);
+    setup_graph(&mut graph); // test_scenario.rs 参照。
 
     // 内容確認出力。
     {
@@ -67,7 +67,9 @@ fn main() {
         }
     }
 
-    // 実行。
+    // ****************************************************************************************************
+    //  実行。
+    // ****************************************************************************************************
     println!("Please enter command.");
     shell.execute_line(&mut graph, &mut shell_var, "ab cde xyz");
     println!("Finished. shell_var.count: {}.", shell_var.count);

@@ -1,4 +1,5 @@
 {
+    "entry_point": "HUB.neutral",
     "entrance": [
         "ND.a",
         "ND.ab",
@@ -11,6 +12,22 @@
         "ND.wordvar"
     ],
     "nodes": [
+        {
+            "label": "HUB.neutral",
+            "exit": {
+                "#entrance": [
+                    "ND.a",
+                    "ND.ab",
+                    "ND.abc",
+                    "ND.edit.save",
+                    "ND.end",
+                    "ND.numvar",
+                    "ND.quit",
+                    "ND.reload",
+                    "ND.wordvar"
+                ]                            
+            }
+        },
         {
             "label": "ND.ab",
             "token": "ab",

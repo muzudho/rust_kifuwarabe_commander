@@ -8,6 +8,7 @@ use std::fs::File;
 use std::io::Read;
 use std::io::Write;
 
+use models::diagram_json::*;
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -97,45 +98,6 @@ impl Node {
 
 pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) {}
 
-/// JSONを出力するときにだけ使う入れ物。
-#[derive(Serialize, Deserialize, Debug)]
-struct DiagramJson {
-    entrance: Vec<String>,
-    nodes: Vec<NodeJson>,
-}
-impl DiagramJson {
-    pub fn new() -> DiagramJson {
-        DiagramJson {
-            entrance: Vec::new(),
-            nodes: Vec::new(),
-        }
-    }
-}
-#[derive(Serialize, Deserialize, Debug)]
-struct NodeJson {
-    label: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    token: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    regex: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "fn")]
-    fnc: Option<String>, // fn がキーワードで使えない。
-    #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    exit: HashMap<String, Vec<String>>,
-}
-impl NodeJson {
-    pub fn new() -> NodeJson {
-        NodeJson {
-            label: "".to_string(),
-            token: None,
-            regex: None,
-            fnc: None,
-            exit: HashMap::new(),
-        }
-    }
-}
-
 /// # Parameters.
 ///
 /// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
@@ -144,6 +106,7 @@ impl NodeJson {
 #[derive(Default)]
 pub struct Diagram<T> {
     fn_map: HashMap<String, Controller<T>>,
+    entry_point: String,
     entrance_vec: Vec<String>,
     /// 特殊なノード名
     /// '#else' 一致するトークンが無かったときに呼び出されるコールバック関数です。
@@ -154,6 +117,7 @@ impl<T> Diagram<T> {
     pub fn new() -> Diagram<T> {
         Diagram {
             node_map: HashMap::new(),
+            entry_point: "".to_string(),
             entrance_vec: Vec::new(),
             fn_map: HashMap::new(),
         }
@@ -166,6 +130,12 @@ impl<T> Diagram<T> {
     pub fn clear(&mut self) {
         self.node_map.clear();
         self.entrance_vec.clear();
+    }
+    pub fn get_entry_point(&self) -> String {
+        self.entry_point.to_string()
+    }
+    pub fn set_entry_point(&mut self, value: String) {
+        self.entry_point = value;
     }
     pub fn get_entrance_vec(&self) -> &Vec<String> {
         &self.entrance_vec
@@ -356,24 +326,29 @@ impl<T> Diagram<T> {
     }
     /// ファイル上書き書込。
     /// https://qiita.com/garkimasera/items/0442ee896403c6b78fb2 |JSON文字列と構造体の相互変換
-    pub fn save_file(&mut self, file: &str) {
+    pub fn write_file(&mut self, file: &str) {
         // 移し替え。
         let mut diagram_json = DiagramJson::new();
         // エントランス
+        {
+            let entry_point = &self.entry_point;
+            diagram_json.set_entry_point(entry_point.to_string());
+        }
+
         for node_label in &self.entrance_vec {
-            diagram_json.entrance.push(node_label.to_string());
+            diagram_json.push_entrance(&node_label.to_string());
         }
         // ノード
         for (node_label, node) in &self.node_map {
             let mut node_json = NodeJson::new();
-            node_json.label = node_label.to_string();
+            node_json.set_label(node_label.to_string());
             if node.is_regex() {
-                node_json.regex = Some(node.get_token().to_string());
+                node_json.set_regex(Some(node.get_token().to_string()));
             } else if node.get_token() != "" {
-                node_json.token = Some(node.get_token().to_string());
+                node_json.set_token(Some(node.get_token().to_string()));
             }
             if node.get_fn_label() != "" {
-                node_json.fnc = Some(node.get_fn_label().to_string());
+                node_json.set_fnc(Some(node.get_fn_label().to_string()));
             }
 
             for (exits_label, node_vec) in node.get_exits_map().iter() {
@@ -381,10 +356,10 @@ impl<T> Diagram<T> {
                 for exits_node in node_vec.iter() {
                     vec.push(exits_node.to_string());
                 }
-                node_json.exit.insert(exits_label.to_string(), vec);
+                node_json.insert_exit(&exits_label.to_string(), vec);
             }
 
-            diagram_json.nodes.push(node_json);
+            diagram_json.push_node(node_json);
         }
         let json_str = serde_json::to_string(&diagram_json).unwrap();
 

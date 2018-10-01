@@ -283,7 +283,7 @@ impl<T: 'static> Shell<T> {
 
             use diagram::ResponseOption::*;
             let res: &mut dyn Response = &mut ResponseStruct::new();
-            self.run_on_diagram(diagram, t, &mut req, res);
+            self.run_on_line(diagram, t, &mut req, res);
             if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
                 match res_struct.option {
                     None => {}
@@ -294,7 +294,7 @@ impl<T: 'static> Shell<T> {
                     }
                     Saves(ref file) => {
                         // ファイルを上書き。
-                        diagram.save_file(&file);
+                        diagram.write_file(&file);
                     }
                 }
             } else {
@@ -318,7 +318,7 @@ impl<T: 'static> Shell<T> {
 
         use diagram::ResponseOption::*;
         let res: &mut dyn Response = &mut ResponseStruct::new();
-        self.run_on_diagram(diagram, t, &mut req, res);
+        self.run_on_line(diagram, t, &mut req, res);
         if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
             match res_struct.option {
                 None => {},
@@ -329,7 +329,7 @@ impl<T: 'static> Shell<T> {
                 }
                 Saves(ref file) => {
                     // ファイルを上書き。
-                    diagram.save_file(&file);
+                    diagram.write_file(&file);
                 }
             }
         } else {
@@ -342,7 +342,7 @@ impl<T: 'static> Shell<T> {
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn run_on_diagram(
+    fn run_on_line(
         &self,
         diagram: &Diagram<T>,
         t: &mut T,

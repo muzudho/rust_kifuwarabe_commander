@@ -99,13 +99,13 @@ pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) 
 
 /// JSONを出力するときにだけ使う入れ物。
 #[derive(Serialize, Deserialize, Debug)]
-struct GraphJson {
+struct DiagramJson {
     entrance: Vec<String>,
     nodes: Vec<NodeJson>,
 }
-impl GraphJson {
-    pub fn new()->GraphJson{
-        GraphJson{
+impl DiagramJson {
+    pub fn new() -> DiagramJson {
+        DiagramJson {
             entrance: Vec::new(),
             nodes: Vec::new(),
         }
@@ -114,15 +114,15 @@ impl GraphJson {
 #[derive(Serialize, Deserialize, Debug)]
 struct NodeJson {
     label: String,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     token: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     regex: Option<String>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "fn")]
     fnc: Option<String>, // fn がキーワードで使えない。
     #[serde(skip_serializing_if = "HashMap::is_empty", default)]
-    exit: HashMap<String,Vec<String>>,
+    exit: HashMap<String, Vec<String>>,
 }
 impl NodeJson {
     pub fn new() -> NodeJson {
@@ -136,24 +136,23 @@ impl NodeJson {
     }
 }
 
-
 /// # Parameters.
 ///
+/// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
 /// * `node_map` - 複数件のトークンです。
 /// * `entrance_vec` - カンマ区切りの登録ノード名です。
 #[derive(Default)]
-pub struct Graph<T> {
-    /// 任意の名前と、コントローラー。
+pub struct Diagram<T> {
     fn_map: HashMap<String, Controller<T>>,
     entrance_vec: Vec<String>,
     /// 特殊なノード名
     /// '#else' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     node_map: HashMap<String, Node>,
 }
-impl<T> Graph<T> {
+impl<T> Diagram<T> {
     /// アプリケーション１つにつき、１つのフローチャートを共有します。
-    pub fn new() -> Graph<T> {
-        Graph {
+    pub fn new() -> Diagram<T> {
+        Diagram {
             node_map: HashMap::new(),
             entrance_vec: Vec::new(),
             fn_map: HashMap::new(),
@@ -164,7 +163,7 @@ impl<T> Graph<T> {
         &self.node_map
     }
     /// クリアー。（登録したコントローラーを除く）
-    pub fn clear_graph(&mut self) {
+    pub fn clear(&mut self) {
         self.node_map.clear();
         self.entrance_vec.clear();
     }
@@ -291,8 +290,8 @@ impl<T> Graph<T> {
         }
     }
     /// ファイル読み込み
-    pub fn read_graph_file(&mut self, file: &str) {
-        self.clear_graph();
+    pub fn read_file(&mut self, file: &str) {
+        self.clear();
 
         let mut file = match File::open(file) {
             Ok(n) => n,
@@ -357,16 +356,16 @@ impl<T> Graph<T> {
     }
     /// ファイル上書き書込。
     /// https://qiita.com/garkimasera/items/0442ee896403c6b78fb2 |JSON文字列と構造体の相互変換
-    pub fn save_graph_file(&mut self, file: &str) {
+    pub fn save_file(&mut self, file: &str) {
         // 移し替え。
-        let mut graph_json = GraphJson::new();
+        let mut diagram_json = DiagramJson::new();
         // エントランス
         for node_label in &self.entrance_vec {
-            graph_json.entrance.push(node_label.to_string());
+            diagram_json.entrance.push(node_label.to_string());
         }
         // ノード
         for (node_label, node) in &self.node_map {
-            let mut node_json = NodeJson::new();            
+            let mut node_json = NodeJson::new();
             node_json.label = node_label.to_string();
             if node.is_regex() {
                 node_json.regex = Some(node.get_token().to_string());
@@ -377,7 +376,7 @@ impl<T> Graph<T> {
                 node_json.fnc = Some(node.get_fn_label().to_string());
             }
 
-            for (exits_label,node_vec) in node.get_exits_map().iter() {
+            for (exits_label, node_vec) in node.get_exits_map().iter() {
                 let mut vec = Vec::new();
                 for exits_node in node_vec.iter() {
                     vec.push(exits_node.to_string());
@@ -385,12 +384,17 @@ impl<T> Graph<T> {
                 node_json.exit.insert(exits_label.to_string(), vec);
             }
 
-            graph_json.nodes.push(node_json);
+            diagram_json.nodes.push(node_json);
         }
-        let json_str = serde_json::to_string(&graph_json).unwrap();
+        let json_str = serde_json::to_string(&diagram_json).unwrap();
 
         // 上書き書込。
-        match &mut OpenOptions::new().create(true).write(true).truncate(true).open(file) {
+        match &mut OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(file)
+        {
             Ok(contents_file) => contents_file.write_all(json_str.as_bytes()),
             Err(err) => panic!("Log file open (write mode) error. {}", err),
         };

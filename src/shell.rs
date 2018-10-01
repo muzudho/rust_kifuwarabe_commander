@@ -1,4 +1,4 @@
-use graph::ResponseOption;
+use diagram::ResponseOption;
 /// クライアント１つにつき、１つのシェルを与えます。
 /// 行単位です。
 ///
@@ -8,7 +8,7 @@ use graph::ResponseOption;
 /// cd C:\MuzudhoDrive\projects_rust\rust_kifuwarabe_shell
 /// cargo clippy
 /// ```
-use graph::*;
+use diagram::*;
 use regex::Regex;
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
 use std::io;
@@ -270,7 +270,7 @@ impl<T: 'static> Shell<T> {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run(&mut self, graph: &mut Graph<T>, t: &mut T) {
+    pub fn run(&mut self, diagram: &mut Diagram<T>, t: &mut T) {
         loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut req = if self.is_empty() {
@@ -281,20 +281,20 @@ impl<T: 'static> Shell<T> {
                 RequestStruct::new(self.pop_row())
             };
 
-            use graph::ResponseOption::*;
+            use diagram::ResponseOption::*;
             let res: &mut dyn Response = &mut ResponseStruct::new();
-            self.run_on_graph(graph, t, &mut req, res);
+            self.run_on_diagram(diagram, t, &mut req, res);
             if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
                 match res_struct.option {
                     None => {}
                     Quits => break, // response.quits したとき run ループを抜ける。
                     Reloads(ref file) => {
                         // ファイルからグラフのノード構成を読取。
-                        graph.read_graph_file(&file);
+                        diagram.read_file(&file);
                     }
                     Saves(ref file) => {
                         // ファイルを上書き。
-                        graph.save_graph_file(&file);
+                        diagram.save_file(&file);
                     }
                 }
             } else {
@@ -309,27 +309,27 @@ impl<T: 'static> Shell<T> {
     /// 
     /// # Arguments.
     /// 
-    /// * 'graph' - 
+    /// * 'diagram' - 
     /// * 't' - 
     /// * 'line' - 
-    pub fn execute_line(&mut self, graph: &mut Graph<T>, t: &mut T, line: &str) {
+    pub fn execute_line(&mut self, diagram: &mut Diagram<T>, t: &mut T, line: &str) {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut req = RequestStruct::new(Box::new(line.to_string()));
 
-        use graph::ResponseOption::*;
+        use diagram::ResponseOption::*;
         let res: &mut dyn Response = &mut ResponseStruct::new();
-        self.run_on_graph(graph, t, &mut req, res);
+        self.run_on_diagram(diagram, t, &mut req, res);
         if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
             match res_struct.option {
                 None => {},
                 Quits => {}, // ループの中ではないので無効。
                 Reloads(ref file) => {
                     // ファイルからグラフのノード構成を読取。
-                    graph.read_graph_file(&file);
+                    diagram.read_file(&file);
                 }
                 Saves(ref file) => {
                     // ファイルを上書き。
-                    graph.save_graph_file(&file);
+                    diagram.save_file(&file);
                 }
             }
         } else {
@@ -337,20 +337,20 @@ impl<T: 'static> Shell<T> {
         }
     }
 
-    /// この関数の中では、 Graph をイミュータブルに保つ。 Graph の編集は この関数の外で行う。
+    /// この関数の中では、 Diagram をイミュータブルに保つ。 Diagram の編集は この関数の外で行う。
     ///
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    fn run_on_graph(
+    fn run_on_diagram(
         &self,
-        graph: &Graph<T>,
+        diagram: &Diagram<T>,
         t: &mut T,
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
         let empty_exits = &Vec::new();
-        let mut current_exits: &Vec<String> = graph.get_entrance_vec();
+        let mut current_exits: &Vec<String> = diagram.get_entrance_vec();
         let mut current_newline_fn: Controller<T> = empty_controller;
 
         'line: while req.get_caret() < req.get_line_len() {
@@ -366,14 +366,14 @@ impl<T: 'static> Shell<T> {
 
             // 次のノード名
             let (mut best_node_label, best_node_re_label) =
-                self.next_node_label(graph, req, current_exits);
+                self.next_node_label(diagram, req, current_exits);
 
             // キャレットを進める。
             let mut is_done = false;
             if best_node_label != "" {
                 // 固定長での一致を優先。
                 res.set_caret(req.get_caret());
-                self.forward_literal(&graph.get_node(&best_node_label), req, res);
+                self.forward_literal(&diagram.get_node(&best_node_label), req, res);
 
                 if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                     if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
@@ -407,14 +407,14 @@ impl<T: 'static> Shell<T> {
             if is_done {
                 res.set_caret(req.get_caret());
                 res.forward("");
-                let node = &graph.get_node(&best_node_label);
+                let node = &diagram.get_node(&best_node_label);
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
                     // デフォルトで next を選ぶ。
                     res.forward("next");
-                } else if graph.contains_fn(&node.get_fn_label()) {
-                    (graph.get_fn(&node.get_fn_label()))(t, req, res);
+                } else if diagram.contains_fn(&node.get_fn_label()) {
+                    (diagram.get_fn(&node.get_fn_label()))(t, req, res);
                 } else {
                     // 無い関数が設定されていた場合は、コンソール表示だけする。
                     println!(
@@ -428,9 +428,9 @@ impl<T: 'static> Shell<T> {
                 if node.contains_exits(&NEWLINE_EXITS_LABEL.to_string()) {
                     // 対応するノードは 1つだけとする。
                     let next_node = &node.get_exits(&NEWLINE_EXITS_LABEL.to_string())[0];
-                    let fn_label = graph.get_node(&next_node).get_fn_label();
-                    if graph.contains_fn(&fn_label) {
-                        current_newline_fn = *graph.get_fn(&fn_label);
+                    let fn_label = diagram.get_node(&next_node).get_fn_label();
+                    if diagram.contains_fn(&fn_label) {
+                        current_newline_fn = *diagram.get_fn(&fn_label);
                     } else {
                         // 無い関数が設定されていた場合は、コンソール表示だけする。
                         println!(
@@ -479,13 +479,13 @@ impl<T: 'static> Shell<T> {
                 }
             } else {
                 // 何とも一致しなかったら実行します
-                self.parse_line_else(&graph, t, req, res);
+                self.parse_line_else(&diagram, t, req, res);
                 // 次のラインへ。
                 break 'line;
             }
 
             if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
-                use graph::ResponseOption::*;
+                use diagram::ResponseOption::*;
                 match res.option {
                     None => {}
                     Quits => {
@@ -514,19 +514,19 @@ impl<T: 'static> Shell<T> {
     // cyclomatic complexity を避けたいだけ。
     fn parse_line_else(
         &self,
-        graph: &Graph<T>,
+        diagram: &Diagram<T>,
         t: &mut T,
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
-        if graph.contains_node(&ELSE_NODE_LABEL.to_string()) {
-            let fn_label = graph.get_node(&ELSE_NODE_LABEL.to_string()).get_fn_label();
-            if graph.contains_fn(&fn_label) {
+        if diagram.contains_node(&ELSE_NODE_LABEL.to_string()) {
+            let fn_label = diagram.get_node(&ELSE_NODE_LABEL.to_string()).get_fn_label();
+            if diagram.contains_fn(&fn_label) {
 
                 // ****************************************************************************************************
                 //  コールバック関数を実行。
                 // ****************************************************************************************************
-                (graph.get_fn(&fn_label))(t, req, res);
+                (diagram.get_fn(&fn_label))(t, req, res);
                 // responseは無視する。
 
             } else {
@@ -542,7 +542,7 @@ impl<T: 'static> Shell<T> {
     /// 次に一致するノード名。
     fn next_node_label(
         &self,
-        graph: &Graph<T>,
+        diagram: &Diagram<T>,
         req: &mut dyn Request,
         current_exits: &[String],
     ) -> (String, String) {
@@ -555,11 +555,11 @@ impl<T: 'static> Shell<T> {
         for i_next_node_label in current_exits {
             let next_node_label = i_next_node_label.trim();
             // println!("next_node_label: {}", next_node_label);
-            if graph.contains_node(&next_node_label.to_string()) {
+            if diagram.contains_node(&next_node_label.to_string()) {
                 //println!("contains.");
 
                 let node_name = next_node_label.to_string();
-                let node = &graph.get_node(&node_name);
+                let node = &diagram.get_node(&node_name);
 
                 let matched;
                 if node.is_regex() {

@@ -18,5 +18,5 @@ macro_rules! hashmap {
     }}
 }
 
-pub mod graph;
+pub mod diagram;
 pub mod shell;

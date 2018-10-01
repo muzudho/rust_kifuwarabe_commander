@@ -1,7 +1,7 @@
-use kifuwarabe_shell::graph::ResponseOption;
-use kifuwarabe_shell::graph::*;
+use kifuwarabe_shell::diagram::ResponseOption;
+use kifuwarabe_shell::diagram::*;
 
-const GRAPH_JSON_FILE: &str = "graph.json";
+const DIAGRAM_JSON_FILE: &str = "diagram.json";
 
 // 任意のオブジェクト。
 pub struct ShellVar {
@@ -13,23 +13,23 @@ impl ShellVar {
     }
 }
 
-pub fn setup_graph(graph: &mut Graph<ShellVar>) {
+pub fn setup_diagram(diagram: &mut Diagram<ShellVar>) {
     // コントローラーを登録。
-    graph.insert_fn("do_a", do_a);
-    graph.insert_fn("do_ab", do_ab);
-    graph.insert_fn("do_abc", do_abc);
-    graph.insert_fn("do_cde", do_cde);
-    graph.insert_fn("do_edit_save", do_edit_save);
-    graph.insert_fn("do_end", do_end);
-    graph.insert_fn("do_numvar", do_numvar);
-    graph.insert_fn("do_quit", do_quit);
-    graph.insert_fn("do_wordvar", do_wordvar);
-    graph.insert_fn("do_ab_newline", do_ab_newline);
-    graph.insert_fn("do_other", do_other);
-    graph.insert_fn("do_reload", do_reload);
+    diagram.insert_fn("do_a", do_a);
+    diagram.insert_fn("do_ab", do_ab);
+    diagram.insert_fn("do_abc", do_abc);
+    diagram.insert_fn("do_cde", do_cde);
+    diagram.insert_fn("do_edit_save", do_edit_save);
+    diagram.insert_fn("do_end", do_end);
+    diagram.insert_fn("do_numvar", do_numvar);
+    diagram.insert_fn("do_quit", do_quit);
+    diagram.insert_fn("do_wordvar", do_wordvar);
+    diagram.insert_fn("do_ab_newline", do_ab_newline);
+    diagram.insert_fn("do_other", do_other);
+    diagram.insert_fn("do_reload", do_reload);
 
     // ファイルからグラフのノード構成を読取。
-    graph.read_graph_file(&GRAPH_JSON_FILE);
+    diagram.read_file(&DIAGRAM_JSON_FILE);
 }
 
 pub fn do_a(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {
@@ -61,8 +61,8 @@ pub fn do_cde(shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Respon
 
 /// グラフファイルを上書き保存する。
 pub fn do_edit_save(_shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Response) {
-    println!("!Save. {}", GRAPH_JSON_FILE);
-    res.set_option(ResponseOption::Saves(GRAPH_JSON_FILE.to_string()));
+    println!("!Save. {}", DIAGRAM_JSON_FILE);
+    res.set_option(ResponseOption::Saves(DIAGRAM_JSON_FILE.to_string()));
 }
 
 pub fn do_end(shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Response) {
@@ -93,8 +93,8 @@ pub fn do_quit(shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Respo
 }
 
 pub fn do_reload(_shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Response) {
-    println!("Reload. {}", GRAPH_JSON_FILE);
-    res.set_option(ResponseOption::Reloads(GRAPH_JSON_FILE.to_string()));
+    println!("Reload. {}", DIAGRAM_JSON_FILE);
+    res.set_option(ResponseOption::Reloads(DIAGRAM_JSON_FILE.to_string()));
 }
 
 pub fn do_wordvar(shell_var: &mut ShellVar, req: &dyn Request, _res: &mut dyn Response) {

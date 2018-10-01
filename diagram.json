@@ -1,0 +1,86 @@
+{
+    "entrance": [
+        "ND.a",
+        "ND.ab",
+        "ND.abc",
+        "ND.edit.save",
+        "ND.end",
+        "ND.numvar",
+        "ND.quit",
+        "ND.reload",
+        "ND.wordvar"
+    ],
+    "nodes": [
+        {
+            "label": "ND.ab",
+            "token": "ab",
+            "fn": "do_ab",
+            "exit": {
+                "#newline": [
+                    "ND.ab_newline"
+                ],
+                "next": [
+                    "ND.cde"
+                ]
+            }
+        },
+        {
+            "label": "ND.abc",
+            "token": "abc",
+            "fn": "do_abc"
+        },
+        {
+            "label": "ND.wordvar",
+            "regex": "(\\w+)",
+            "fn": "do_wordvar"
+        },
+        {
+            "label": "ND.numvar",
+            "regex": "(\\d+)",
+            "fn": "do_numvar"
+        },
+        {
+            "label": "ND.cde",
+            "token": "cde",
+            "fn": "do_cde",
+            "exit": {
+                "next": [
+                    "ND.wordvar"
+                ]
+            }
+        },
+        {
+            "label": "ND.reload",
+            "token": "reload",
+            "fn": "do_reload"
+        },
+        {
+            "label": "ND.quit",
+            "token": "quit",
+            "fn": "do_quit"
+        },
+        {
+            "label": "ND.ab_newline",
+            "fn": "do_ab_newline"
+        },
+        {
+            "label": "#else",
+            "fn": "do_other"
+        },
+        {
+            "label": "ND.a",
+            "token": "a",
+            "fn": "do_a"
+        },
+        {
+            "label": "ND.edit.save",
+            "token": "!save",
+            "fn": "do_edit_save"
+        },
+        {
+            "label": "ND.end",
+            "token": "end",
+            "fn": "do_end"
+        }
+    ]
+}

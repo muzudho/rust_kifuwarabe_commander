@@ -27,7 +27,7 @@ pub fn do_def() {
 ```
 
 という関数を呼んでくれたら楽だろ。このライブラリは それをやってくれる。  
-graph.json という設定ファイルに  
+diagram.json という設定ファイルに  
 
 ```
 ### 省略した書き方
@@ -48,7 +48,7 @@ graph.json という設定ファイルに
 といった風に書いておけば、コールバック関数 do_abc(), do_num(), do_def() とかが呼ばれる仕組み。  
 実際は コールバック関数の引数や、 JSONファイルの中身は もっと ごつく なる。  
 コールバック関数は あらかじめ登録しておく☆（＾～＾）  
-詳しくは graph.json、 examples/main.rs を読めだぜ☆（＾～＾）  
+詳しくは diagram.json、 examples/main.rs を読めだぜ☆（＾～＾）  
 
 # Instalation.
 
@@ -72,15 +72,15 @@ rev は Git hub を見て新しいのを入れろだぜ☆（＾～＾）
 ```
 extern crate serde_json;
 extern crate kifuwarabe_shell;
-use kifuwarabe_shell::graph::*;
-use kifuwarabe_shell::graph::ResponseOption;
+use kifuwarabe_shell::diagram::*;
+use kifuwarabe_shell::diagram::ResponseOption;
 use kifuwarabe_shell::shell::*;
 ```
 
-## graph.json のファイル名。
+## diagram.json のファイル名。
 
 ```
-const GRAPH_JSON_FILE : &'static str = "graph.json";
+const DIAGRAM_JSON_FILE : &'static str = "diagram.json";
 ```
 
 なんでもいい。定数にしておけだぜ。
@@ -104,13 +104,13 @@ impl ShellVar {
 ```
 fn main() {
     // グラフ作成し、コントローラー登録。
-    let mut graph = Graph::new();
-    graph.insert_fn("do_abc", do_abc);
-    graph.insert_fn("do_num", do_num);
-    graph.insert_fn("do_def", do_def);
+    let mut diagram = Diagram::new();
+    diagram.insert_fn("do_abc", do_abc);
+    diagram.insert_fn("do_num", do_num);
+    diagram.insert_fn("do_def", do_def);
 
     // ファイル読取。
-    graph.read_graph_file(GRAPH_JSON_FILE.to_string());
+    diagram.read_file(DIAGRAM_JSON_FILE.to_string());
 
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
@@ -119,10 +119,10 @@ fn main() {
     println!("Please enter command.");
 
     // 実行。グラフと 任意のオブジェクトを渡す。
-    shell.run(&mut graph, &mut shell_var);
+    shell.run(&mut diagram, &mut shell_var);
 
     // 一行だけ実行するだけでいいなら、こっち
-    // shell.execute_line(&mut graph, &mut shell_var, "abc 123 def");
+    // shell.execute_line(&mut diagram, &mut shell_var, "abc 123 def");
 }
 ```
 
@@ -164,9 +164,9 @@ pub fn do_def(
 ```
 
 request とか、 response とか、 forward というのは Webサーバーのフレームワークを真似ている☆（＾～＾）
-じゃあ次は graph.json の書き方だぜ。
+じゃあ次は diagram.json の書き方だぜ。
 
-## graph.json の書き方。
+## diagram.json の書き方。
 
 ```
 {
@@ -219,7 +219,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 ### token と regex のどちらも無記入の場合は特殊な使い方をする。
 ```
 
-```fn``` というのは ```graph.insert_fn("名前", 関数名);``` で登録したやつだ。
+```fn``` というのは ```diagram.insert_fn("名前", 関数名);``` で登録したやつだ。
 
 ```exit``` は少し複雑だ。
 
@@ -253,7 +253,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 
 このように飛び先を変えることができる。
 ノードの名前を書くのではなく、 ```exit``` オブジェクトのキー名を書けだぜ。
-こうすることで graph.json で遷移図が できあがるようにしている。
+こうすることで diagram.json で遷移図が できあがるようにしている。
 
 ## 特殊なケース: 改行
 
@@ -308,14 +308,14 @@ response.set_option を使って、シェルに指示を出すことができる
 ### シェル終われ。
 res.set_option(ResponseOption::Quits);
 
-### graph.json ファイルを読み込み直せ。
-res.set_option(ResponseOption::Reloads(GRAPH_JSON_FILE.to_string()));
+### diagram.json ファイルを読み込み直せ。
+res.set_option(ResponseOption::Reloads(DIAGRAM_JSON_FILE.to_string()));
 
-### graph.json ファイルを保存しろ。
-res.set_option(ResponseOption::Saves(GRAPH_JSON_FILE.to_string()));
+### diagram.json ファイルを保存しろ。
+res.set_option(ResponseOption::Saves(DIAGRAM_JSON_FILE.to_string()));
 ```
 
-graph.json ファイルを編集するツールは、 rust_kifuwarabe_shell_visualizer として作成中だぜ☆（＾ｑ＾）
+diagram.json ファイルを編集するツールは、 rust_kifuwarabe_shell_visualizer として作成中だぜ☆（＾ｑ＾）
 
 # その他
 

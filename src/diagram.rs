@@ -65,7 +65,7 @@ pub struct Node {
     fn_label: String,
     regex_flag: bool,
     // 特殊な任意の名前 '#newline'
-    exits: HashMap<String, Vec<String>>,
+    exit_map: HashMap<String, Vec<String>>,
 }
 impl Node {
     pub fn get_token(&self) -> &str {
@@ -78,21 +78,21 @@ impl Node {
         self.regex_flag
     }
     /// 確認用。
-    pub fn get_exits_map(&self) -> &HashMap<String, Vec<String>> {
-        &self.exits
+    pub fn get_exit_map(&self) -> &HashMap<String, Vec<String>> {
+        &self.exit_map
     }
-    pub fn get_exits(&self, name: &str) -> &Vec<String> {
-        if self.contains_exits(&name.to_string()) {
-            &self.exits[name]
+    pub fn get_exit(&self, name: &str) -> &Vec<String> {
+        if self.contains_exit(&name.to_string()) {
+            &self.exit_map[name]
         } else {
             panic!(
-                "\"{}\" exit is not found. Please use contains_exits().",
+                "\"{}\" exit is not found. Please use contains_exit().",
                 name
             );
         }
     }
-    pub fn contains_exits(&self, name: &str) -> bool {
-        self.exits.contains_key(name)
+    pub fn contains_exit(&self, name: &str) -> bool {
+        self.exit_map.contains_key(name)
     }
 }
 
@@ -170,13 +170,13 @@ impl<T> Diagram<T> {
     ///
     /// * `label` - 登録用のノード名です。
     /// * `node` - ノードです。
-    /// * `exits2` - 次はどのノードにつながるか。<任意の名前, ノード名>
+    /// * `exit_map2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node(
         &mut self,
         label: String,
         token2: String,
         fn_label2: String,
-        exits2: HashMap<String, Vec<String>>,
+        exit_map2: HashMap<String, Vec<String>>,
     ) {
         self.node_map.insert(
             label,
@@ -184,7 +184,7 @@ impl<T> Diagram<T> {
                 token: token2,
                 fn_label: fn_label2,
                 regex_flag: false,
-                exits: exits2,
+                exit_map: exit_map2,
             },
         );
     }
@@ -194,13 +194,13 @@ impl<T> Diagram<T> {
     ///
     /// * `label` - 登録用のノード名です。
     /// * `node` - ノードです。
-    /// * `exits2` - 次はどのノードにつながるか。<任意の名前, ノード名>
+    /// * `exit_map2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node_reg(
         &mut self,
         label: &str,
         token2: String,
         fn_label2: String,
-        exits2: HashMap<String, Vec<String>>,
+        exit_map2: HashMap<String, Vec<String>>,
     ) {
         self.node_map.insert(
             label.to_string(),
@@ -208,7 +208,7 @@ impl<T> Diagram<T> {
                 token: token2,
                 fn_label: fn_label2,
                 regex_flag: true,
-                exits: exits2,
+                exit_map: exit_map2,
             },
         );
     }
@@ -218,14 +218,14 @@ impl<T> Diagram<T> {
     ///
     /// * `label` - 登録用のノード名です。
     pub fn insert_node_single(&mut self, label: &str, fn_label2: String) {
-        let exits2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
+        let exit_map2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
         self.node_map.insert(
             label.to_string(),
             Node {
                 token: "".to_string(),
                 fn_label: fn_label2,
                 regex_flag: false,
-                exits: exits2,
+                exit_map: exit_map2,
             },
         );
     }
@@ -279,6 +279,9 @@ impl<T> Diagram<T> {
             Ok(n) => n,
             Err(err) => panic!("File open error. {:?}", err),
         };
+
+        // エントリー・ポイント取得。
+        self.entry_point = v["entry_point"].as_str().unwrap().to_string();
 
         // 文字列に変換する。
         let mut entrance_vec: Vec<String> = Vec::new();
@@ -351,12 +354,12 @@ impl<T> Diagram<T> {
                 node_json.set_fnc(Some(node.get_fn_label().to_string()));
             }
 
-            for (exits_label, node_vec) in node.get_exits_map().iter() {
+            for (exit_label, node_vec) in node.get_exit_map().iter() {
                 let mut vec = Vec::new();
-                for exits_node in node_vec.iter() {
-                    vec.push(exits_node.to_string());
+                for exit_node in node_vec.iter() {
+                    vec.push(exit_node.to_string());
                 }
-                node_json.insert_exit(&exits_label.to_string(), vec);
+                node_json.insert_exit(&exit_label.to_string(), vec);
             }
 
             diagram_json.push_node(node_json);

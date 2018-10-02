@@ -58,10 +58,10 @@ fn main() {
         println!("nodes");
         for (node_label, node) in diagram.get_node_map().iter() {
             println!("  - {} {}", node_label, node.get_token());
-            for (exits_label, exits_vec) in node.get_exits_map().iter() {
-                println!("    - {}", exits_label);
-                for exits_item in exits_vec.iter() {
-                    println!("      - {}", exits_item);
+            for (exit_label, exit_vec) in node.get_exit_map().iter() {
+                println!("    - {}", exit_label);
+                for exit_item in exit_vec.iter() {
+                    println!("      - {}", exit_item);
                 }
             }
         }

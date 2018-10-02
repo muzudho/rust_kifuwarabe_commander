@@ -16,7 +16,7 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
-const NEWLINE_EXITS_LABEL: &str = "#newline";
+const NEWLINE_EXIT_LABEL: &str = "#newline";
 const ELSE_NODE_LABEL: &str = "#else";
 
 /// コマンドライン文字列。
@@ -136,6 +136,7 @@ pub fn standard_input_reader<T>(_t: &mut T) -> String {
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
 pub struct Shell<T: 'static> {
+    current_label: String,
     vec_row: Vec<String>,
     reader: Reader<T>,
 }
@@ -147,10 +148,22 @@ impl<T> Default for Shell<T> {
 impl<T: 'static> Shell<T> {
     pub fn new() -> Shell<T> {
         Shell {
+            current_label: "".to_string(),
             vec_row: Vec::new(),
             reader: standard_input_reader,
         }
     }
+
+    /// 現在ノードのラベル。
+    pub fn get_current(&self) -> String {
+        self.current_label.to_string()
+    }
+
+    /// 現在地が遷移図の外か。
+    pub fn is_out(&self) -> bool {
+        self.current_label == ""
+    }
+
     pub fn set_reader(&mut self, reader2: Reader<T>) {
         self.reader = reader2;
     }
@@ -343,14 +356,23 @@ impl<T: 'static> Shell<T> {
     ///
     /// 0. シェルを終了するなら真。
     fn run_on_line(
-        &self,
+        &mut self,
         diagram: &Diagram<T>,
         t: &mut T,
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
-        let empty_exits = &Vec::new();
-        let mut current_exits: &Vec<String> = diagram.get_entrance_vec();
+
+        // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
+        if self.is_out() {
+            self.current_label = diagram.get_entry_point().to_string();
+        }
+
+        // まず 現在ノードを取得。
+        let current_node = diagram.get_node(&self.current_label);
+
+        let empty_exit = &Vec::new();
+        let mut current_exit: &Vec<String> = diagram.get_entrance_vec();
         let mut current_newline_fn: Controller<T> = empty_controller;
 
         'line: while req.get_caret() < req.get_line_len() {
@@ -366,7 +388,7 @@ impl<T: 'static> Shell<T> {
 
             // 次のノード名
             let (mut best_node_label, best_node_re_label) =
-                self.next_node_label(diagram, req, current_exits);
+                self.next_node_label(diagram, req, current_exit);
 
             // キャレットを進める。
             let mut is_done = false;
@@ -425,9 +447,9 @@ impl<T: 'static> Shell<T> {
                 }
 
                 // 行終了時コントローラーの更新。指定がなければ無視。
-                if node.contains_exits(&NEWLINE_EXITS_LABEL.to_string()) {
+                if node.contains_exit(&NEWLINE_EXIT_LABEL.to_string()) {
                     // 対応するノードは 1つだけとする。
-                    let next_node = &node.get_exits(&NEWLINE_EXITS_LABEL.to_string())[0];
+                    let next_node = &node.get_exit(&NEWLINE_EXIT_LABEL.to_string())[0];
                     let fn_label = diagram.get_node(&next_node).get_fn_label();
                     if diagram.contains_fn(&fn_label) {
                         current_newline_fn = *diagram.get_fn(&fn_label);
@@ -435,7 +457,7 @@ impl<T: 'static> Shell<T> {
                         // 無い関数が設定されていた場合は、コンソール表示だけする。
                         println!(
                             "IGNORE: \"{}\" fn (in {} node) is not found.",
-                            &fn_label, NEWLINE_EXITS_LABEL
+                            &fn_label, NEWLINE_EXIT_LABEL
                         );
                     }
                 }
@@ -446,13 +468,13 @@ impl<T: 'static> Shell<T> {
                         req.caret = res.caret;
 
                         if res.next_node_alies == ""
-                            || !node.contains_exits(&res.next_node_alies.to_string())
+                            || !node.contains_exit(&res.next_node_alies.to_string())
                         {
-                            current_exits = empty_exits;
+                            current_exit = empty_exit;
                         } else {
-                            current_exits = node.get_exits(&res.next_node_alies.to_string());
+                            current_exit = node.get_exit(&res.next_node_alies.to_string());
                         }
-                    // current_exits は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
+                    // current_exit は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
                     } else {
                         panic!("Downcast fail.");
                     }
@@ -544,7 +566,7 @@ impl<T: 'static> Shell<T> {
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
-        current_exits: &[String],
+        current_exit_map: &[String],
     ) -> (String, String) {
         // 一番優先されるものを探す。
         let mut best_node_label = "".to_string();
@@ -552,7 +574,7 @@ impl<T: 'static> Shell<T> {
 
         // 次の候補。
         let mut max_token_len = 0;
-        for i_next_node_label in current_exits {
+        for i_next_node_label in current_exit_map {
             let next_node_label = i_next_node_label.trim();
             // println!("next_node_label: {}", next_node_label);
             if diagram.contains_node(&next_node_label.to_string()) {

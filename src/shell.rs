@@ -362,6 +362,7 @@ impl<T: 'static> Shell<T> {
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
+        let empty_exit_vec = &Vec::new();
 
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
         if self.is_out() {
@@ -371,8 +372,11 @@ impl<T: 'static> Shell<T> {
         // まず 現在ノードを取得。
         let current_node = diagram.get_node(&self.current_label);
 
-        let empty_exit = &Vec::new();
-        let mut current_exit: &Vec<String> = diagram.get_entrance_vec();
+        let mut current_exit_vec: &Vec<String> = match &current_node.get_exit_map().get("#entrance") {
+            Some(n) => n,
+            None => panic!("run_on_line Get_exit_map: [{}] node - [#entrance] is not found.", self.current_label),
+        };
+        // let mut current_exit_vec: &Vec<String> = diagram.get_entrance_vec();
         let mut current_newline_fn: Controller<T> = empty_controller;
 
         'line: while req.get_caret() < req.get_line_len() {
@@ -388,7 +392,7 @@ impl<T: 'static> Shell<T> {
 
             // 次のノード名
             let (mut best_node_label, best_node_re_label) =
-                self.next_node_label(diagram, req, current_exit);
+                self.next_node_label(diagram, req, current_exit_vec);
 
             // キャレットを進める。
             let mut is_done = false;
@@ -470,11 +474,11 @@ impl<T: 'static> Shell<T> {
                         if res.next_node_alies == ""
                             || !node.contains_exit(&res.next_node_alies.to_string())
                         {
-                            current_exit = empty_exit;
+                            current_exit_vec = empty_exit_vec;
                         } else {
-                            current_exit = node.get_exit(&res.next_node_alies.to_string());
+                            current_exit_vec = node.get_exit(&res.next_node_alies.to_string());
                         }
-                    // current_exit は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
+                    // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
                     } else {
                         panic!("Downcast fail.");
                     }

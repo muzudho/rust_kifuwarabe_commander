@@ -217,8 +217,13 @@ impl<T> Diagram<T> {
     /// # Arguments
     ///
     /// * `label` - 登録用のノード名です。
-    pub fn insert_node_single(&mut self, label: &str, fn_label2: String) {
-        let exit_map2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
+    pub fn insert_node_single(
+        &mut self,
+        label: &str,
+        fn_label2: String,
+        exit_map2: HashMap<String, Vec<String>>,
+    ) {
+        // let exit_map2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
         self.node_map.insert(
             label.to_string(),
             Node {
@@ -289,9 +294,9 @@ impl<T> Diagram<T> {
         self.set_entrance_vec(entrance_vec);
 
         for node in v["nodes"].as_array().unwrap().iter() {
+            let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
+            self.object_to_map(&node["exit"], &mut entrance_map);
             if !node["token"].is_null() {
-                let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
-                self.object_to_map(&node["exit"], &mut entrance_map);
                 self.insert_node(
                     node["label"].as_str().unwrap().to_string(),
                     node["token"].as_str().unwrap().to_string(),
@@ -303,8 +308,6 @@ impl<T> Diagram<T> {
                     entrance_map,
                 );
             } else if !node["regex"].is_null() {
-                let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
-                self.object_to_map(&node["exit"], &mut entrance_map);
                 self.insert_node_reg(
                     &node["label"].as_str().unwrap().to_string(),
                     node["regex"].as_str().unwrap().to_string(),
@@ -323,6 +326,7 @@ impl<T> Diagram<T> {
                     } else {
                         node["fn"].as_str().unwrap().to_string()
                     },
+                    entrance_map,
                 );
             }
         }

@@ -171,46 +171,46 @@ request とか、 response とか、 forward というのは Webサーバーの�
 ```
 {
     "entry_point": "HEAD.neutral",
-	"nodes" : [
+    "nodes" : [
         {
-			"label": "HEAD.neutral",
-			"exit": {
-				"#next": [
+            "label": "HEAD.neutral",
+            "exit": {
+                "#next": [
                     "TK.a",
                     "TK.c"
-				]
-			}
+                ]
+            }
         },
-		{
-			"label": "TK.a",
-			"token": "abc",
-			"fn": "do_abc",
-			"exit": {
-				"#next": [
-					"TK.b"
-				]
-			}
-		},
-		{
-			"label": "TK.b",
-			"regex": "(\\d+)",
-			"fn": "do_num",
-			"exit": {
-				"#next": [
-					"TK.c"
-				]
-			}
-		},
-		{
-			"label": "TK.c",
-			"token": "def",
-			"fn": "do_def"
-			"exit": {
-				"#next": [
-					"HEAD.neutral"
-				]
-			}
-		}
+        {
+            "label": "TK.a",
+            "token": "abc",
+            "fn": "do_abc",
+            "exit": {
+                "#next": [
+                    "TK.b"
+                ]
+            }
+        },
+        {
+            "label": "TK.b",
+            "regex": "(\\d+)",
+            "fn": "do_num",
+            "exit": {
+                "#next": [
+                    "TK.c"
+                ]
+            }
+        },
+        {
+            "label": "TK.c",
+            "token": "def",
+            "fn": "do_def"
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]
+            }
+        }
     ]
 }
 ```
@@ -318,10 +318,10 @@ jikan 500 byoyomi 100 black
 とりあえず ```#else``` という組込みノード名 を用意した。
 
 ```
-		{
-			"name": "#else",
-			"fn": "do_other"
-		},
+        {
+            "name": "#else",
+            "fn": "do_other"
+        },
 ```
 
 コントローラーを１個対応させることができる。

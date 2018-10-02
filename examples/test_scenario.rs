@@ -80,7 +80,7 @@ pub fn do_numvar(shell_var: &mut ShellVar, req: &dyn Request, _res: &mut dyn Res
 pub fn do_other(shell_var: &mut ShellVar, req: &dyn Request, _res: &mut dyn Response) {
     shell_var.count += 1;
     println!(
-        "Not match. req.line=[{}], req.caret={}",
+        "do_other: Not match. req.line=[{}], req.caret={}",
         req.get_line(),
         req.get_caret()
     );

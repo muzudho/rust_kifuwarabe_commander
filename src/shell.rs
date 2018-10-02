@@ -370,23 +370,21 @@ impl<T: 'static> Shell<T> {
         let mut current_exit_vec: &Vec<String> = &Vec::new(); // 状態の初期化。
 
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
-        println!("元入り口: [{}].", self.current_label);
+        // println!("元入り口: [{}].", self.current_label);
         if self.is_out() {
             self.current_label = diagram.get_entry_point().to_string();
-            println!("入り口を初期化: [{}].", self.current_label);
-
-            // まず 現在ノードを取得。
-            let current_node = diagram.get_node(&self.current_label);
-
-            current_exit_vec = match &current_node.get_exit_map().get("#entrance") {
-                Some(n) => n,
-                None => panic!(
-                    "run_on_line Get_exit_map: [{}] node - [#entrance] is not found.",
-                    self.current_label
-                ),
-            };
+            // println!("入り口を初期化: [{}].", self.current_label);
         }
-        // それ以外のケースは、初期化せずに続行。
+        // まず 現在ノードを取得。
+        let current_node = diagram.get_node(&self.current_label);
+
+        current_exit_vec = match &current_node.get_exit_map().get("#entrance") {
+            Some(n) => n,
+            None => panic!(
+                "run_on_line Get_exit_map: [{}] node - [#entrance] is not found.",
+                self.current_label
+            ),
+        };
 
         'line: while req.get_caret() < req.get_line_len() {
             // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
@@ -486,10 +484,12 @@ impl<T: 'static> Shell<T> {
                     // 次の「行頭」ノードを「登録」。抽出するノード ラベルは 必ず先頭の1つだけ とする。
                     registered_next_head_node_label =
                         tail_node.get_exit_vec(NEXT_EXIT_LABEL)[0].to_string();
+                    /*
                     println!(
                         "行終了登録 tail_node_label: [{}], registered_next_head_node_label: [{}].",
                         tail_node_label, registered_next_head_node_label
                     );
+                     */
                 }
 
                 // フォワードを受け取り。
@@ -562,19 +562,12 @@ impl<T: 'static> Shell<T> {
         // ****************************************************************************************************
         (current_newline_fn)(t, req, res); // responseは無視する。
         self.current_label = registered_next_head_node_label;
-        // まず 現在ノードを取得。
-        let current_node = diagram.get_node(&self.current_label);
-        current_exit_vec = match &current_node.get_exit_map().get("#entrance") {
-            Some(n) => n,
-            None => panic!(
-                "run_on_line Get_exit_map: [{}] node - [#entrance] is not found.",
-                self.current_label
-            ),
-        };
+        /*
         println!(
             "行終了 self.current_label: [{}].",
             self.current_label
         );
+         */
     }
     // cyclomatic complexity を避けたいだけ。
     fn parse_line_else(

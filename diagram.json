@@ -25,7 +25,7 @@
                 "#newline": [
                     "TK.ab_newline"
                 ],
-                "next": [
+                "#next": [
                     "TK.cde"
                 ]
             }
@@ -50,7 +50,7 @@
             "token": "cde",
             "fn": "do_cde",
             "exit": {
-                "next": [
+                "#next": [
                     "TK.wordvar"
                 ]
             }
@@ -69,7 +69,7 @@
             "label": "TK.ab_newline",
             "fn": "do_ab_newline",
             "exit": {
-                "next": [
+                "#next": [
                     "HEAD.neutral"
                 ]
             }

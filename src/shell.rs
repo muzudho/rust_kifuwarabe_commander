@@ -16,7 +16,7 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
-const NEXT_EXIT_LABEL: &str = "next";
+const NEXT_EXIT_LABEL: &str = "#next";
 /// デフォルトのラベル。
 const NEWLINE_EXIT_LABEL: &str = "#newline";
 const ELSE_NODE_LABEL: &str = "#else";
@@ -72,12 +72,12 @@ impl Request for RequestStruct {
 /// * `starts` - コマンドライン文字列の次のトークンの先頭位置です。
 /// * `done_line` - 行の解析を中断するなら真にします。
 /// * `option` - シェルに指示を出す。アプリケーション終了、ファイル再読込など。
-/// * `next_node_alies` - 次のノードの登録名です。カンマ区切り。
+/// * `exit_label` - 次のノード ラベルです。
 pub struct ResponseStruct {
     pub caret: usize,
     pub done_line: bool,
     pub option: ResponseOption,
-    pub next_node_alies: String,
+    pub exit_label: String,
 }
 impl ResponseStruct {
     fn new() -> ResponseStruct {
@@ -85,7 +85,7 @@ impl ResponseStruct {
             caret: 0,
             done_line: false,
             option: ResponseOption::None,
-            next_node_alies: "".to_string(),
+            exit_label: "".to_string(),
         }
     }
     fn reset(&mut self) {
@@ -105,8 +105,8 @@ impl Response for ResponseStruct {
         self
     }
     // .rs にハードコーディングして使う。
-    fn forward(&mut self, next_node_alies2: &'static str) {
-        self.next_node_alies = next_node_alies2.to_string();
+    fn forward(&mut self, exit_label2: &'static str) {
+        self.exit_label = exit_label2.to_string();
     }
     fn set_caret(&mut self, caret2: usize) {
         self.caret = caret2
@@ -439,7 +439,7 @@ impl<T: 'static> Shell<T> {
 
             if has_token {
                 res.set_caret(req.get_caret());
-                res.forward("");
+                res.forward(NEXT_EXIT_LABEL); // デフォルト値。
 
                 // 次のノード名に変更する。
                 self.current_label = best_node_label.to_string();
@@ -448,8 +448,7 @@ impl<T: 'static> Shell<T> {
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
-                    // デフォルトで next を選ぶ。
-                    res.forward(NEXT_EXIT_LABEL);
+                    // コントローラーを指定していなければ、出口ラベルは、デフォルト値のまま。
                 } else if diagram.contains_fn(&node.get_fn_label()) {
                     (diagram.get_fn(&node.get_fn_label()))(t, req, res);
                 } else {
@@ -497,14 +496,15 @@ impl<T: 'static> Shell<T> {
                     if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                         req.caret = res.caret;
 
-                        if res.next_node_alies == ""
-                            || !node.contains_exit(&res.next_node_alies.to_string())
+                        if res.exit_label == ""
+                            || !node.contains_exit(&res.exit_label.to_string())
                         {
+                            // 未指定（デフォルト値ではなくて）なら、次の行き先は無し。
                             current_exit_vec = empty_exit_vec;
                         } else {
-                            current_exit_vec = node.get_exit_vec(&res.next_node_alies.to_string());
+                            current_exit_vec = node.get_exit_vec(&res.exit_label.to_string());
                         }
-                    // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
+                    // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.exit_label.to_string(), best_node_label)
                     } else {
                         panic!("Downcast fail.");
                     }
@@ -513,7 +513,7 @@ impl<T: 'static> Shell<T> {
                 }
 
                 res.set_caret(0);
-                res.forward("");
+                res.forward(NEXT_EXIT_LABEL); // デフォルト値。
 
                 if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                     if res.done_line {

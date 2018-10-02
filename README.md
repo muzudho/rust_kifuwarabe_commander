@@ -139,7 +139,7 @@ pub fn do_abc(
 ) {
     shell_var.count += 1;
     println!("I am abc!");
-    res.forward("next");
+    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 
 pub fn do_num(
@@ -150,7 +150,7 @@ pub fn do_num(
     // 正規表現は () 1個で全体を囲んだグループ1個 のものにだけ対応。
     let num = req.get_groups()[0];
     println!("I am {}!", num);
-    res.forward("next");
+    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 
 pub fn do_def(
@@ -159,7 +159,7 @@ pub fn do_def(
     res: &mut dyn Response,
 ) {
     println!("I am def!");
-    res.forward("next");
+    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 ```
 
@@ -186,7 +186,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 			"token": "abc",
 			"fn": "do_abc",
 			"exit": {
-				"next": [
+				"#next": [
 					"TK.b"
 				]
 			}
@@ -196,7 +196,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 			"regex": "(\\d+)",
 			"fn": "do_num",
 			"exit": {
-				"next": [
+				"#next": [
 					"TK.c"
 				]
 			}
@@ -206,7 +206,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 			"token": "def",
 			"fn": "do_def"
 			"exit": {
-				"next": [
+				"#next": [
 					"HEAD.neutral"
 				]
 			}
@@ -246,7 +246,7 @@ request とか、 response とか、 forward というのは Webサーバーの�
 
 ```
 "exit": {
-    "next": [
+    "#next": [
         "TK.b"
     ],
     "jump": [
@@ -268,13 +268,16 @@ request とか、 response とか、 forward というのは Webサーバーの�
     } else if a == 2 {
         res.forward("kick");
     } else {
-        res.forward("next");
+        // res.forward("#next"); デフォルトなんで書かなくてもいい。
     }
 ```
 
 このように飛び先を変えることができる。
 ノードの名前を書くのではなく、 ```exit``` オブジェクトのキー名を書けだぜ。
 こうすることで diagram.json で遷移図が できあがるようにしている。
+
+特別な意味を持ったラベルは ```#next``` のように頭に ```#``` が付いている。
+自分で ラベル の名前を作るときは頭に ```#``` を付けるなだぜ。それを守れば 任意だぜ。
 
 ## 特殊なケース: 改行
 
@@ -294,7 +297,7 @@ jikan 500 byoyomi 100 black
 ```
     "token": "jikan",
     "exit": {
-        "next": [
+        "#next": [
             "TK.byoyomi"
         ],
         "#newline": [

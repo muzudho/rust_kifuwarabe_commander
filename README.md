@@ -2,7 +2,7 @@
 
 ## Overview.
 
-コマンドラインのパーサーのフレームワークだぜ☆（＾～＾）  
+プロトコルや、コマンドライン　のパーサーのフレームワークだぜ☆（＾～＾）  
 
 理屈でいうと、  
 
@@ -30,7 +30,7 @@ pub fn do_def() {
 diagram.json という設定ファイルに  
 
 ```
-### 省略した書き方
+### これは要所を抜粋して見せてるだけ
 {
     "token": "abc",
     "fn": "do_abc"
@@ -103,7 +103,7 @@ impl ShellVar {
 
 ```
 fn main() {
-    // グラフ作成し、コントローラー登録。
+    // グラフ作成し、コントローラー関数の登録。
     let mut diagram = Diagram::new();
     diagram.insert_fn("do_abc", do_abc);
     diagram.insert_fn("do_num", do_num);
@@ -170,44 +170,65 @@ request とか、 response とか、 forward というのは Webサーバーの�
 
 ```
 {
-	"entrance": [
-		"ND.a",
-		"ND.c"
-	],
+    "entry_point": "HEAD.neutral",
 	"nodes" : [
+        {
+			"label": "HEAD.neutral",
+			"exit": {
+				"#entrance": [
+                    "TK.a",
+                    "TK.c"
+				]
+			}
+        },
 		{
-			"label": "ND.a",
+			"label": "TK.a",
 			"token": "abc",
 			"fn": "do_abc",
 			"exit": {
 				"next": [
-					"ND.b"
+					"TK.b"
 				]
 			}
 		},
 		{
-			"label": "ND.b",
+			"label": "TK.b",
 			"regex": "(\\d+)",
 			"fn": "do_num",
 			"exit": {
 				"next": [
-					"ND.c"
+					"TK.c"
 				]
 			}
 		},
 		{
-			"label": "ND.c",
+			"label": "TK.c",
 			"token": "def",
 			"fn": "do_def"
+			"exit": {
+				"next": [
+					"HEAD.neutral"
+				]
+			}
 		}
     ]
 }
 ```
 
-ここで ```ND.a``` みたいなやつは ノードの名前 ぐらいの意味でなんでもいい。ただの Go to 用のラベルだぜ。
-```entrance``` というのは コマンドラインの行頭 ぐらいの意味だぜ。複数書けばマッチしたやつが選ばれる。
+```entry_point``` というのは 入り口で 1個だけ 「ノードのラベル」というものを指定している。
+ここで ```HEAD.neutral``` とか ```TK.a``` みたいな記号が 「ノードのラベル」だが、
+初学者用に目印っぽく書いただけなんで 特に書き方に決まりはない。
 
-```token```, ```regex```, 無記入が選べ、例えば
+じゃあ 2行目の エントリーポイントに ```HEAD.neutral``` と書いてるんで、 5行目ぐらいを見ろだぜ。
+その下の ```exit``` の下あたりに ```#entrance``` というのがあるが、コマンドラインの行頭 ぐらいの意味だぜ。
+
+エントランスには また ```TK.a``` とか ```TK.c``` とか 「ノードのラベル」が複数個書いてあるが、
+「文字列のマッチング」で マッチしたやつ が選ばれる。  
+
+じゃあ次。
+
+ラベルの下には、 (1) ```token```, (2) ```regex```, (3) 無記入　が選べるぜ。
+これが 「文字列のマッチング」になっている。例えば
 
 ```
 ### abc にマッチする。
@@ -226,15 +247,15 @@ request とか、 response とか、 forward というのは Webサーバーの�
 ```
 "exit": {
     "next": [
-        "ND.b"
+        "TK.b"
     ],
     "jump": [
-        "ND.x",
-        "ND.y",
-        "ND.z"
+        "TK.x",
+        "TK.y",
+        "TK.z"
     ],
     "kick": [
-        "ND.w"
+        "TK.w"
     ]
 }
 ```
@@ -267,17 +288,17 @@ jikan 500 byoyomi 100
 jikan 500 byoyomi 100 black
 ```
 
-のような３つのコマンドがあって、いずれも改行で ```ND.newline``` ノードに飛んで欲しいとする。
+のような３つのコマンドがあって、いずれも改行で ```TK.newline``` ノードに飛んで欲しいとする。
 そんなときは
 
 ```
     "token": "jikan",
     "exit": {
         "next": [
-            "ND.byoyomi"
+            "TK.byoyomi"
         ],
         "#newline": [
-            "ND.newline"
+            "TK.newline"
         ]
     }
 ```

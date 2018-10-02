@@ -378,11 +378,11 @@ impl<T: 'static> Shell<T> {
         // まず 現在ノードを取得。
         let current_node = diagram.get_node(&self.current_label);
 
-        current_exit_vec = match &current_node.get_exit_map().get("#entrance") {
+        current_exit_vec = match &current_node.get_exit_map().get(NEXT_EXIT_LABEL) {
             Some(n) => n,
             None => panic!(
-                "run_on_line Get_exit_map: [{}] node - [#entrance] is not found.",
-                self.current_label
+                "run_on_line Get_exit_map: [{}] node - [{}] is not found.",
+                self.current_label, NEXT_EXIT_LABEL
             ),
         };
 

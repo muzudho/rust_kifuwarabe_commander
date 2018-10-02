@@ -280,8 +280,8 @@ impl<T> Diagram<T> {
         self.entry_point = v["entry_point"].as_str().unwrap().to_string();
 
         for node in v["nodes"].as_array().unwrap().iter() {
-            let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
-            self.object_to_map(&node["exit"], &mut entrance_map);
+            let mut exit_map: HashMap<String, Vec<String>> = HashMap::new();
+            self.object_to_map(&node["exit"], &mut exit_map);
             if !node["token"].is_null() {
                 self.insert_node(
                     node["label"].as_str().unwrap().to_string(),
@@ -291,7 +291,7 @@ impl<T> Diagram<T> {
                     } else {
                         node["fn"].as_str().unwrap().to_string()
                     },
-                    entrance_map,
+                    exit_map,
                 );
             } else if !node["regex"].is_null() {
                 self.insert_node_reg(
@@ -302,7 +302,7 @@ impl<T> Diagram<T> {
                     } else {
                         node["fn"].as_str().unwrap().to_string()
                     },
-                    entrance_map,
+                    exit_map,
                 );
             } else {
                 self.insert_node_single(
@@ -312,7 +312,7 @@ impl<T> Diagram<T> {
                     } else {
                         node["fn"].as_str().unwrap().to_string()
                     },
-                    entrance_map,
+                    exit_map,
                 );
             }
         }

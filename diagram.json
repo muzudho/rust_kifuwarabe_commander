@@ -1,90 +1,95 @@
 {
-    "entry_point": "HUB.neutral",
+    "entry_point": "HEAD.neutral",
     "nodes": [
         {
-            "label": "HUB.neutral",
+            "label": "HEAD.neutral",
             "exit": {
                 "#entrance": [
-                    "ND.a",
-                    "ND.ab",
-                    "ND.abc",
-                    "ND.edit.save",
-                    "ND.end",
-                    "ND.numvar",
-                    "ND.quit",
-                    "ND.reload",
-                    "ND.wordvar"
+                    "TK.a",
+                    "TK.ab",
+                    "TK.abc",
+                    "TK.edit.save",
+                    "TK.end",
+                    "TK.numvar",
+                    "TK.quit",
+                    "TK.reload",
+                    "TK.wordvar"
                 ]                            
             }
         },
         {
-            "label": "ND.ab",
+            "label": "TK.ab",
             "token": "ab",
             "fn": "do_ab",
             "exit": {
                 "#newline": [
-                    "ND.ab_newline"
+                    "TK.ab_newline"
                 ],
                 "next": [
-                    "ND.cde"
+                    "TK.cde"
                 ]
             }
         },
         {
-            "label": "ND.abc",
+            "label": "TK.abc",
             "token": "abc",
             "fn": "do_abc"
         },
         {
-            "label": "ND.wordvar",
+            "label": "TK.wordvar",
             "regex": "(\\w+)",
             "fn": "do_wordvar"
         },
         {
-            "label": "ND.numvar",
+            "label": "TK.numvar",
             "regex": "(\\d+)",
             "fn": "do_numvar"
         },
         {
-            "label": "ND.cde",
+            "label": "TK.cde",
             "token": "cde",
             "fn": "do_cde",
             "exit": {
                 "next": [
-                    "ND.wordvar"
+                    "TK.wordvar"
                 ]
             }
         },
         {
-            "label": "ND.reload",
+            "label": "TK.reload",
             "token": "reload",
             "fn": "do_reload"
         },
         {
-            "label": "ND.quit",
+            "label": "TK.quit",
             "token": "quit",
             "fn": "do_quit"
         },
         {
-            "label": "ND.ab_newline",
-            "fn": "do_ab_newline"
+            "label": "TK.ab_newline",
+            "fn": "do_ab_newline",
+            "exit": {
+                "next": [
+                    "HEAD.neutral"
+                ]
+            }
         },
         {
             "label": "#else",
             "fn": "do_other"
         },
         {
-            "label": "ND.a",
+            "label": "TK.a",
             "token": "a",
             "fn": "do_a"
         },
         {
-            "label": "ND.edit.save",
+            "label": "TK.edit.save",
             "token": "!save",
             "fn": "do_edit_save"
         },
         {
-            "label": "ND.end",
+            "label": "TK.end",
             "token": "end",
             "fn": "do_end"
         }

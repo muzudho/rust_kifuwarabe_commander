@@ -81,7 +81,7 @@ impl Node {
     pub fn get_exit_map(&self) -> &HashMap<String, Vec<String>> {
         &self.exit_map
     }
-    pub fn get_exit(&self, name: &str) -> &Vec<String> {
+    pub fn get_exit_vec(&self, name: &str) -> &Vec<String> {
         if self.contains_exit(&name.to_string()) {
             &self.exit_map[name]
         } else {

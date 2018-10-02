@@ -16,6 +16,8 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
+const NEXT_EXIT_LABEL: &str = "next";
+/// デフォルトのラベル。
 const NEWLINE_EXIT_LABEL: &str = "#newline";
 const ELSE_NODE_LABEL: &str = "#else";
 
@@ -317,14 +319,14 @@ impl<T: 'static> Shell<T> {
     }
 
     /// 1行 処理するだけでいいとき。
-    /// 
+    ///
     /// - Quits は無効になる。
-    /// 
+    ///
     /// # Arguments.
-    /// 
-    /// * 'diagram' - 
-    /// * 't' - 
-    /// * 'line' - 
+    ///
+    /// * 'diagram' -
+    /// * 't' -
+    /// * 'line' -
     pub fn execute_line(&mut self, diagram: &mut Diagram<T>, t: &mut T, line: &str) {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut req = RequestStruct::new(Box::new(line.to_string()));
@@ -334,8 +336,8 @@ impl<T: 'static> Shell<T> {
         self.run_on_line(diagram, t, &mut req, res);
         if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
             match res_struct.option {
-                None => {},
-                Quits => {}, // ループの中ではないので無効。
+                None => {}
+                Quits => {} // ループの中ではないので無効。
                 Reloads(ref file) => {
                     // ファイルからグラフのノード構成を読取。
                     diagram.read_file(&file);
@@ -363,21 +365,28 @@ impl<T: 'static> Shell<T> {
         res: &mut dyn Response,
     ) {
         let empty_exit_vec = &Vec::new();
+        let mut current_newline_fn: Controller<T> = empty_controller;
+        let mut registered_next_head_node_label = "".to_string();
+        let mut current_exit_vec: &Vec<String> = &Vec::new(); // 状態の初期化。
 
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
+        println!("元入り口: [{}].", self.current_label);
         if self.is_out() {
             self.current_label = diagram.get_entry_point().to_string();
+            println!("入り口を初期化: [{}].", self.current_label);
+
+            // まず 現在ノードを取得。
+            let current_node = diagram.get_node(&self.current_label);
+
+            current_exit_vec = match &current_node.get_exit_map().get("#entrance") {
+                Some(n) => n,
+                None => panic!(
+                    "run_on_line Get_exit_map: [{}] node - [#entrance] is not found.",
+                    self.current_label
+                ),
+            };
         }
-
-        // まず 現在ノードを取得。
-        let current_node = diagram.get_node(&self.current_label);
-
-        let mut current_exit_vec: &Vec<String> = match &current_node.get_exit_map().get("#entrance") {
-            Some(n) => n,
-            None => panic!("run_on_line Get_exit_map: [{}] node - [#entrance] is not found.", self.current_label),
-        };
-        // let mut current_exit_vec: &Vec<String> = diagram.get_entrance_vec();
-        let mut current_newline_fn: Controller<T> = empty_controller;
+        // それ以外のケースは、初期化せずに続行。
 
         'line: while req.get_caret() < req.get_line_len() {
             // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
@@ -395,7 +404,7 @@ impl<T: 'static> Shell<T> {
                 self.next_node_label(diagram, req, current_exit_vec);
 
             // キャレットを進める。
-            let mut is_done = false;
+            let mut has_token = false;
             if best_node_label != "" {
                 // 固定長での一致を優先。
                 res.set_caret(req.get_caret());
@@ -407,7 +416,7 @@ impl<T: 'static> Shell<T> {
                     };
                 };
 
-                is_done = true;
+                has_token = true;
                 res.set_caret(0);
             } else if best_node_re_label != "" {
                 res.set_caret(req.get_caret());
@@ -426,19 +435,23 @@ impl<T: 'static> Shell<T> {
                 res.set_caret(0);
 
                 // 一方に、まとめる。
-                is_done = true;
+                has_token = true;
                 best_node_label = best_node_re_label;
             }
 
-            if is_done {
+            if has_token {
                 res.set_caret(req.get_caret());
                 res.forward("");
+
+                // 次のノード名に変更する。
+                self.current_label = best_node_label.to_string();
+
                 let node = &diagram.get_node(&best_node_label);
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
                     // デフォルトで next を選ぶ。
-                    res.forward("next");
+                    res.forward(NEXT_EXIT_LABEL);
                 } else if diagram.contains_fn(&node.get_fn_label()) {
                     (diagram.get_fn(&node.get_fn_label()))(t, req, res);
                 } else {
@@ -450,11 +463,16 @@ impl<T: 'static> Shell<T> {
                     );
                 }
 
-                // 行終了時コントローラーの更新。指定がなければ無視。
+                // ****************************************************************************************************
+                //  (指定があるなら)行終了を「登録」。(行終了するわけではない)
+                // ****************************************************************************************************
                 if node.contains_exit(&NEWLINE_EXIT_LABEL.to_string()) {
-                    // 対応するノードは 1つだけとする。
-                    let next_node = &node.get_exit(&NEWLINE_EXIT_LABEL.to_string())[0];
-                    let fn_label = diagram.get_node(&next_node).get_fn_label();
+                    // 次の「行末」ノードへ。抽出するノード ラベルは 必ず先頭の1つだけ とする。
+                    let tail_node_label = &node.get_exit_vec(&NEWLINE_EXIT_LABEL.to_string())[0];
+
+                    // 「行末」の関数を「登録」する。
+                    let tail_node = diagram.get_node(&tail_node_label);
+                    let fn_label = tail_node.get_fn_label();
                     if diagram.contains_fn(&fn_label) {
                         current_newline_fn = *diagram.get_fn(&fn_label);
                     } else {
@@ -464,6 +482,14 @@ impl<T: 'static> Shell<T> {
                             &fn_label, NEWLINE_EXIT_LABEL
                         );
                     }
+
+                    // 次の「行頭」ノードを「登録」。抽出するノード ラベルは 必ず先頭の1つだけ とする。
+                    registered_next_head_node_label =
+                        tail_node.get_exit_vec(NEXT_EXIT_LABEL)[0].to_string();
+                    println!(
+                        "行終了登録 tail_node_label: [{}], registered_next_head_node_label: [{}].",
+                        tail_node_label, registered_next_head_node_label
+                    );
                 }
 
                 // フォワードを受け取り。
@@ -476,7 +502,7 @@ impl<T: 'static> Shell<T> {
                         {
                             current_exit_vec = empty_exit_vec;
                         } else {
-                            current_exit_vec = node.get_exit(&res.next_node_alies.to_string());
+                            current_exit_vec = node.get_exit_vec(&res.next_node_alies.to_string());
                         }
                     // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.next_node_alies.to_string(), best_node_label)
                     } else {
@@ -534,8 +560,21 @@ impl<T: 'static> Shell<T> {
         // ****************************************************************************************************
         //  改行（1行読取）に対応したコールバック関数を実行。
         // ****************************************************************************************************
-        (current_newline_fn)(t, req, res);
-        // responseは無視する。
+        (current_newline_fn)(t, req, res); // responseは無視する。
+        self.current_label = registered_next_head_node_label;
+        // まず 現在ノードを取得。
+        let current_node = diagram.get_node(&self.current_label);
+        current_exit_vec = match &current_node.get_exit_map().get("#entrance") {
+            Some(n) => n,
+            None => panic!(
+                "run_on_line Get_exit_map: [{}] node - [#entrance] is not found.",
+                self.current_label
+            ),
+        };
+        println!(
+            "行終了 self.current_label: [{}].",
+            self.current_label
+        );
     }
     // cyclomatic complexity を避けたいだけ。
     fn parse_line_else(
@@ -546,15 +585,15 @@ impl<T: 'static> Shell<T> {
         res: &mut dyn Response,
     ) {
         if diagram.contains_node(&ELSE_NODE_LABEL.to_string()) {
-            let fn_label = diagram.get_node(&ELSE_NODE_LABEL.to_string()).get_fn_label();
+            let fn_label = diagram
+                .get_node(&ELSE_NODE_LABEL.to_string())
+                .get_fn_label();
             if diagram.contains_fn(&fn_label) {
-
                 // ****************************************************************************************************
                 //  コールバック関数を実行。
                 // ****************************************************************************************************
                 (diagram.get_fn(&fn_label))(t, req, res);
-                // responseは無視する。
-
+            // responseは無視する。
             } else {
                 // 無い関数が設定されていた場合は、コンソール表示だけする。
                 println!(

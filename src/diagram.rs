@@ -102,12 +102,10 @@ pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) 
 ///
 /// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
 /// * `node_map` - 複数件のトークンです。
-/// * `entrance_vec` - カンマ区切りの登録ノード名です。
 #[derive(Default)]
 pub struct Diagram<T> {
     fn_map: HashMap<String, Controller<T>>,
     entry_point: String,
-    entrance_vec: Vec<String>,
     /// 特殊なノード名
     /// '#else' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     node_map: HashMap<String, Node>,
@@ -118,7 +116,6 @@ impl<T> Diagram<T> {
         Diagram {
             node_map: HashMap::new(),
             entry_point: "".to_string(),
-            entrance_vec: Vec::new(),
             fn_map: HashMap::new(),
         }
     }
@@ -128,20 +125,14 @@ impl<T> Diagram<T> {
     }
     /// クリアー。（登録したコントローラーを除く）
     pub fn clear(&mut self) {
+        self.entry_point = "".to_string();
         self.node_map.clear();
-        self.entrance_vec.clear();
     }
     pub fn get_entry_point(&self) -> String {
         self.entry_point.to_string()
     }
     pub fn set_entry_point(&mut self, value: String) {
         self.entry_point = value;
-    }
-    pub fn get_entrance_vec(&self) -> &Vec<String> {
-        &self.entrance_vec
-    }
-    pub fn set_entrance_vec(&mut self, entrance_vec2: Vec<String>) {
-        self.entrance_vec = entrance_vec2;
     }
     pub fn get_node(&self, label: &str) -> &Node {
         if self.contains_node(&label.to_string()) {
@@ -288,11 +279,6 @@ impl<T> Diagram<T> {
         // エントリー・ポイント取得。
         self.entry_point = v["entry_point"].as_str().unwrap().to_string();
 
-        // 文字列に変換する。
-        let mut entrance_vec: Vec<String> = Vec::new();
-        self.array_to_str_vec(&v["entrance"], &mut entrance_vec);
-        self.set_entrance_vec(entrance_vec);
-
         for node in v["nodes"].as_array().unwrap().iter() {
             let mut entrance_map: HashMap<String, Vec<String>> = HashMap::new();
             self.object_to_map(&node["exit"], &mut entrance_map);
@@ -342,9 +328,6 @@ impl<T> Diagram<T> {
             diagram_json.set_entry_point(entry_point.to_string());
         }
 
-        for node_label in &self.entrance_vec {
-            diagram_json.push_entrance(&node_label.to_string());
-        }
         // ノード
         for (node_label, node) in &self.node_map {
             let mut node_json = NodeJson::new();

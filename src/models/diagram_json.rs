@@ -1,22 +1,18 @@
 /// .json ファイルを書き出す際に使う。
 extern crate serde_json;
 
-
 use std::collections::HashMap;
-//use std::fs::OpenOptions;
 
 /// JSONを出力するときにだけ使う入れ物。
 #[derive(Serialize, Default, Deserialize, Debug)]
 pub struct DiagramJson {
     entry_point: String,
-    entrance: Vec<String>,
     nodes: Vec<NodeJson>,
 }
 impl DiagramJson {
     pub fn new() -> DiagramJson {
         DiagramJson {
             entry_point: "".to_string(),
-            entrance: Vec::new(),
             nodes: Vec::new(),
         }
     }
@@ -25,15 +21,6 @@ impl DiagramJson {
     }
     pub fn set_entry_point(&mut self, value: String) {
         self.entry_point = value;
-    }
-    pub fn get_entrance(&self) -> &Vec<String> {
-        &self.entrance
-    }
-    pub fn push_entrance(&mut self, node_label: &str) {
-        self.entrance.push(node_label.to_string());
-    }
-    pub fn set_entrance(&mut self, value: Vec<String>) {
-        self.entrance = value;
     }
     pub fn get_nodes(&self) -> &Vec<NodeJson> {
         &self.nodes

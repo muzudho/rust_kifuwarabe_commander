@@ -18,26 +18,11 @@ use test_scenario::*;
 ///
 /// diagram.json ファイルに書かれているスクリプトをテストします。
 ///
-/// - 「ab cde」と打鍵して [Enter]キーを押す。
-///     Ab.
-///     Cde.
-///     Ab-NewLine.
-/// - 「end xyz」と打鍵して [Enter]キーを押す。
-///     End.
-/// - 「xyz」と打鍵して [Enter]キーを押す。
-///     Word(xyz).
-/// - 「ab cde xyz」と打鍵して [Enter]キーを押す。
+/// - 次のように表示される。
 ///     Ab.
 ///     Cde.
 ///     Word(xyz).
 ///     Ab-NewLine.
-/// - 「quit」と打鍵して [Enter]キーを押す。
-///     Quit.
-/// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
-///
-/// - また、「reload」と打鍵して [Enter]キーを押す。
-///     Reload.
-///     diagram.json ファイルを再読み込みするはず。
 fn main() {
     // 任意のオブジェクト。
     let mut shell_var = ShellVar::new();
@@ -50,11 +35,7 @@ fn main() {
 
     // 内容確認出力。
     {
-        println!("entrance");
-        for node in diagram.get_entrance_vec().iter() {
-            println!("  - {}", node);
-        }
-
+        println!("entry_point: {}", diagram.get_entry_point());
         println!("nodes");
         for (node_label, node) in diagram.get_node_map().iter() {
             println!("  - {} {}", node_label, node.get_token());

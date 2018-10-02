@@ -51,11 +51,7 @@ fn main() {
 
     // 内容確認出力。
     {
-        println!("entrance");
-        for node in diagram.get_entrance_vec().iter() {
-            println!("  - {}", node);
-        }
-
+        println!("entry_point: {}", diagram.get_entry_point());
         println!("nodes");
         for (node_label, node) in diagram.get_node_map().iter() {
             println!("  - {} {}", node_label, node.get_token());

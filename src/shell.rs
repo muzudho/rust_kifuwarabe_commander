@@ -465,7 +465,7 @@ impl<T: 'static> Shell<T> {
                 // ****************************************************************************************************
                 if node.contains_exit(&NEWLINE_EXIT_LABEL.to_string()) {
                     // 次の「行末」ノードへ。抽出するノード ラベルは 必ず先頭の1つだけ とする。
-                    let tail_node_label = &node.get_exit_vec(&NEWLINE_EXIT_LABEL.to_string())[0];
+                    let tail_node_label = &node.get_exit_vec(&NEWLINE_EXIT_LABEL.to_string(), &self.current_label)[0];
 
                     // 「行末」の関数を「登録」する。
                     let tail_node = diagram.get_node(&tail_node_label);
@@ -482,7 +482,7 @@ impl<T: 'static> Shell<T> {
 
                     // 次の「行頭」ノードを「登録」。抽出するノード ラベルは 必ず先頭の1つだけ とする。
                     registered_next_head_node_label =
-                        tail_node.get_exit_vec(NEXT_EXIT_LABEL)[0].to_string();
+                        tail_node.get_exit_vec(NEXT_EXIT_LABEL, &self.current_label)[0].to_string();
                     /*
                     println!(
                         "行終了登録 tail_node_label: [{}], registered_next_head_node_label: [{}].",
@@ -504,7 +504,7 @@ impl<T: 'static> Shell<T> {
                             // 未指定（デフォルト値ではなくて）なら、次の行き先は無し。
                             current_exit_vec = empty_exit_vec;
                         } else {
-                            current_exit_vec = node.get_exit_vec(&res.exit_label.to_string());
+                            current_exit_vec = node.get_exit_vec(&res.exit_label.to_string(), &self.current_label);
                         }
                     // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.exit_label.to_string(), best_node_label)
                     } else {

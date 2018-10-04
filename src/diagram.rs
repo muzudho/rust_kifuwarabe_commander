@@ -81,12 +81,13 @@ impl Node {
     pub fn get_exit_map(&self) -> &HashMap<String, Vec<String>> {
         &self.exit_map
     }
-    pub fn get_exit_vec(&self, name: &str) -> &Vec<String> {
+    pub fn get_exit_vec(&self, name: &str, node_label_hint: &str) -> &Vec<String> {
         if self.contains_exit(&name.to_string()) {
             &self.exit_map[name]
         } else {
             panic!(
-                "\"{}\" exit is not found. Please use contains_exit().",
+                "{} node's \"{}\" exit is not found.",
+                node_label_hint,
                 name
             );
         }

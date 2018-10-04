@@ -61,6 +61,7 @@ pub trait Response {
 /// * `regex_flag` - トークンに正規表現を使うなら真です。
 /// * `exit_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node {
+    label: String,
     token: String,
     fn_label: String,
     regex_flag: bool,
@@ -68,6 +69,9 @@ pub struct Node {
     exit_map: HashMap<String, Vec<String>>,
 }
 impl Node {
+    pub fn get_label(&self) -> &str {
+        &self.label
+    }
     pub fn get_token(&self) -> &str {
         &self.token
     }
@@ -81,13 +85,13 @@ impl Node {
     pub fn get_exit_map(&self) -> &HashMap<String, Vec<String>> {
         &self.exit_map
     }
-    pub fn get_exit_vec(&self, name: &str, node_label_hint: &str) -> &Vec<String> {
+    pub fn get_exit_vec(&self, name: &str) -> &Vec<String> {
         if self.contains_exit(&name.to_string()) {
             &self.exit_map[name]
         } else {
             panic!(
                 "{} node's \"{}\" exit is not found.",
-                node_label_hint,
+                self.label,
                 name
             );
         }
@@ -160,19 +164,19 @@ impl<T> Diagram<T> {
     }
     /// # Arguments
     ///
-    /// * `label` - 登録用のノード名です。
-    /// * `node` - ノードです。
+    /// * `label2` - 登録用のノード名です。
     /// * `exit_map2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node(
         &mut self,
-        label: String,
+        label2: String,
         token2: String,
         fn_label2: String,
         exit_map2: HashMap<String, Vec<String>>,
     ) {
         self.node_map.insert(
-            label,
+            label2.to_string(),
             Node {
+                label: label2.to_string(),
                 token: token2,
                 fn_label: fn_label2,
                 regex_flag: false,
@@ -197,6 +201,7 @@ impl<T> Diagram<T> {
         self.node_map.insert(
             label.to_string(),
             Node {
+                label: label.to_string(),
                 token: token2,
                 fn_label: fn_label2,
                 regex_flag: true,
@@ -219,6 +224,7 @@ impl<T> Diagram<T> {
         self.node_map.insert(
             label.to_string(),
             Node {
+                label: label.to_string(),
                 token: "".to_string(),
                 fn_label: fn_label2,
                 regex_flag: false,

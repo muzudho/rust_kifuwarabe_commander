@@ -491,7 +491,9 @@ impl<T: 'static> Shell<T> {
                      */
                 }
 
-                // フォワードを受け取り。
+                // ****************************************************************************************************
+                // * 次の行き先に遷移。（フォワードを受け取り）                                                           *
+                // ****************************************************************************************************
                 if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                     if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                         req.caret = res.caret;
@@ -513,7 +515,7 @@ impl<T: 'static> Shell<T> {
                 }
 
                 res.set_caret(0);
-                res.forward(NEXT_EXIT_LABEL); // デフォルト値。
+                res.forward(NEXT_EXIT_LABEL); // デフォルト値にリセット。
 
                 if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                     if res.done_line {

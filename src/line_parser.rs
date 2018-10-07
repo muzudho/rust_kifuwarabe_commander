@@ -19,7 +19,7 @@ impl LineParser {
     /// # Returns.
     ///
     /// 0. シェルを終了するなら真。
-    pub fn run_on_line<T>(
+    pub fn run<T>(
         diagram_player: &mut DiagramPlayer,
         diagram: &Diagram<T>,
         t: &mut T,
@@ -46,19 +46,22 @@ impl LineParser {
         };
 
         'line: while req.get_caret() < req.get_line_len() {
-            // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
-            if let Some(res) = res.as_mut_any().downcast_mut::<ResponseStruct>() {
-                res.reset();
-            }
+            // リクエストとレスポンスをクリアー。
             if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                 req.groups.clear(); // クリアー
             } else {
-                panic!("Downcast fail.");
+                panic!("Downcast fail. req.");
             }
+            if let Some(res) = res.as_mut_any().downcast_mut::<ResponseStruct>() {
+                res.reset();
+            } else {
+                panic!("Downcast fail. res.");
+            }
+            // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
 
             // 次のノード名
             let (mut best_node_label, best_node_re_label) =
-                LineParser::next_node_label(diagram, req, current_exit_vec);
+                diagram_player.forward(diagram, req, current_exit_vec);
 
             // キャレットを進める。
             let mut has_token = false;
@@ -257,53 +260,6 @@ impl LineParser {
         }
     }
 
-    /// 次に一致するノード名。
-    fn next_node_label<T>(
-        diagram: &Diagram<T>,
-        req: &mut dyn Request,
-        current_exit_map: &[String],
-    ) -> (String, String) {
-        // 一番優先されるものを探す。
-        let mut best_node_label = "".to_string();
-        let mut best_node_re_label = "".to_string();
-
-        // 次の候補。
-        let mut max_token_len = 0;
-        for i_next_node_label in current_exit_map {
-            let next_node_label = i_next_node_label.trim();
-            // println!("next_node_label: {}", next_node_label);
-            if diagram.contains_node(&next_node_label.to_string()) {
-                //println!("contains.");
-
-                let node_name = next_node_label.to_string();
-                let node = &diagram.get_node(&node_name);
-
-                let matched;
-                if node.is_regex() {
-                    if LineParser::starts_with_reg(node, req) {
-                        // 正規表現で一致したなら。
-                        best_node_re_label = node_name;
-                        // 固定長で一致するものも探したい。
-                    }
-                } else {
-                    matched = LineParser::starts_with_literal(node, req);
-                    if matched {
-                        //println!("starts_with_literal.");
-                        let token_len = node.get_token().chars().count();
-                        if max_token_len < token_len {
-                            max_token_len = token_len;
-                            best_node_label = node_name;
-                            // まだ、一番長い、固定長トークンを探したい。
-                        };
-                        //} else {
-                        //    println!("not starts_with_literal. req.line={}, req.line_len={}, res.starts={}", req.line, req.line_len, res.starts);
-                    }
-                }
-            }
-        }
-        (best_node_label, best_node_re_label)
-    }
-
     fn parse_literal(node: &Node, req: &dyn Request, res: &mut dyn Response) {
         res.set_caret(req.get_caret() + node.get_token().len());
         let res_caret;
@@ -348,7 +304,7 @@ impl LineParser {
     ///
     /// * `req` - 読み取るコマンドラインと、読取位置。
     /// * returns - 一致したら真。
-    fn starts_with_literal(node: &Node, req: &mut dyn Request) -> bool {
+    pub fn starts_with_literal(node: &Node, req: &dyn Request) -> bool {
         let caret_end = req.get_caret() + node.get_token().len();
         caret_end <= req.get_line_len()
             && &req.get_line()[req.get_caret()..caret_end] == node.get_token()
@@ -358,9 +314,9 @@ impl LineParser {
     ///
     /// # Arguments
     ///
-    /// * `req` - 読み取るコマンドライン。
+    /// * `req` - 読み取るコマンドライン。一致があると groups メンバーに入れる。
     /// * returns - 一致したら真。
-    fn starts_with_reg(node: &Node, req: &mut dyn Request) -> bool {
+    pub fn starts_with_reg(node: &Node, req: &mut dyn Request) -> bool {
         if VERBOSE {
             println!("Starts_with_re");
         }

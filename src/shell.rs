@@ -202,7 +202,7 @@ impl<T: 'static> Shell<T> {
             use diagram::ResponseOption::*;
             let res: &mut dyn Response = &mut ResponseStruct::new();
 
-            LineParser::run_on_line(&mut self.diagram_player, diagram, t, &mut req, res);
+            LineParser::run(&mut self.diagram_player, diagram, t, &mut req, res);
 
             if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
                 match res_struct.option {
@@ -239,8 +239,8 @@ impl<T: 'static> Shell<T> {
         use diagram::ResponseOption::*;
         let res: &mut dyn Response = &mut ResponseStruct::new();
 
-        LineParser::run_on_line(&mut self.diagram_player, diagram, t, &mut req, res);
-        
+        LineParser::run(&mut self.diagram_player, diagram, t, &mut req, res);
+
         if let Some(res_struct) = &mut res.as_mut_any().downcast_mut::<ResponseStruct>() {
             match res_struct.option {
                 None => {}

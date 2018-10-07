@@ -37,7 +37,7 @@ pub fn do_a(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Respons
     println!("A.");
 }
 
-pub fn do_ab(shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Response) {
+pub fn do_ab(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {
     shell_var.count += 1;
     println!("Ab.");
     // res.forward("#next"); デフォルトなんで書かなくてもいい。
@@ -53,7 +53,7 @@ pub fn do_abc(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Respo
     println!("Abc.");
 }
 
-pub fn do_cde(shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Response) {
+pub fn do_cde(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {
     shell_var.count += 1;
     println!("Cde.");
     // res.forward("#next"); デフォルトなんで書かなくてもいい。

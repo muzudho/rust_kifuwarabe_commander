@@ -5,9 +5,11 @@ use diagram::ResponseOption;
 /// コマンド例
 ///
 /// ```
+/// cls
 /// cd C:\MuzudhoDrive\projects_rust\rust_kifuwarabe_shell
 /// cargo clippy
 /// ```
+use diagram_player::*;
 use diagram::*;
 use regex::Regex;
 use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-struct-reference-from-a-boxed-trait
@@ -138,7 +140,7 @@ pub fn standard_input_reader<T>(_t: &mut T) -> String {
 ///
 /// * `vec_row` - コマンドを複数行 溜めておくバッファーです。
 pub struct Shell<T: 'static> {
-    current_label: String,
+    diagram_player: DiagramPlayer,
     vec_row: Vec<String>,
     reader: Reader<T>,
 }
@@ -150,7 +152,7 @@ impl<T> Default for Shell<T> {
 impl<T: 'static> Shell<T> {
     pub fn new() -> Shell<T> {
         Shell {
-            current_label: "".to_string(),
+            diagram_player: DiagramPlayer::new(),
             vec_row: Vec::new(),
             reader: standard_input_reader,
         }
@@ -158,12 +160,12 @@ impl<T: 'static> Shell<T> {
 
     /// 現在ノードのラベル。
     pub fn get_current(&self) -> String {
-        self.current_label.to_string()
+        self.diagram_player.get_current().to_string()
     }
 
     /// 現在地が遷移図の外か。
     pub fn is_out(&self) -> bool {
-        self.current_label == ""
+        self.diagram_player.is_out()
     }
 
     pub fn set_reader(&mut self, reader2: Reader<T>) {
@@ -372,17 +374,17 @@ impl<T: 'static> Shell<T> {
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
         // println!("元入り口: [{}].", self.current_label);
         if self.is_out() {
-            self.current_label = diagram.get_entry_point().to_string();
+            self.diagram_player.set_current(&diagram.get_entry_point().to_string());
             // println!("入り口を初期化: [{}].", self.current_label);
         }
         // まず 現在ノードを取得。
-        let current_node = diagram.get_node(&self.current_label);
+        let current_node = diagram.get_node(&self.diagram_player.get_current());
 
         current_exit_vec = match &current_node.get_exit_map().get(NEXT_EXIT_LABEL) {
             Some(n) => n,
             None => panic!(
                 "run_on_line Get_exit_map: [{}] node - [{}] is not found.",
-                self.current_label, NEXT_EXIT_LABEL
+                self.get_current(), NEXT_EXIT_LABEL
             ),
         };
 
@@ -442,7 +444,7 @@ impl<T: 'static> Shell<T> {
                 res.forward(NEXT_EXIT_LABEL); // デフォルト値。
 
                 // 次のノード名に変更する。
-                self.current_label = best_node_label.to_string();
+                self.diagram_player.set_current(&best_node_label.to_string());
 
                 let node = &diagram.get_node(&best_node_label);
 
@@ -563,7 +565,7 @@ impl<T: 'static> Shell<T> {
         //  改行（1行読取）に対応したコールバック関数を実行。
         // ****************************************************************************************************
         (current_newline_fn)(t, req, res); // responseは無視する。
-        self.current_label = registered_next_head_node_label;
+        self.diagram_player.set_current(&registered_next_head_node_label);
         /*
         println!(
             "行終了 self.current_label: [{}].",

@@ -60,27 +60,21 @@ impl LineParser {
             // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
 
             // 次のノード名
-            let (mut best_node_label, best_node_re_label) =
+            let (matched_node_label, best_is_regex) =
                 diagram_player.forward(diagram, req, current_exit_vec);
 
             // キャレットを進める。
-            let mut has_token = false;
-            if best_node_label != "" {
-                // 固定長での一致を優先。
+            if matched_node_label != "" {
                 res.set_caret(req.get_caret());
-                LineParser::parse_literal(&diagram.get_node(&best_node_label), req, res);
 
-                if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
-                    if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
-                        req.caret = res.caret;
-                    };
-                };
+                if best_is_regex {
+                    // 正規表現に一致なら
+                    LineParser::parse_reg(req, res);
 
-                has_token = true;
-                res.set_caret(0);
-            } else if best_node_re_label != "" {
-                res.set_caret(req.get_caret());
-                LineParser::parse_reg(req, res);
+                } else {
+                    LineParser::parse_literal(&diagram.get_node(&matched_node_label), req, res);
+
+                }
 
                 if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
                     if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
@@ -92,21 +86,14 @@ impl LineParser {
                     panic!("Downcast fail.");
                 }
 
-                res.set_caret(0);
-
-                // 一方に、まとめる。
-                has_token = true;
-                best_node_label = best_node_re_label;
-            }
-
-            if has_token {
+                // res.set_caret(0);
                 res.set_caret(req.get_caret());
                 res.forward(NEXT_EXIT_LABEL); // デフォルト値。
 
                 // 次のノード名に変更する。
-                diagram_player.set_current(&best_node_label.to_string());
+                diagram_player.set_current(&matched_node_label.to_string());
 
-                let node = &diagram.get_node(&best_node_label);
+                let node = &diagram.get_node(&matched_node_label);
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
@@ -118,7 +105,7 @@ impl LineParser {
                     println!(
                         "IGNORE: \"{}\" fn (in {} node) is not found.",
                         &node.get_fn_label(),
-                        best_node_label
+                        matched_node_label
                     );
                 }
 
@@ -167,7 +154,7 @@ impl LineParser {
                         } else {
                             current_exit_vec = node.get_exit_vec(&res.exit_label.to_string());
                         }
-                    // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.exit_label.to_string(), best_node_label)
+                    // current_exit_vec は無くてもいい。 panic!("\"{}\" next node (of \"{}\" node) alies is not found.", res.exit_label.to_string(), matched_node_label)
                     } else {
                         panic!("Downcast fail.");
                     }

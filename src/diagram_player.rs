@@ -1,7 +1,7 @@
 use diagram::*;
-use shell::*;
-use regex::Regex;
 use line_parser::*;
+use regex::Regex;
+use shell::*;
 
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
@@ -12,7 +12,7 @@ const VERBOSE: bool = false;
 ///
 /// * `current_label` - 現在のノードのラベル。
 pub struct DiagramPlayer {
-    current_label: String,
+    current_label: String
 }
 impl Default for DiagramPlayer {
     fn default() -> Self {
@@ -22,7 +22,7 @@ impl Default for DiagramPlayer {
 impl DiagramPlayer {
     pub fn new() -> DiagramPlayer {
         DiagramPlayer {
-            current_label: "".to_string(),
+            current_label: "".to_string()
         }
     }
 
@@ -37,12 +37,12 @@ impl DiagramPlayer {
     }
 
     /// 現在ノードのラベル。
-    pub fn set_current(&mut self, value:&str) {
+    pub fn set_current(&mut self, value: &str) {
         self.current_label = value.to_string()
     }
 
     /// 入り口に入っていないなら、入り口に進む。
-    pub fn enter_when_out<T>(&mut self,diagram: &Diagram<T>) {
+    pub fn enter_when_out<T>(&mut self, diagram: &Diagram<T>) {
         // println!("元入り口: [{}].", self.current_label);
         if self.is_out() {
             self.set_current(&diagram.get_entry_point().to_string());
@@ -57,7 +57,7 @@ impl DiagramPlayer {
         diagram: &Diagram<T>,
         req: &mut dyn Request,
         current_exit_map: &[String],
-    ) -> (String, String) {
+    ) -> (String, bool) {
         // 一番優先されるものを探す。
         let mut best_node_label = "".to_string();
         let mut best_node_re_label = "".to_string();
@@ -96,7 +96,12 @@ impl DiagramPlayer {
                 }
             }
         }
-        (best_node_label, best_node_re_label)
+
+        if best_node_label != "" {
+            // 固定長での一致を優先。
+            return (best_node_label, false);
+        }
+        // 正規表現は優先度低い。
+        (best_node_re_label, true)
     }
 }
-

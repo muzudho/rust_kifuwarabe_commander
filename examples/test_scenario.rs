@@ -1,5 +1,5 @@
 use kifuwarabe_shell::diagram::ResponseOption;
-use kifuwarabe_shell::diagram::*;
+use kifuwarabe_shell::diagram::{Diagram, Request, Response};
 
 const DIAGRAM_JSON_FILE: &str = "diagram.json";
 

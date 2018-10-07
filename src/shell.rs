@@ -18,10 +18,10 @@ use std::io;
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;
 
-const NEXT_EXIT_LABEL: &str = "#next";
+pub const NEXT_EXIT_LABEL: &str = "#next";
 /// デフォルトのラベル。
-const NEWLINE_EXIT_LABEL: &str = "#newline";
-const ELSE_NODE_LABEL: &str = "#else";
+pub const NEWLINE_EXIT_LABEL: &str = "#newline";
+pub const ELSE_NODE_LABEL: &str = "#else";
 
 /// コマンドライン文字列。
 ///
@@ -535,7 +535,7 @@ impl<T: 'static> Shell<T> {
                 }
             } else {
                 // 何とも一致しなかったら実行します
-                self.parse_line_else(&diagram, t, req, res);
+                self.diagram_player.parse_line_else(&diagram, t, req, res);
                 // 次のラインへ。
                 break 'line;
             }
@@ -572,33 +572,6 @@ impl<T: 'static> Shell<T> {
             self.current_label
         );
          */
-    }
-    // cyclomatic complexity を避けたいだけ。
-    fn parse_line_else(
-        &self,
-        diagram: &Diagram<T>,
-        t: &mut T,
-        req: &mut dyn Request,
-        res: &mut dyn Response,
-    ) {
-        if diagram.contains_node(&ELSE_NODE_LABEL.to_string()) {
-            let fn_label = diagram
-                .get_node(&ELSE_NODE_LABEL.to_string())
-                .get_fn_label();
-            if diagram.contains_fn(&fn_label) {
-                // ****************************************************************************************************
-                //  コールバック関数を実行。
-                // ****************************************************************************************************
-                (diagram.get_fn(&fn_label))(t, req, res);
-            // responseは無視する。
-            } else {
-                // 無い関数が設定されていた場合は、コンソール表示だけする。
-                println!(
-                    "IGNORE: \"{}\" fn (in {} node) is not found.",
-                    &fn_label, ELSE_NODE_LABEL
-                );
-            }
-        }
     }
 
     /// 次に一致するノード名。

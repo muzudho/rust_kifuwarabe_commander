@@ -21,4 +21,5 @@ macro_rules! hashmap {
 pub mod models;
 pub mod diagram_player;
 pub mod diagram;
+pub mod line_parser;
 pub mod shell;

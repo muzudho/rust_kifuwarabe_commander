@@ -130,49 +130,6 @@ impl<T> DiagramEx<T> {
     pub fn insert_fn(&mut self, name: &'static str, fn2: Controller<T>) {
         self.fn_map.insert(name.to_string(), fn2);
     }
-}
-/// # Parameters.
-///
-/// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
-/// * `node_map` - 複数件のトークンです。
-#[derive(Default)]
-pub struct Diagram {
-    entry_point: String,
-    node_map: HashMap<String, Node>,
-}
-impl Diagram {
-    /// アプリケーション１つにつき、１つのフローチャートを共有します。
-    pub fn new() -> Diagram {
-        Diagram {
-            node_map: HashMap::new(),
-            entry_point: "".to_string(),
-        }
-    }
-    /// 確認用。
-    pub fn get_node_map(&self) -> &HashMap<String, Node> {
-        &self.node_map
-    }
-    /// クリアー。（登録したコントローラーを除く）
-    pub fn clear(&mut self) {
-        self.entry_point = "".to_string();
-        self.node_map.clear();
-    }
-    pub fn get_entry_point(&self) -> String {
-        self.entry_point.to_string()
-    }
-    pub fn set_entry_point(&mut self, value: String) {
-        self.entry_point = value;
-    }
-    pub fn get_node(&self, label: &str) -> &Node {
-        if self.contains_node(&label.to_string()) {
-            &self.node_map[label]
-        } else {
-            panic!("\"{}\" node is not found.", label);
-        }
-    }
-    pub fn contains_node(&self, label: &str) -> bool {
-        self.node_map.contains_key(&label.to_string())
-    }
     /// # Arguments
     ///
     /// * `label2` - 登録用のノード名です。
@@ -184,7 +141,7 @@ impl Diagram {
         fn_label2: String,
         exit_map2: HashMap<String, Vec<String>>,
     ) {
-        self.node_map.insert(
+        self.diagram.node_map.insert(
             label2.to_string(),
             Node {
                 label: label2.to_string(),
@@ -209,7 +166,7 @@ impl Diagram {
         fn_label2: String,
         exit_map2: HashMap<String, Vec<String>>,
     ) {
-        self.node_map.insert(
+        self.diagram.node_map.insert(
             label.to_string(),
             Node {
                 label: label.to_string(),
@@ -232,7 +189,7 @@ impl Diagram {
         exit_map2: HashMap<String, Vec<String>>,
     ) {
         // let exit_map2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
-        self.node_map.insert(
+        self.diagram.node_map.insert(
             label.to_string(),
             Node {
                 label: label.to_string(),
@@ -275,9 +232,10 @@ impl Diagram {
             }
         }
     }
+
     /// ファイル読み込み
     pub fn read_file(&mut self, file: &str) {
-        self.clear();
+        self.diagram.clear();
 
         let mut file = match File::open(file) {
             Ok(n) => n,
@@ -297,7 +255,7 @@ impl Diagram {
         };
 
         // エントリー・ポイント取得。
-        self.entry_point = v["entry_point"].as_str().unwrap().to_string();
+        self.diagram.entry_point = v["entry_point"].as_str().unwrap().to_string();
 
         for node in v["nodes"].as_array().unwrap().iter() {
             let mut exit_map: HashMap<String, Vec<String>> = HashMap::new();
@@ -344,12 +302,12 @@ impl Diagram {
         let mut diagram_json = DiagramJson::new();
         // エントランス
         {
-            let entry_point = &self.entry_point;
+            let entry_point = &self.diagram.entry_point;
             diagram_json.set_entry_point(entry_point.to_string());
         }
 
         // ノード
-        for (node_label, node) in &self.node_map {
+        for (node_label, node) in &self.diagram.node_map {
             let mut node_json = NodeJson::new();
             node_json.set_label(node_label.to_string());
             if node.is_regex() {
@@ -383,5 +341,48 @@ impl Diagram {
             Ok(contents_file) => contents_file.write_all(json_str.as_bytes()),
             Err(err) => panic!("Log file open (write mode) error. {}", err),
         };
+    }
+}
+/// # Parameters.
+///
+/// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
+/// * `node_map` - 複数件のトークンです。
+#[derive(Default)]
+pub struct Diagram {
+    entry_point: String,
+    node_map: HashMap<String, Node>,
+}
+impl Diagram {
+    /// アプリケーション１つにつき、１つのフローチャートを共有します。
+    pub fn new() -> Diagram {
+        Diagram {
+            node_map: HashMap::new(),
+            entry_point: "".to_string(),
+        }
+    }
+    /// 確認用。
+    pub fn get_node_map(&self) -> &HashMap<String, Node> {
+        &self.node_map
+    }
+    /// クリアー。（登録したコントローラーを除く）
+    pub fn clear(&mut self) {
+        self.entry_point = "".to_string();
+        self.node_map.clear();
+    }
+    pub fn get_entry_point(&self) -> String {
+        self.entry_point.to_string()
+    }
+    pub fn set_entry_point(&mut self, value: String) {
+        self.entry_point = value;
+    }
+    pub fn get_node(&self, label: &str) -> &Node {
+        if self.contains_node(&label.to_string()) {
+            &self.node_map[label]
+        } else {
+            panic!("\"{}\" node is not found.", label);
+        }
+    }
+    pub fn contains_node(&self, label: &str) -> bool {
+        self.node_map.contains_key(&label.to_string())
     }
 }

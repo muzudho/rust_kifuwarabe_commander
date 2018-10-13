@@ -220,11 +220,11 @@ impl<T: 'static> Shell<T> {
                     Quits => break, // response.quits したとき run ループを抜ける。
                     Reloads(ref file) => {
                         // ファイルからグラフのノード構成を読取。
-                        diagram.get_mut_diagram().read_file(&file);
+                        diagram.read_file(&file);
                     }
                     Saves(ref file) => {
                         // ファイルを上書き。
-                        diagram.get_mut_diagram().write_file(&file);
+                        diagram.write_file(&file);
                     }
                 }
             } else {
@@ -257,11 +257,11 @@ impl<T: 'static> Shell<T> {
                 Quits => {} // ループの中ではないので無効。
                 Reloads(ref file) => {
                     // ファイルからグラフのノード構成を読取。
-                    diagram.get_mut_diagram().read_file(&file);
+                    diagram.read_file(&file);
                 }
                 Saves(ref file) => {
                     // ファイルを上書き。
-                    diagram.get_mut_diagram().write_file(&file);
+                    diagram.write_file(&file);
                 }
             }
         } else {

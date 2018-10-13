@@ -48,9 +48,9 @@ impl DiagramPlayer {
         }
     }
 
-    /// 次に一致するノード名。
+    /// パースを行い、次に一致するノード名。
     /// `req` - 正規表現で一致があれば、 groups メンバーに内容を入れる。
-    pub fn forward<T>(
+    pub fn forward_parse<T>(
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
@@ -114,5 +114,35 @@ impl DiagramPlayer {
         }
         // 正規表現は優先度低い。
         (best_node_re_label, true)
+    }
+
+    /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。
+    /// １つのドアから複数のノードにつながっている場合は　エラーとする。
+    pub fn forward_force<T>(
+        &self,
+        diagram: &Diagram<T>,
+        door_label: &str
+    ) -> String {
+
+        // 現在ノード取得。
+        let current_node = diagram.get_node(&self.get_current());
+        // 現在ノード
+        let current_exit_vec = match current_node.get_exit_map().get(door_label) {
+            Some(n) => n,
+            None => panic!(
+                "door_label: [{}] is not found. ([{}] node)",
+                self.get_current(),
+                door_label
+            ),
+        };
+
+        if 1 < current_exit_vec.len() {
+            panic!("{} node {} exit is not one."
+            ,&self.get_current()
+            ,door_label
+            )
+        }
+
+        current_exit_vec[0].to_string()
     }
 }

@@ -1,7 +1,7 @@
 use diagram::*;
 use line_parser::*;
-use regex::Regex;
-use shell::*;
+// use regex::Regex;
+// use shell::*;
 
 /// 不具合を取りたいときに真にする。
 const VERBOSE: bool = false;

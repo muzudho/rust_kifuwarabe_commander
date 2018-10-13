@@ -158,6 +158,16 @@ impl<T: 'static> Shell<T> {
         }
     }
 
+    /// シェルの使い方より、ダイアグラムの使い方の方が簡単なので、
+    /// ダイアグラムを返す。
+    pub fn get_diagram_player(&self) -> &DiagramPlayer {
+        &self.diagram_player
+    }
+    /// パーサーを使わず状態遷移したいときに使う。
+    pub fn get_mut_diagram_player(&mut self) -> &mut DiagramPlayer {
+        &mut self.diagram_player
+    }
+
     /// 現在ノードのラベル。
     pub fn get_current(&self) -> String {
         self.diagram_player.get_current().to_string()
@@ -229,9 +239,9 @@ impl<T: 'static> Shell<T> {
     ///
     /// # Arguments.
     ///
-    /// * 'diagram' -
-    /// * 't' -
-    /// * 'line' -
+    /// * 'diagram' - パースの状態遷移図。
+    /// * 't' - 任意のオブジェクト。
+    /// * 'line' - コマンドライン文字列。
     pub fn execute_line(&mut self, diagram: &mut Diagram<T>, t: &mut T, line: &str) {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut req = RequestStruct::new(Box::new(line.to_string()));

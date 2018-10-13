@@ -168,7 +168,7 @@ impl<T> Diagram<T> {
     /// * `exit_map2` - 次はどのノードにつながるか。<任意の名前, ノード名>
     pub fn insert_node(
         &mut self,
-        label2: String,
+        label2: &str,
         token2: String,
         fn_label2: String,
         exit_map2: HashMap<String, Vec<String>>,
@@ -233,6 +233,7 @@ impl<T> Diagram<T> {
         );
     }
 
+    /*
     /// JSON配列を、文字列の配列に変換。
     ///
     /// # Arguments.
@@ -245,6 +246,7 @@ impl<T> Diagram<T> {
             str_vec.push(node_label.as_str().unwrap().to_string());
         }
     }
+    */
     /// JSONオブジェクトを、文字列のハッシュマップに変換。
     ///
     /// # Arguments.
@@ -291,7 +293,7 @@ impl<T> Diagram<T> {
             self.object_to_map(&node["exit"], &mut exit_map);
             if !node["token"].is_null() {
                 self.insert_node(
-                    node["label"].as_str().unwrap().to_string(),
+                    &node["label"].as_str().unwrap().to_string(),
                     node["token"].as_str().unwrap().to_string(),
                     if node["fn"].is_null() {
                         "".to_string()

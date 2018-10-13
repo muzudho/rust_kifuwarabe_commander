@@ -21,7 +21,7 @@ impl LineParser {
     /// 0. シェルを終了するなら真。
     pub fn run<T>(
         diagram_player: &mut DiagramPlayer,
-        diagram: &Diagram<T>,
+        diagram: &DiagramEx<T>,
         t: &mut T,
         req: &mut dyn Request,
         res: &mut dyn Response,
@@ -34,7 +34,7 @@ impl LineParser {
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
         diagram_player.enter_when_out(&diagram);
         // まず 現在ノードを取得。
-        let current_node = diagram.get_node(&diagram_player.get_current());
+        let current_node = diagram.get_diagram().get_node(&diagram_player.get_current());
 
         current_exit_vec = match &current_node.get_exit_map().get(NEXT_EXIT_LABEL) {
             Some(n) => n,
@@ -72,7 +72,7 @@ impl LineParser {
                     LineParser::parse_reg(req, res);
 
                 } else {
-                    LineParser::parse_literal(&diagram.get_node(&matched_node_label), req, res);
+                    LineParser::parse_literal(&diagram.get_diagram().get_node(&matched_node_label), req, res);
 
                 }
 
@@ -93,7 +93,7 @@ impl LineParser {
                 // 次のノード名に変更する。
                 diagram_player.set_current(&matched_node_label.to_string());
 
-                let node = &diagram.get_node(&matched_node_label);
+                let node = &diagram.get_diagram().get_node(&matched_node_label);
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
@@ -117,7 +117,7 @@ impl LineParser {
                     let tail_node_label = &node.get_exit_vec(&NEWLINE_EXIT_LABEL.to_string())[0];
 
                     // 「行末」の関数を「登録」する。
-                    let tail_node = diagram.get_node(&tail_node_label);
+                    let tail_node = diagram.get_diagram().get_node(&tail_node_label);
                     let fn_label = tail_node.get_fn_label();
                     if diagram.contains_fn(&fn_label) {
                         current_newline_fn = *diagram.get_fn(&fn_label);
@@ -222,13 +222,13 @@ impl LineParser {
 
     // cyclomatic complexity を避けたいだけ。
     pub fn parse_line_else<T>(
-        diagram: &Diagram<T>,
+        diagram: &DiagramEx<T>,
         t: &mut T,
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
-        if diagram.contains_node(&ELSE_NODE_LABEL.to_string()) {
-            let fn_label = diagram
+        if diagram.get_diagram().contains_node(&ELSE_NODE_LABEL.to_string()) {
+            let fn_label = diagram.get_diagram()
                 .get_node(&ELSE_NODE_LABEL.to_string())
                 .get_fn_label();
             if diagram.contains_fn(&fn_label) {

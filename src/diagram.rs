@@ -89,11 +89,7 @@ impl Node {
         if self.contains_exit(&name.to_string()) {
             &self.exit_map[name]
         } else {
-            panic!(
-                "{} node's \"{}\" exit is not found.",
-                self.label,
-                name
-            );
+            panic!("{} node's \"{}\" exit is not found.", self.label, name);
         }
     }
     pub fn contains_exit(&self, name: &str) -> bool {
@@ -103,25 +99,53 @@ impl Node {
 
 pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) {}
 
+pub struct DiagramEx<T> {
+    diagram: Diagram,
+    fn_map: HashMap<String, Controller<T>>,
+}
+impl<T> DiagramEx<T> {
+    /// アプリケーション１つにつき、１つのフローチャートを共有します。
+    pub fn new() -> DiagramEx<T> {
+        DiagramEx {
+            diagram: Diagram::new(),
+            fn_map: HashMap::new(),
+        }
+    }
+    pub fn get_diagram(&self) -> &Diagram {
+        &self.diagram
+    }
+    pub fn get_mut_diagram(&mut self) -> &mut Diagram {
+        &mut self.diagram
+    }
+    pub fn get_fn(&self, name: &str) -> &Controller<T> {
+        match self.fn_map.get(&name.to_string()) {
+            Some(f) => &f,
+            None => panic!("\"{}\" fn is not found. Please use contains_fn().", name),
+        }
+    }
+    pub fn contains_fn(&self, name: &str) -> bool {
+        self.fn_map.contains_key(&name.to_string())
+    }
+    /// name は ハードコーディングするので、 &'static str にする。
+    pub fn insert_fn(&mut self, name: &'static str, fn2: Controller<T>) {
+        self.fn_map.insert(name.to_string(), fn2);
+    }
+}
 /// # Parameters.
 ///
 /// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
 /// * `node_map` - 複数件のトークンです。
 #[derive(Default)]
-pub struct Diagram<T> {
-    fn_map: HashMap<String, Controller<T>>,
+pub struct Diagram {
     entry_point: String,
-    /// 特殊なノード名
-    /// '#else' 一致するトークンが無かったときに呼び出されるコールバック関数です。
     node_map: HashMap<String, Node>,
 }
-impl<T> Diagram<T> {
+impl Diagram {
     /// アプリケーション１つにつき、１つのフローチャートを共有します。
-    pub fn new() -> Diagram<T> {
+    pub fn new() -> Diagram {
         Diagram {
             node_map: HashMap::new(),
             entry_point: "".to_string(),
-            fn_map: HashMap::new(),
         }
     }
     /// 確認用。
@@ -148,19 +172,6 @@ impl<T> Diagram<T> {
     }
     pub fn contains_node(&self, label: &str) -> bool {
         self.node_map.contains_key(&label.to_string())
-    }
-    pub fn get_fn(&self, name: &str) -> &Controller<T> {
-        match self.fn_map.get(&name.to_string()) {
-            Some(f) => &f,
-            None => panic!("\"{}\" fn is not found. Please use contains_fn().", name),
-        }
-    }
-    pub fn contains_fn(&self, name: &str) -> bool {
-        self.fn_map.contains_key(&name.to_string())
-    }
-    /// name は ハードコーディングするので、 &'static str にする。
-    pub fn insert_fn(&mut self, name: &'static str, fn2: Controller<T>) {
-        self.fn_map.insert(name.to_string(), fn2);
     }
     /// # Arguments
     ///

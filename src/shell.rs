@@ -198,7 +198,7 @@ impl<T: 'static> Shell<T> {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run(&mut self, diagram: &mut Diagram<T>, t: &mut T) {
+    pub fn run(&mut self, diagram: &mut DiagramEx<T>, t: &mut T) {
         loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut req = if self.is_empty() {
@@ -220,11 +220,11 @@ impl<T: 'static> Shell<T> {
                     Quits => break, // response.quits したとき run ループを抜ける。
                     Reloads(ref file) => {
                         // ファイルからグラフのノード構成を読取。
-                        diagram.read_file(&file);
+                        diagram.get_mut_diagram().read_file(&file);
                     }
                     Saves(ref file) => {
                         // ファイルを上書き。
-                        diagram.write_file(&file);
+                        diagram.get_mut_diagram().write_file(&file);
                     }
                 }
             } else {
@@ -242,7 +242,7 @@ impl<T: 'static> Shell<T> {
     /// * 'diagram' - パースの状態遷移図。
     /// * 't' - 任意のオブジェクト。
     /// * 'line' - コマンドライン文字列。
-    pub fn execute_line(&mut self, diagram: &mut Diagram<T>, t: &mut T, line: &str) {
+    pub fn execute_line(&mut self, diagram: &mut DiagramEx<T>, t: &mut T, line: &str) {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut req = RequestStruct::new(Box::new(line.to_string()));
 
@@ -257,11 +257,11 @@ impl<T: 'static> Shell<T> {
                 Quits => {} // ループの中ではないので無効。
                 Reloads(ref file) => {
                     // ファイルからグラフのノード構成を読取。
-                    diagram.read_file(&file);
+                    diagram.get_mut_diagram().read_file(&file);
                 }
                 Saves(ref file) => {
                     // ファイルを上書き。
-                    diagram.write_file(&file);
+                    diagram.get_mut_diagram().write_file(&file);
                 }
             }
         } else {

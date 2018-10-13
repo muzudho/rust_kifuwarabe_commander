@@ -1,5 +1,6 @@
+extern crate kifuwarabe_shell;
 use kifuwarabe_shell::diagram::ResponseOption;
-use kifuwarabe_shell::diagram::{Diagram, Request, Response};
+use kifuwarabe_shell::diagram::{Diagram, DiagramEx, Request, Response};
 
 const DIAGRAM_JSON_FILE: &str = "diagram.json";
 
@@ -13,7 +14,7 @@ impl ShellVar {
     }
 }
 
-pub fn setup_diagram(diagram: &mut Diagram<ShellVar>) {
+pub fn setup_diagram(diagram: &mut DiagramEx<ShellVar>) {
     // コントローラーを登録。
     diagram.insert_fn("do_a", do_a);
     diagram.insert_fn("do_ab", do_ab);
@@ -29,7 +30,7 @@ pub fn setup_diagram(diagram: &mut Diagram<ShellVar>) {
     diagram.insert_fn("do_reload", do_reload);
 
     // ファイルからグラフのノード構成を読取。
-    diagram.read_file(&DIAGRAM_JSON_FILE);
+    diagram.get_mut_diagram().read_file(&DIAGRAM_JSON_FILE);
 }
 
 pub fn do_a(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {

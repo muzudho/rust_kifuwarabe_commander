@@ -1,6 +1,6 @@
 extern crate kifuwarabe_shell;
 use kifuwarabe_shell::diagram::ResponseOption;
-use kifuwarabe_shell::diagram::{Diagram, DiagramEx, Request, Response};
+use kifuwarabe_shell::diagram::{Diagram, Request, Response};
 
 const DIAGRAM_JSON_FILE: &str = "diagram.json";
 
@@ -14,7 +14,7 @@ impl ShellVar {
     }
 }
 
-pub fn setup_diagram(diagram: &mut DiagramEx<ShellVar>) {
+pub fn setup_diagram(diagram: &mut Diagram<ShellVar>) {
     // コントローラーを登録。
     diagram.insert_fn("do_a", do_a);
     diagram.insert_fn("do_ab", do_ab);
@@ -41,7 +41,6 @@ pub fn do_a(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Respons
 pub fn do_ab(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {
     shell_var.count += 1;
     println!("Ab.");
-    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 
 pub fn do_ab_newline(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {
@@ -57,7 +56,6 @@ pub fn do_abc(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Respo
 pub fn do_cde(shell_var: &mut ShellVar, _req: &dyn Request, _res: &mut dyn Response) {
     shell_var.count += 1;
     println!("Cde.");
-    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 
 /// グラフファイルを上書き保存する。

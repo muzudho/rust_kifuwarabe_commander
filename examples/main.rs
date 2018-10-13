@@ -46,14 +46,14 @@ fn main() {
     let mut shell = Shell::new();
 
     // グラフの作成。
-    let mut diagram = DiagramEx::new();
+    let mut diagram = Diagram::new();
     setup_diagram(&mut diagram); // test_scenario.rs 参照。
 
     // 内容確認出力。
     {
-        println!("entry_point: {}", diagram.get_diagram().get_entry_point());
+        println!("entry_point: {}", diagram.get_entry_point());
         println!("nodes");
-        for (node_label, node) in diagram.get_diagram().get_node_map().iter() {
+        for (node_label, node) in diagram.get_node_map().iter() {
             println!("  - {} {}", node_label, node.get_token());
             for (exit_label, exit_vec) in node.get_exit_map().iter() {
                 println!("    - {}", exit_label);

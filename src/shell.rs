@@ -158,6 +158,17 @@ impl<T: 'static> Shell<T> {
         }
     }
 
+
+    pub fn forward(
+        &self,
+        diagram: &Diagram<T>,
+        req: &mut dyn Request,
+        current_exit_map: &[String],
+    ) -> (String, bool) {
+        self.diagram_player.forward(
+            diagram, req, current_exit_map
+        )
+    }
     /// シェルの使い方より、ダイアグラムの使い方の方が簡単なので、
     /// ダイアグラムを返す。
     pub fn get_diagram_player(&self) -> &DiagramPlayer {
@@ -167,6 +178,8 @@ impl<T: 'static> Shell<T> {
     pub fn get_mut_diagram_player(&mut self) -> &mut DiagramPlayer {
         &mut self.diagram_player
     }
+
+
 
     /// 現在ノードのラベル。
     pub fn get_current(&self) -> String {
@@ -198,7 +211,7 @@ impl<T: 'static> Shell<T> {
     /// コマンドラインの入力受付、および コールバック関数呼出を行います。
     /// スレッドはブロックします。
     /// 強制終了する場合は、 [Ctrl]+[C] を入力してください。
-    pub fn run(&mut self, diagram: &mut DiagramEx<T>, t: &mut T) {
+    pub fn run(&mut self, diagram: &mut Diagram<T>, t: &mut T) {
         loop {
             // リクエストは、キャレットを更新するのでミュータブル。
             let mut req = if self.is_empty() {
@@ -242,7 +255,7 @@ impl<T: 'static> Shell<T> {
     /// * 'diagram' - パースの状態遷移図。
     /// * 't' - 任意のオブジェクト。
     /// * 'line' - コマンドライン文字列。
-    pub fn execute_line(&mut self, diagram: &mut DiagramEx<T>, t: &mut T, line: &str) {
+    pub fn execute_line(&mut self, diagram: &mut Diagram<T>, t: &mut T, line: &str) {
         // リクエストは、キャレットを更新するのでミュータブル。
         let mut req = RequestStruct::new(Box::new(line.to_string()));
 

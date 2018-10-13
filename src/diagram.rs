@@ -61,12 +61,13 @@ pub trait Response {
 /// * `regex_flag` - トークンに正規表現を使うなら真です。
 /// * `exit_link` - 次はどのノードにつながるか。<任意の名前, ノード名>
 pub struct Node {
+    // 行き先が複数パターンある。
+    exit_map: HashMap<String, Vec<String>>,
+
     label: String,
     token: String,
     fn_label: String,
     regex_flag: bool,
-    // 特殊な任意の名前 '#newline'
-    exit_map: HashMap<String, Vec<String>>,
 }
 impl Node {
     pub fn get_label(&self) -> &str {
@@ -99,24 +100,53 @@ impl Node {
 
 pub fn empty_controller<T>(_t: &mut T, _req: &Request, _res: &mut dyn Response) {}
 
-pub struct DiagramEx<T> {
-    diagram: Diagram,
+/// # Parameters.
+///
+/// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
+/// * `node_map` - 複数件のトークンです。
+#[derive(Default)]
+pub struct Diagram<T> {
+    entry_point: String,
+    node_map: HashMap<String, Node>,
+
     fn_map: HashMap<String, Controller<T>>,
 }
-impl<T> DiagramEx<T> {
+impl<T> Diagram<T> {
     /// アプリケーション１つにつき、１つのフローチャートを共有します。
-    pub fn new() -> DiagramEx<T> {
-        DiagramEx {
-            diagram: Diagram::new(),
+    pub fn new() -> Diagram<T> {
+        Diagram {
+            node_map: HashMap::new(),
+            entry_point: "".to_string(),
+
             fn_map: HashMap::new(),
         }
     }
-    pub fn get_diagram(&self) -> &Diagram {
-        &self.diagram
+    /// 確認用。
+    pub fn get_node_map(&self) -> &HashMap<String, Node> {
+        &self.node_map
     }
-    pub fn get_mut_diagram(&mut self) -> &mut Diagram {
-        &mut self.diagram
+    /// クリアー。（登録したコントローラーを除く）
+    pub fn clear(&mut self) {
+        self.entry_point = "".to_string();
+        self.node_map.clear();
     }
+    pub fn get_entry_point(&self) -> String {
+        self.entry_point.to_string()
+    }
+    pub fn set_entry_point(&mut self, value: String) {
+        self.entry_point = value;
+    }
+    pub fn get_node(&self, label: &str) -> &Node {
+        if self.contains_node(&label.to_string()) {
+            &self.node_map[label]
+        } else {
+            panic!("\"{}\" node is not found.", label);
+        }
+    }
+    pub fn contains_node(&self, label: &str) -> bool {
+        self.node_map.contains_key(&label.to_string())
+    }
+
     pub fn get_fn(&self, name: &str) -> &Controller<T> {
         match self.fn_map.get(&name.to_string()) {
             Some(f) => &f,
@@ -141,7 +171,7 @@ impl<T> DiagramEx<T> {
         fn_label2: String,
         exit_map2: HashMap<String, Vec<String>>,
     ) {
-        self.diagram.node_map.insert(
+        self.node_map.insert(
             label2.to_string(),
             Node {
                 label: label2.to_string(),
@@ -166,7 +196,7 @@ impl<T> DiagramEx<T> {
         fn_label2: String,
         exit_map2: HashMap<String, Vec<String>>,
     ) {
-        self.diagram.node_map.insert(
+        self.node_map.insert(
             label.to_string(),
             Node {
                 label: label.to_string(),
@@ -189,7 +219,7 @@ impl<T> DiagramEx<T> {
         exit_map2: HashMap<String, Vec<String>>,
     ) {
         // let exit_map2: HashMap<String, Vec<String>> = [].iter().cloned().collect();
-        self.diagram.node_map.insert(
+        self.node_map.insert(
             label.to_string(),
             Node {
                 label: label.to_string(),
@@ -235,7 +265,7 @@ impl<T> DiagramEx<T> {
 
     /// ファイル読み込み
     pub fn read_file(&mut self, file: &str) {
-        self.diagram.clear();
+        self.clear();
 
         let mut file = match File::open(file) {
             Ok(n) => n,
@@ -255,7 +285,7 @@ impl<T> DiagramEx<T> {
         };
 
         // エントリー・ポイント取得。
-        self.diagram.entry_point = v["entry_point"].as_str().unwrap().to_string();
+        self.entry_point = v["entry_point"].as_str().unwrap().to_string();
 
         for node in v["nodes"].as_array().unwrap().iter() {
             let mut exit_map: HashMap<String, Vec<String>> = HashMap::new();
@@ -302,12 +332,12 @@ impl<T> DiagramEx<T> {
         let mut diagram_json = DiagramJson::new();
         // エントランス
         {
-            let entry_point = &self.diagram.entry_point;
+            let entry_point = &self.entry_point;
             diagram_json.set_entry_point(entry_point.to_string());
         }
 
         // ノード
-        for (node_label, node) in &self.diagram.node_map {
+        for (node_label, node) in &self.node_map {
             let mut node_json = NodeJson::new();
             node_json.set_label(node_label.to_string());
             if node.is_regex() {
@@ -341,48 +371,5 @@ impl<T> DiagramEx<T> {
             Ok(contents_file) => contents_file.write_all(json_str.as_bytes()),
             Err(err) => panic!("Log file open (write mode) error. {}", err),
         };
-    }
-}
-/// # Parameters.
-///
-/// * `fn_map` - 任意の名前と、コントローラー。遷移先を振り分けるルーチン。
-/// * `node_map` - 複数件のトークンです。
-#[derive(Default)]
-pub struct Diagram {
-    entry_point: String,
-    node_map: HashMap<String, Node>,
-}
-impl Diagram {
-    /// アプリケーション１つにつき、１つのフローチャートを共有します。
-    pub fn new() -> Diagram {
-        Diagram {
-            node_map: HashMap::new(),
-            entry_point: "".to_string(),
-        }
-    }
-    /// 確認用。
-    pub fn get_node_map(&self) -> &HashMap<String, Node> {
-        &self.node_map
-    }
-    /// クリアー。（登録したコントローラーを除く）
-    pub fn clear(&mut self) {
-        self.entry_point = "".to_string();
-        self.node_map.clear();
-    }
-    pub fn get_entry_point(&self) -> String {
-        self.entry_point.to_string()
-    }
-    pub fn set_entry_point(&mut self, value: String) {
-        self.entry_point = value;
-    }
-    pub fn get_node(&self, label: &str) -> &Node {
-        if self.contains_node(&label.to_string()) {
-            &self.node_map[label]
-        } else {
-            panic!("\"{}\" node is not found.", label);
-        }
-    }
-    pub fn contains_node(&self, label: &str) -> bool {
-        self.node_map.contains_key(&label.to_string())
     }
 }

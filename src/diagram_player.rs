@@ -40,10 +40,10 @@ impl DiagramPlayer {
     }
 
     /// 入り口に入っていないなら、入り口に進む。
-    pub fn enter_when_out<T>(&mut self, diagram: &DiagramEx<T>) {
+    pub fn enter_when_out<T>(&mut self, diagram: &Diagram<T>) {
         // println!("元入り口: [{}].", self.current_label);
         if self.is_out() {
-            self.set_current(&diagram.get_diagram().get_entry_point().to_string());
+            self.set_current(&diagram.get_entry_point().to_string());
             // println!("入り口を初期化: [{}].", self.current_label);
         }
     }
@@ -52,7 +52,7 @@ impl DiagramPlayer {
     /// `req` - 正規表現で一致があれば、 groups メンバーに内容を入れる。
     pub fn forward<T>(
         &self,
-        diagram: &DiagramEx<T>,
+        diagram: &Diagram<T>,
         req: &mut dyn Request,
         current_exit_map: &[String],
     ) -> (String, bool) {
@@ -65,11 +65,11 @@ impl DiagramPlayer {
         for i_next_node_label in current_exit_map {
             let next_node_label = i_next_node_label.trim();
             // println!("next_node_label: {}", next_node_label);
-            if diagram.get_diagram().contains_node(&next_node_label.to_string()) {
+            if diagram.contains_node(&next_node_label.to_string()) {
                 //println!("contains.");
 
                 let node_name = next_node_label.to_string();
-                let node = &diagram.get_diagram().get_node(&node_name);
+                let node = &diagram.get_node(&node_name);
 
                 let matched;
                 if node.is_regex() {

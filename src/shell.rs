@@ -90,11 +90,12 @@ impl ResponseStruct {
             exit_label: "".to_string(),
         }
     }
+    /// デフォルト値にリセット。
     pub fn reset(&mut self) {
         self.set_caret(0);
         self.set_done_line(false);
         self.set_option(ResponseOption::None);
-        self.forward("");
+        self.forward(NEXT_EXIT_LABEL); // デフォルト値にリセット。
     }
 }
 
@@ -158,28 +159,15 @@ impl<T: 'static> Shell<T> {
         }
     }
 
-
+    /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。
     pub fn forward(
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
-        current_exit_map: &[String],
+        door_label: &str,
     ) -> (String, bool) {
-        self.diagram_player.forward(
-            diagram, req, current_exit_map
-        )
+        self.diagram_player.forward(diagram, req, door_label)
     }
-    /// シェルの使い方より、ダイアグラムの使い方の方が簡単なので、
-    /// ダイアグラムを返す。
-    pub fn get_diagram_player(&self) -> &DiagramPlayer {
-        &self.diagram_player
-    }
-    /// パーサーを使わず状態遷移したいときに使う。
-    pub fn get_mut_diagram_player(&mut self) -> &mut DiagramPlayer {
-        &mut self.diagram_player
-    }
-
-
 
     /// 現在ノードのラベル。
     pub fn get_current(&self) -> String {

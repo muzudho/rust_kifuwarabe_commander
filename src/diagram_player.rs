@@ -54,15 +54,28 @@ impl DiagramPlayer {
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
-        current_exit_map: &[String],
+        door_label: &str
     ) -> (String, bool) {
+
+        // 現在ノード取得。
+        let current_node = diagram.get_node(&self.get_current());
+        // 現在ノード
+        let current_exit_vec = match current_node.get_exit_map().get(door_label) {
+            Some(n) => n,
+            None => panic!(
+                "door_label: [{}] is not found. ([{}] node)",
+                self.get_current(),
+                door_label
+            ),
+        };
+
         // 一番優先されるものを探す。
         let mut best_node_label = "".to_string();
         let mut best_node_re_label = "".to_string();
 
         // 次の候補。
         let mut max_token_len = 0;
-        for i_next_node_label in current_exit_map {
+        for i_next_node_label in current_exit_vec.iter() {
             let next_node_label = i_next_node_label.trim();
             // println!("next_node_label: {}", next_node_label);
             if diagram.contains_node(&next_node_label.to_string()) {

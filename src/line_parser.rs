@@ -26,24 +26,18 @@ impl LineParser {
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
-        let empty_exit_vec = &Vec::new();
         let mut current_newline_fn: Controller<T> = empty_controller;
         let mut registered_next_head_node_label = "".to_string();
-        let mut current_exit_vec: &Vec<String> = &Vec::new(); // 状態の初期化。
 
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
         diagram_player.enter_when_out(&diagram);
-        // まず 現在ノードを取得。
-        let current_node = diagram.get_node(&diagram_player.get_current());
 
-        current_exit_vec = match &current_node.get_exit_map().get(NEXT_EXIT_LABEL) {
-            Some(n) => n,
-            None => panic!(
-                "run_on_line Get_exit_map: [{}] node - [{}] is not found.",
-                diagram_player.get_current(),
-                NEXT_EXIT_LABEL
-            ),
-        };
+        // レスポンスを、デフォルト値にリセット。
+        if let Some(res) = res.as_mut_any().downcast_mut::<ResponseStruct>() {
+            res.reset();
+        } else {
+            panic!("Downcast fail. res.");
+        }
 
         'line: while req.get_caret() < req.get_line_len() {
             // リクエストとレスポンスをクリアー。
@@ -52,16 +46,17 @@ impl LineParser {
             } else {
                 panic!("Downcast fail. req.");
             }
-            if let Some(res) = res.as_mut_any().downcast_mut::<ResponseStruct>() {
-                res.reset();
-            } else {
-                panic!("Downcast fail. res.");
-            }
             // キャレットの位置を、レスポンスからリクエストへ移して、次のトークンへ。
+            // レスポンスはリセットせず、前のループの内容を使いまわす。
 
-            // 次のノード名
-            let (matched_node_label, best_is_regex) =
-                diagram_player.forward(diagram, req, current_exit_vec);
+            // ****************************************************************************************************
+            // * 次の行き先に遷移。（フォワードを受け取り）                                                           *
+            // ****************************************************************************************************
+            let (matched_node_label, best_is_regex) = if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
+                diagram_player.forward(diagram, req, &res.exit_label.to_string())
+            } else {
+                panic!("Downcast fail.");
+            };
 
             // キャレットを進める。
             if matched_node_label != "" {
@@ -139,30 +134,6 @@ impl LineParser {
                     );
                      */
                 }
-
-                // ****************************************************************************************************
-                // * 次の行き先に遷移。（フォワードを受け取り）                                                           *
-                // ****************************************************************************************************
-                if let Some(req) = req.as_mut_any().downcast_mut::<RequestStruct>() {
-                    if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
-                        req.caret = res.caret;
-
-                        if res.exit_label == "" || !node.contains_exit(&res.exit_label.to_string())
-                        {
-                            // 未指定（デフォルト値ではなくて）なら、次の行き先は無し。
-                            current_exit_vec = empty_exit_vec;
-                        } else {
-                            current_exit_vec = node.get_exit_vec(&res.exit_label.to_string());
-                        }
-                    } else {
-                        panic!("Downcast fail.");
-                    }
-                } else {
-                    panic!("Downcast fail.");
-                }
-
-                res.set_caret(0);
-                res.forward(NEXT_EXIT_LABEL); // デフォルト値にリセット。
 
                 if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                     if res.done_line {

@@ -39,6 +39,11 @@ impl DiagramPlayer {
         self.current_label = value.to_string()
     }
 
+    /// グラフの入り口に遷移する。
+    pub fn enter<T>(&mut self, diagram: &Diagram<T>) {
+        self.set_current(&diagram.get_entry_point().to_string());
+    }
+
     /// 入り口に入っていないなら、入り口に進む。
     pub fn enter_when_out<T>(&mut self, diagram: &Diagram<T>) {
         // println!("元入り口: [{}].", self.current_label);

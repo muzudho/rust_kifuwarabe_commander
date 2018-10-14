@@ -159,6 +159,10 @@ impl<T: 'static> Shell<T> {
         }
     }
 
+    pub fn enter(&mut self, diagram: &Diagram<T>){
+        self.diagram_player.enter(&diagram);
+    }
+
     /// 状態遷移する。
     /// req引数の要らないフォワード。
     /// （パーサーのマッチングを省いて、強制的に指定のドアにフォワードする）

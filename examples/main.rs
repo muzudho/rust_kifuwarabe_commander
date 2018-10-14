@@ -45,9 +45,11 @@ fn main() {
     // シェルの作成。
     let mut shell = Shell::new();
 
-    // グラフの作成。
+    // ダイアグラムの作成。
     let mut diagram = Diagram::new();
     setup_diagram(&mut diagram); // test_scenario.rs 参照。
+    // ダイアグラムの入り口に遷移。
+    shell.enter(&diagram);
 
     // 内容確認出力。
     {

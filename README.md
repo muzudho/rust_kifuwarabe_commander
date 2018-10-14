@@ -103,7 +103,7 @@ impl ShellVar {
 
 ```
 fn main() {
-    // グラフ作成し、コントローラー関数の登録。
+    // ダイアグラム作成し、コントローラー関数の登録。
     let mut diagram = Diagram::new();
     diagram.insert_fn("do_abc", do_abc);
     diagram.insert_fn("do_num", do_num);
@@ -118,7 +118,10 @@ fn main() {
     let mut shell = Shell::new();
     println!("Please enter command.");
 
-    // 実行。グラフと 任意のオブジェクトを渡す。
+    // ダイアグラムの入り口に遷移。
+    shell.enter(diagram);
+
+    // 実行。ダイアグラムと 任意のオブジェクトを渡す。
     shell.run(&mut diagram, &mut shell_var);
 
     // 一行だけ実行するだけでいいなら、こっち
@@ -331,7 +334,7 @@ jikan 500 byoyomi 100 black
 - 「それ以外なら」の意味で使うなら、exitのラベルとして ```#next``` の方を使う。デフォルト値なので「それ以外なら」のケースに該当する。
 - ```#else``` は、想定していない入力をキャッチして異常終了するときに使うことになると思う。
 
-## グラフとシェルの関係は、音楽データと音楽プレイヤーの関係。
+## ダイアグラムとシェルの関係は、音楽データと音楽プレイヤーの関係。
 
 response.set_option を使って、シェルに指示を出すことができる。１度に１つだけ。
 
@@ -366,6 +369,6 @@ cargo run --example main
 
 ## Visualizer
 
-CUI だが、グラフを可視化するツールも作成中だぜ☆（*＾～＾*）
+CUI だが、ダイアグラムを可視化するツールも作成中だぜ☆（*＾～＾*）
 
 https://github.com/muzudho/rust_kifuwarabe_shell_visualizer

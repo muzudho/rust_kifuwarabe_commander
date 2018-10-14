@@ -66,7 +66,7 @@ pub fn do_edit_save(_shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn
 
 pub fn do_end(shell_var: &mut ShellVar, _req: &dyn Request, res: &mut dyn Response) {
     shell_var.count += 1;
-    res.set_done_line(true);
+    res.set_done_line(true); // TODO set_done_line の仕様も変えたい。
     println!("End.");
 }
 

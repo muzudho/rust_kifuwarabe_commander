@@ -178,7 +178,12 @@ impl LineParser {
         //  改行（1行読取）に対応したコールバック関数を実行。
         // ****************************************************************************************************
         (current_newline_fn)(t, req, res); // responseは無視する。
-        diagram_player.set_current(&registered_next_head_node_label);
+
+        // TODO 改行の設定、廃止したい。
+        // if registered_next_head_node_label != "" {
+            // 設定されているなら、上書き。
+            diagram_player.set_current(&registered_next_head_node_label);
+        //}
         /*
         println!(
             "行終了 self.current_label: [{}].",

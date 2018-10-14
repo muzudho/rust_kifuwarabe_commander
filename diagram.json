@@ -33,17 +33,32 @@
         {
             "label": "TK.abc",
             "token": "abc",
-            "fn": "do_abc"
+            "fn": "do_abc",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.wordvar",
             "regex": "(\\w+)",
-            "fn": "do_wordvar"
+            "fn": "do_wordvar",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.numvar",
             "regex": "(\\d+)",
-            "fn": "do_numvar"
+            "fn": "do_numvar",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.cde",
@@ -58,12 +73,22 @@
         {
             "label": "TK.reload",
             "token": "reload",
-            "fn": "do_reload"
+            "fn": "do_reload",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.quit",
             "token": "quit",
-            "fn": "do_quit"
+            "fn": "do_quit",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.ab_newline",
@@ -76,22 +101,42 @@
         },
         {
             "label": "#else",
-            "fn": "do_other"
+            "fn": "do_other",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.a",
             "token": "a",
-            "fn": "do_a"
+            "fn": "do_a",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.edit.save",
             "token": "!save",
-            "fn": "do_edit_save"
+            "fn": "do_edit_save",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         },
         {
             "label": "TK.end",
             "token": "end",
-            "fn": "do_end"
+            "fn": "do_end",
+            "exit": {
+                "#next": [
+                    "HEAD.neutral"
+                ]                
+            }
         }
     ]
 }

@@ -36,7 +36,8 @@ impl DiagramPlayer {
 
     /// 現在ノードのラベル。
     pub fn set_current(&mut self, value: &str) {
-        self.current_label = value.to_string()
+        self.current_label = value.to_string();
+        // TODO println!("set_current: [{}].", self.current_label);
     }
 
     /// グラフの入り口に遷移する。
@@ -69,9 +70,9 @@ impl DiagramPlayer {
         let current_exit_vec = match current_node.get_exit_map().get(door_label) {
             Some(n) => n,
             None => panic!(
-                "door_label: [{}] is not found. ([{}] node)",
-                self.get_current(),
-                door_label
+                "door_label=[{}] is not found. (current=[{}] node)",
+                door_label,
+                self.get_current()
             ),
         };
 

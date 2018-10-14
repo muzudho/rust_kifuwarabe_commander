@@ -287,9 +287,9 @@ request とか、 response とか、 forward_parse というのは Webサーバ�
 
 ## 特殊なケース: 改行
 
-*この項目は廃止予定*
+*仕様がコロコロ変わるが 付いてこいだぜ☆（＾～＾）*
 
-改行 をうまく拾えなかったので ```#newline``` という組込みラベル を用意した。
+改行 になるかもしれない ノード には、必ず ```#newline``` という組込みラベル を付けること。
 
 例えば、
 
@@ -303,21 +303,76 @@ jikan 500 byoyomi 100 black
 そんなときは
 
 ```
+{
+    "label": "HEAD.jikan",
+    "exit": {
+        "#next": [
+            "TK.jikan"
+        ]
+    }
+},
+{
+    "label": "TK.jikan",
     "token": "jikan",
     "exit": {
         "#next": [
+            "TK.jikannum"
+        ]
+    }
+},
+{
+    "label": "TK.jikannum",
+    "regex": "(\\d+)",
+    "exit": {
+        "#next": [
             "TK.byoyomi"
+        ]
+    }
+},
+{
+    "label": "TK.byoyomi",
+    "token": "byoyomi",
+    "exit": {
+        "#next": [
+            "TK.byoyominum"
         ],
         "#newline": [
             "TK.newline"
         ]
     }
+},
+{
+    "label": "TK.byoyominum",
+    "regex": "(\\d+)",
+    "exit": {
+        "#next": [
+            "TK.turn"
+        ]
+    }
+},
+{
+    "token": "TK.turn",
+    "exit": {
+        "#next": [
+            "TK.newline"
+        ],
+        "#newline": [
+            "TK.newline"
+        ]
+    }
+}
+{
+    "token": "TK.newline",
+    "exit": {
+        "#next": [
+            "HEAD.jikan"
+        ]
+    }
+}
 ```
 
 8文字で長いが ```#newline``` を書けだぜ。
-で、いちいち 改行していい トークン全部に ```#newline``` 付けるの嫌なんで、
-改行するか ```#newline``` を再設定するまで 以降のトークンにこの設定は有効。
-どこで改行したか分からないが、分からなくていい作りにしろだぜ。
+改行するノードではなく、飛んで行った先のノードに ```#newline``` を付けろだぜ。
 
 ## 特殊なケース: なにとも一致しなかったとき。
 

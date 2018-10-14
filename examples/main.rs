@@ -25,8 +25,10 @@ use test_scenario::*;
 ///     Ab-NewLine.
 /// - 「end xyz」と打鍵して [Enter]キーを押す。
 ///     End.
+///     Ab-NewLine.
 /// - 「xyz」と打鍵して [Enter]キーを押す。
 ///     Word(xyz).
+///     Ab-NewLine.
 /// - 「ab cde xyz」と打鍵して [Enter]キーを押す。
 ///     Ab.
 ///     Cde.
@@ -34,6 +36,7 @@ use test_scenario::*;
 ///     Ab-NewLine.
 /// - 「quit」と打鍵して [Enter]キーを押す。
 ///     Quit.
+///     Finished. shell_var.count: 12.
 /// - 強制終了したいなら、[Ctrl]+[C]キー を押す。
 /// 
 /// - また、「reload」と打鍵して [Enter]キーを押す。

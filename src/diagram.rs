@@ -136,15 +136,15 @@ impl<T> Diagram<T> {
     pub fn set_entry_point(&mut self, value: String) {
         self.entry_point = value;
     }
-    pub fn get_node(&self, label: &str) -> &Node {
-        if self.contains_node(&label.to_string()) {
-            &self.node_map[label]
+    pub fn get_node(&self, node_label: &str) -> &Node {
+        if self.contains_node(&node_label.to_string()) {
+            &self.node_map[node_label]
         } else {
-            panic!("\"{}\" node is not found.", label);
+            panic!("\"{}\" node is not found.", node_label);
         }
     }
-    pub fn contains_node(&self, label: &str) -> bool {
-        self.node_map.contains_key(&label.to_string())
+    pub fn contains_node(&self, node_label: &str) -> bool {
+        self.node_map.contains_key(&node_label.to_string())
     }
 
     pub fn get_fn(&self, name: &str) -> &Controller<T> {

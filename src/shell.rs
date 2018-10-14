@@ -159,6 +159,7 @@ impl<T: 'static> Shell<T> {
         }
     }
 
+    /*
     /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。
     pub fn forward_force(
         &self,
@@ -167,14 +168,15 @@ impl<T: 'static> Shell<T> {
     ) -> String {
         self.diagram_player.forward_force(diagram, door_label)
     }
+     */
     /// パーサーのマッチングを用いて、フォワードする。
-    pub fn forward_parse(
+    pub fn forward(
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
         door_label: &str,
     ) -> (String, bool) {
-        self.diagram_player.forward_parse(diagram, req, door_label)
+        self.diagram_player.forward(diagram, req, door_label)
     }
 
     /// 現在ノードのラベル。

@@ -139,7 +139,7 @@ pub fn do_abc(
 ) {
     shell_var.count += 1;
     println!("I am abc!");
-    // res.forward_parse("#next"); デフォルトなんで書かなくてもいい。
+    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 
 pub fn do_num(
@@ -150,7 +150,7 @@ pub fn do_num(
     // 正規表現は () 1個で全体を囲んだグループ1個 のものにだけ対応。
     let num = req.get_groups()[0];
     println!("I am {}!", num);
-    // res.forward_parse("#next"); デフォルトなんで書かなくてもいい。
+    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 
 pub fn do_def(
@@ -159,12 +159,11 @@ pub fn do_def(
     res: &mut dyn Response,
 ) {
     println!("I am def!");
-    // res.forward_parse("#next"); デフォルトなんで書かなくてもいい。
+    // res.forward("#next"); デフォルトなんで書かなくてもいい。
 }
 ```
 
-request とか、 response とか、 forward_parse というのは Webサーバーのフレームワークを真似ている☆（＾～＾）
-他にも説明は省くがパースを省いて遷移する forward_force も追加した☆（＾～＾）
+request とか、 response とか、 forward というのは Webサーバーのフレームワークを真似ている☆（＾～＾）
 じゃあ次は diagram.json の書き方だぜ。
 
 ## diagram.json の書き方。
@@ -267,11 +266,11 @@ request とか、 response とか、 forward_parse というのは Webサーバ�
 
 ```
     if a == 1 {
-        res.forward_parse("jump");
+        res.forward("jump");
     } else if a == 2 {
-        res.forward_parse("kick");
+        res.forward("kick");
     } else {
-        // res.forward_parse("#next"); デフォルトなんで書かなくてもいい。
+        // res.forward("#next"); デフォルトなんで書かなくてもいい。
     }
 ```
 

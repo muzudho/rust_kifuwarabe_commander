@@ -50,7 +50,7 @@ impl DiagramPlayer {
 
     /// パースを行い、次に一致するノード名。
     /// `req` - 正規表現で一致があれば、 groups メンバーに内容を入れる。
-    pub fn forward_parse<T>(
+    pub fn forward<T>( // forward_parse
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
@@ -59,7 +59,7 @@ impl DiagramPlayer {
 
         // 現在ノード取得。
         let current_node = diagram.get_node(&self.get_current());
-        // 現在ノード
+        // 現在ノードの出口ドア一覧。
         let current_exit_vec = match current_node.get_exit_map().get(door_label) {
             Some(n) => n,
             None => panic!(
@@ -79,6 +79,10 @@ impl DiagramPlayer {
             let next_node_label = i_next_node_label.trim();
             // println!("next_node_label: {}", next_node_label);
             let node_name = next_node_label.to_string();
+            if node_name.trim() == "" {
+                panic!("Next node label is empty. ([{}] node)", &self.get_current())
+            }
+
             if diagram.contains_node(&node_name) {
                 //println!("contains.");
 
@@ -116,6 +120,7 @@ impl DiagramPlayer {
         (best_node_re_label, true)
     }
 
+    /*
     /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。
     /// １つのドアから複数のノードにつながっている場合は　エラーとする。
     pub fn forward_force<T>(
@@ -145,4 +150,5 @@ impl DiagramPlayer {
 
         current_exit_vec[0].to_string()
     }
+    */
 }

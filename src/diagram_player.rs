@@ -78,10 +78,10 @@ impl DiagramPlayer {
         for i_next_node_label in current_exit_vec.iter() {
             let next_node_label = i_next_node_label.trim();
             // println!("next_node_label: {}", next_node_label);
-            if diagram.contains_node(&next_node_label.to_string()) {
+            let node_name = next_node_label.to_string();
+            if diagram.contains_node(&node_name) {
                 //println!("contains.");
 
-                let node_name = next_node_label.to_string();
                 let node = &diagram.get_node(&node_name);
 
                 let matched;

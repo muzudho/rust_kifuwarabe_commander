@@ -2,7 +2,7 @@ use diagram::*;
 use line_parser::*;
 
 /// 不具合を取りたいときに真にする。
-const VERBOSE: bool = false;
+// const VERBOSE: bool = false;
 
 /// ダイアグラム再生機。
 ///
@@ -50,12 +50,14 @@ impl DiagramPlayer {
 
     /// パースを行い、次に一致するノード名。
     /// `req` - 正規表現で一致があれば、 groups メンバーに内容を入れる。
+    /// # Returns.
+    /// 正規表現で一致したら真。
     pub fn forward_parse<T>(
-        &self,
+        &mut self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
         door_label: &str
-    ) -> (String, bool) {
+    ) -> bool {
 
         // 現在ノード取得。
         let current_node = diagram.get_node(&self.get_current());
@@ -112,12 +114,15 @@ impl DiagramPlayer {
             }
         }
 
+        // TODO カレントを遷移し、それが正規表現かどうかだけ返す。
         if best_node_label != "" {
             // 固定長での一致を優先。
-            return (best_node_label, false);
+            self.set_current(&best_node_label);
+            return false;
         }
         // 正規表現は優先度低い。
-        (best_node_re_label, true)
+        self.set_current(&best_node_re_label);
+        true
     }
 
     /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。

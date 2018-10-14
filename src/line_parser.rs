@@ -52,14 +52,14 @@ impl LineParser {
             // ****************************************************************************************************
             // * 次の行き先に遷移。（フォワードを受け取り）                                                           *
             // ****************************************************************************************************
-            let (matched_node_label, best_is_regex) = if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
+            let best_is_regex = if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                 diagram_player.forward_parse(diagram, req, &res.exit_label.to_string())
             } else {
                 panic!("Downcast fail.");
             };
 
             // キャレットを進める。
-            if matched_node_label != "" {
+            if diagram_player.get_current() != "" {
                 res.set_caret(req.get_caret());
 
                 if best_is_regex {
@@ -67,7 +67,7 @@ impl LineParser {
                     LineParser::parse_reg(req, res);
 
                 } else {
-                    LineParser::parse_literal(&diagram.get_node(&matched_node_label), req, res);
+                    LineParser::parse_literal(&diagram.get_node(&diagram_player.get_current()), req, res);
 
                 }
 
@@ -85,10 +85,7 @@ impl LineParser {
                 res.set_caret(req.get_caret());
                 res.forward(NEXT_EXIT_LABEL); // デフォルト値。
 
-                // 次のノード名に変更する。
-                diagram_player.set_current(&matched_node_label.to_string());
-
-                let node = &diagram.get_node(&matched_node_label);
+                let node = &diagram.get_node(&diagram_player.get_current());
 
                 // あれば、コントローラーに処理を移譲。
                 if node.get_fn_label() == "" {
@@ -100,7 +97,7 @@ impl LineParser {
                     println!(
                         "IGNORE: \"{}\" fn (in {} node) is not found.",
                         &node.get_fn_label(),
-                        matched_node_label
+                        diagram_player.get_current()
                     );
                 }
 

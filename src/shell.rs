@@ -16,7 +16,7 @@ use std::any::Any; // https://stackoverflow.com/questions/33687447/how-to-get-a-
 use std::io;
 
 /// 不具合を取りたいときに真にする。
-const VERBOSE: bool = false;
+// const VERBOSE: bool = false;
 
 pub const NEXT_EXIT_LABEL: &str = "#next";
 /// デフォルトのラベル。
@@ -159,6 +159,7 @@ impl<T: 'static> Shell<T> {
         }
     }
 
+    /// 状態遷移する。
     /// req引数の要らないフォワード。
     /// （パーサーのマッチングを省いて、強制的に指定のドアにフォワードする）
     pub fn forward_force(
@@ -168,14 +169,17 @@ impl<T: 'static> Shell<T> {
     ) -> String {
         self.diagram_player.forward_force(diagram, door_label)
     }
+    /// 状態遷移する。
     /// req引数の要るフォワード。
     /// パーサーのマッチングを用いて、フォワードする。
+    /// # Returns.
+    /// 正規表現と一致すれば真。
     pub fn forward_parse(
-        &self,
+        &mut self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
         door_label: &str,
-    ) -> (String, bool) {
+    ) -> bool {
         self.diagram_player.forward_parse(diagram, req, door_label)
     }
 

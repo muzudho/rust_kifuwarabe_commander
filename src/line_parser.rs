@@ -53,7 +53,7 @@ impl LineParser {
             // * 次の行き先に遷移。（フォワードを受け取り）                                                           *
             // ****************************************************************************************************
             let (matched_node_label, best_is_regex) = if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
-                diagram_player.forward(diagram, req, &res.exit_label.to_string())
+                diagram_player.forward_parse(diagram, req, &res.exit_label.to_string())
             } else {
                 panic!("Downcast fail.");
             };

@@ -50,7 +50,7 @@ impl DiagramPlayer {
 
     /// パースを行い、次に一致するノード名。
     /// `req` - 正規表現で一致があれば、 groups メンバーに内容を入れる。
-    pub fn forward<T>( // forward_parse
+    pub fn forward_parse<T>(
         &self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
@@ -120,7 +120,6 @@ impl DiagramPlayer {
         (best_node_re_label, true)
     }
 
-    /*
     /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。
     /// １つのドアから複数のノードにつながっている場合は　エラーとする。
     pub fn forward_force<T>(
@@ -150,5 +149,4 @@ impl DiagramPlayer {
 
         current_exit_vec[0].to_string()
     }
-    */
 }

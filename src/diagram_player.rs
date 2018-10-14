@@ -10,7 +10,7 @@ use line_parser::*;
 ///
 /// * `current_label` - 現在のノードのラベル。
 pub struct DiagramPlayer {
-    current_label: String
+    current_label: String,
 }
 impl Default for DiagramPlayer {
     fn default() -> Self {
@@ -20,7 +20,7 @@ impl Default for DiagramPlayer {
 impl DiagramPlayer {
     pub fn new() -> DiagramPlayer {
         DiagramPlayer {
-            current_label: "".to_string()
+            current_label: "".to_string(),
         }
     }
 
@@ -56,9 +56,8 @@ impl DiagramPlayer {
         &mut self,
         diagram: &Diagram<T>,
         req: &mut dyn Request,
-        door_label: &str
+        door_label: &str,
     ) -> bool {
-
         // 現在ノード取得。
         let current_node = diagram.get_node(&self.get_current());
         // 現在ノードの出口ドア一覧。
@@ -125,14 +124,10 @@ impl DiagramPlayer {
         true
     }
 
+    /// 状態遷移する。
     /// パーサーのマッチングを省いて、強制的に指定のドアにフォワードする。
     /// １つのドアから複数のノードにつながっている場合は　エラーとする。
-    pub fn forward_force<T>(
-        &self,
-        diagram: &Diagram<T>,
-        door_label: &str
-    ) -> String {
-
+    pub fn forward_force<T>(&mut self, diagram: &Diagram<T>, door_label: &str) {
         // 現在ノード取得。
         let current_node = diagram.get_node(&self.get_current());
         // 現在ノード
@@ -146,12 +141,13 @@ impl DiagramPlayer {
         };
 
         if 1 < current_exit_vec.len() {
-            panic!("{} node {} exit is not one."
-            ,&self.get_current()
-            ,door_label
+            panic!(
+                "{} node {} exit is not one.",
+                &self.get_current(),
+                door_label
             )
         }
 
-        current_exit_vec[0].to_string()
+        self.set_current(&current_exit_vec[0].to_string());
     }
 }

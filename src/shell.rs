@@ -162,11 +162,7 @@ impl<T: 'static> Shell<T> {
     /// 状態遷移する。
     /// req引数の要らないフォワード。
     /// （パーサーのマッチングを省いて、強制的に指定のドアにフォワードする）
-    pub fn forward_force(
-        &self,
-        diagram: &Diagram<T>,
-        door_label: &str,
-    ) -> String {
+    pub fn forward_force(&mut self, diagram: &Diagram<T>, door_label: &str) {
         self.diagram_player.forward_force(diagram, door_label)
     }
     /// 状態遷移する。

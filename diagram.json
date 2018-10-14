@@ -23,7 +23,7 @@
             "fn": "do_ab",
             "exit": {
                 "#newline": [
-                    "TK.ab_newline"
+                    "TAIL.ab_newline"
                 ],
                 "#next": [
                     "TK.cde"
@@ -45,6 +45,9 @@
             "regex": "(\\w+)",
             "fn": "do_wordvar",
             "exit": {
+                "#newline": [
+                    "TAIL.ab_newline"
+                ],
                 "#next": [
                     "HEAD.neutral"
                 ]                
@@ -65,6 +68,9 @@
             "token": "cde",
             "fn": "do_cde",
             "exit": {
+                "#newline": [
+                    "TAIL.ab_newline"
+                ],
                 "#next": [
                     "TK.wordvar"
                 ]
@@ -91,7 +97,7 @@
             }
         },
         {
-            "label": "TK.ab_newline",
+            "label": "TAIL.ab_newline",
             "fn": "do_ab_newline",
             "exit": {
                 "#next": [
@@ -133,6 +139,9 @@
             "token": "end",
             "fn": "do_end",
             "exit": {
+                "#newline": [
+                    "TAIL.ab_newline"
+                ],
                 "#next": [
                     "HEAD.neutral"
                 ]                

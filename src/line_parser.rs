@@ -26,9 +26,6 @@ impl LineParser {
         req: &mut dyn Request,
         res: &mut dyn Response,
     ) {
-        let mut current_newline_fn: Controller<T> = empty_controller;
-        let mut registered_next_head_node_label = "".to_string();
-
         // 現在地が遷移図の外なら、入り口から入れだぜ☆（＾～＾）
         diagram_player.enter_when_out(&diagram);
 
@@ -50,7 +47,7 @@ impl LineParser {
             // レスポンスはリセットせず、前のループの内容を使いまわす。
 
             // ****************************************************************************************************
-            // * 次の行き先に遷移。（フォワードを受け取り）                                                           *
+            // * 次の行き先に遷移。（フォワード）                                                             *
             // ****************************************************************************************************
             let best_is_regex = if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                 diagram_player.forward_parse(diagram, req, &res.exit_label.to_string())
@@ -101,37 +98,6 @@ impl LineParser {
                     );
                 }
 
-                // ****************************************************************************************************
-                //  (指定があるなら)行終了を「登録」。(行終了するわけではない)
-                // ****************************************************************************************************
-                if node.contains_exit(&NEWLINE_EXIT_LABEL.to_string()) {
-                    // 次の「行末」ノードへ。抽出するノード ラベルは 必ず先頭の1つだけ とする。
-                    let tail_node_label = &node.get_exit_vec(&NEWLINE_EXIT_LABEL.to_string())[0];
-
-                    // 「行末」の関数を「登録」する。
-                    let tail_node = diagram.get_node(&tail_node_label);
-                    let fn_label = tail_node.get_fn_label();
-                    if diagram.contains_fn(&fn_label) {
-                        current_newline_fn = *diagram.get_fn(&fn_label);
-                    } else {
-                        // 無い関数が設定されていた場合は、コンソール表示だけする。
-                        println!(
-                            "IGNORE: \"{}\" fn (in {} node) is not found.",
-                            &fn_label, NEWLINE_EXIT_LABEL
-                        );
-                    }
-
-                    // 次の「行頭」ノードを「登録」。抽出するノード ラベルは 必ず先頭の1つだけ とする。
-                    registered_next_head_node_label =
-                        tail_node.get_exit_vec(NEXT_EXIT_LABEL)[0].to_string();
-                    /*
-                    println!(
-                        "行終了登録 tail_node_label: [{}], registered_next_head_node_label: [{}].",
-                        tail_node_label, registered_next_head_node_label
-                    );
-                     */
-                }
-
                 if let Some(res) = res.as_any().downcast_ref::<ResponseStruct>() {
                     if res.done_line {
                         // 行解析の終了。
@@ -174,22 +140,59 @@ impl LineParser {
             // 次のトークンへ。
         }
 
+        // ここで、現在ノードは "#newline" を記述している必要がある。
         // ****************************************************************************************************
-        //  改行（1行読取）に対応したコールバック関数を実行。
+        //  (指定があるなら)行終了を「登録」。(行終了するわけではない)
         // ****************************************************************************************************
-        (current_newline_fn)(t, req, res); // responseは無視する。
+        let node = &diagram.get_node(&diagram_player.get_current());
+        if node.contains_exit(&NEWLINE_EXIT_LABEL.to_string()) {
+            // 次の「行末」ノードへ。抽出するノード ラベルは 必ず先頭の1つだけ とする。
+            let tail_node_label = &node.get_exit_vec(&NEWLINE_EXIT_LABEL.to_string())[0];
 
-        // TODO 改行の設定、廃止したい。
-        // if registered_next_head_node_label != "" {
-            // 設定されているなら、上書き。
+            // 「行末」の関数を「登録」する。
+            let tail_node = diagram.get_node(&tail_node_label);
+            let fn_label = tail_node.get_fn_label();
+            if diagram.contains_fn(&fn_label) {
+                let mut current_newline_fn: Controller<T> = *diagram.get_fn(&fn_label);
+                // ****************************************************************************************************
+                //  改行（1行読取）に対応したコールバック関数を実行。
+                // ****************************************************************************************************
+                (current_newline_fn)(t, req, res); // responseは無視する。
+
+            } else {
+                // 無い関数が設定されていた場合は、コンソール表示だけする。
+                println!(
+                    "IGNORE: \"{}\" fn (in {} node) is not found.",
+                    &fn_label, NEWLINE_EXIT_LABEL
+                );
+            }
+
+            // 次の「行頭」ノードを「登録」。抽出するノード ラベルは 必ず先頭の1つだけ とする。
+            let mut registered_next_head_node_label =
+                tail_node.get_exit_vec(NEXT_EXIT_LABEL)[0].to_string();
             diagram_player.set_current(&registered_next_head_node_label);
-        //}
-        /*
-        println!(
-            "行終了 self.current_label: [{}].",
-            self.current_label
-        );
-         */
+            /*
+            println!(
+                "行終了登録 tail_node_label: [{}], registered_next_head_node_label: [{}].",
+                tail_node_label, registered_next_head_node_label
+            );
+                */
+
+
+            // TODO 改行の設定、廃止したい。
+            // if registered_next_head_node_label != "" {
+                // 設定されているなら、上書き。
+            //}
+            /*
+            println!(
+                "行終了 self.current_label: [{}].",
+                self.current_label
+            );
+            */
+
+        } else {
+            panic!("\"#newline\" door is not found. (current [{}] node)", diagram_player.get_current());
+        }
     }
 
     // cyclomatic complexity を避けたいだけ。

@@ -86,11 +86,11 @@ impl Node {
     pub fn get_exit_map(&self) -> &HashMap<String, Vec<String>> {
         &self.exit_map
     }
-    pub fn get_exit_vec(&self, name: &str) -> &Vec<String> {
-        if self.contains_exit(&name.to_string()) {
-            &self.exit_map[name]
+    pub fn get_exit_vec(&self, door_label: &str) -> &Vec<String> {
+        if self.contains_exit(&door_label.to_string()) {
+            &self.exit_map[door_label]
         } else {
-            panic!("{} node's \"{}\" exit is not found.", self.label, name);
+            panic!("\"{}\" door is not found. ({} node)", door_label, self.label);
         }
     }
     pub fn contains_exit(&self, name: &str) -> bool {
